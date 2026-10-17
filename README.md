@@ -1,6 +1,6 @@
 # BTP Chantiers : plateforme distribuée de gestion de chantiers
 
-[![CI](https://github.com/VOTRE-COMPTE/btp-chantiers/actions/workflows/ci.yml/badge.svg)](https://github.com/VOTRE-COMPTE/btp-chantiers/actions/workflows/ci.yml)
+[![CI](https://github.com/MohamedOuijjane/btp-chantiers/actions/workflows/ci.yml/badge.svg)](https://github.com/MohamedOuijjane/btp-chantiers/actions/workflows/ci.yml)
 
 Application distribuée qui permet de piloter des chantiers du BTP : planification des tâches, affectation des ouvriers, suivi des matériaux et calcul de l'avancement.
 Elle est composée de **4 microservices hétérogènes** qui communiquent par **REST/JSON** et **SOAP/XML**. Chaque service est conteneurisé avec **Docker**.
@@ -52,7 +52,7 @@ Les choix d'architecture sont justifiés dans les [ADR](docs/adr/), et les écha
 **Prérequis :** Docker Desktop (ou Docker Engine avec Compose v2).
 
 ```bash
-git clone https://github.com/VOTRE-COMPTE/btp-chantiers.git
+git clone https://github.com/MohamedOuijjane/btp-chantiers.git
 cd btp-chantiers
 cp .env.example .env          # optionnel
 docker compose up --build -d  # ou : make up
