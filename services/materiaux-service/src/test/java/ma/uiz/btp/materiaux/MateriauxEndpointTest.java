@@ -39,7 +39,7 @@ class MateriauxEndpointTest {
                   <m:stock>100</m:stock><m:seuilAlerte>20</m:seuilAlerte>
                 </m:materiau></m:AjouterMateriauRequest>""".formatted(NS, ref))))
               .andExpect(noFault())
-              .andExpect(xpath("//m:materiau/m:enAlerte", NAMESPACES).evaluatesTo(false));
+              .andExpect(xpath("//m:materiau/m:enAlerte", NAMESPACES).evaluatesTo("false"));
     }
 
     @Test
@@ -49,7 +49,7 @@ class MateriauxEndpointTest {
                 <m:VerifierStockRequest xmlns:m="%s"><m:materiauId>1</m:materiauId><m:quantite>150</m:quantite></m:VerifierStockRequest>
                 """.formatted(NS))))
               .andExpect(noFault())
-              .andExpect(xpath("//m:disponible", NAMESPACES).evaluatesTo(false));
+              .andExpect(xpath("//m:disponible", NAMESPACES).evaluatesTo("false"));
     }
 
     @Test
