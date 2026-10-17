@@ -1,0 +1,19 @@
+# Java
+target/
+*.class
+# Node
+node_modules/
+dist/
+coverage/
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+# Secrets
+.env

@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+services:
+  taches:
+    url: http://localhost:1
+  timeout: 200ms

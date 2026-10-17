@@ -1,0 +1,25 @@
+server:
+  port: ${PORT:8084}
+
+spring:
+  application:
+    name: materiaux-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/materiaux_db}
+    username: ${DB_USER:btp}
+    password: ${DB_PASSWORD:btp}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+services:
+  chantiers:
+    url: ${CHANTIERS_URL:http://localhost:8081}
+  timeout: 2s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

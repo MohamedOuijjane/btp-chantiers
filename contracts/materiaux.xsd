@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Contrat SOAP du module Matériaux (approche contract-first).
+  Le WSDL est généré automatiquement à partir de ce schéma :
+  http://localhost:8084/ws/materiaux.wsdl
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://btp.uiz.ma/materiaux"
+           targetNamespace="http://btp.uiz.ma/materiaux"
+           elementFormDefault="qualified">
+
+    <xs:simpleType name="TypeMouvement">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ENTREE"/>
+            <xs:enumeration value="SORTIE"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="Materiau">
+        <xs:sequence>
+            <xs:element name="id" type="xs:long" minOccurs="0"/>
+            <xs:element name="reference" type="xs:string"/>
+            <xs:element name="nom" type="xs:string"/>
+            <xs:element name="unite" type="xs:string"/>
+            <xs:element name="stock" type="xs:double"/>
+            <xs:element name="seuilAlerte" type="xs:double"/>
+            <xs:element name="enAlerte" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- AjouterMateriau -->
+    <xs:element name="AjouterMateriauRequest">
+        <xs:complexType><xs:sequence>
+            <xs:element name="materiau" type="tns:Materiau"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+    <xs:element name="AjouterMateriauResponse">
+        <xs:complexType><xs:sequence>
+            <xs:element name="materiau" type="tns:Materiau"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+
+    <!-- GetMateriau -->
+    <xs:element name="GetMateriauRequest">
+        <xs:complexType><xs:sequence>
+            <xs:element name="id" type="xs:long"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+    <xs:element name="GetMateriauResponse">
+        <xs:complexType><xs:sequence>
+            <xs:element name="materiau" type="tns:Materiau"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+
+    <!-- ListerMateriaux -->
+    <xs:element name="ListerMateriauxRequest">
+        <xs:complexType><xs:sequence>
+            <xs:element name="enAlerteSeulement" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+    <xs:element name="ListerMateriauxResponse">
+        <xs:complexType><xs:sequence>
+            <xs:element name="materiau" type="tns:Materiau" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+
+    <!-- VerifierStock : consommé par le module Tâches -->
+    <xs:element name="VerifierStockRequest">
+        <xs:complexType><xs:sequence>
+            <xs:element name="materiauId" type="xs:long"/>
+            <xs:element name="quantite" type="xs:double"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+    <xs:element name="VerifierStockResponse">
+        <xs:complexType><xs:sequence>
+            <xs:element name="disponible" type="xs:boolean"/>
+            <xs:element name="stockActuel" type="xs:double"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+
+    <!-- EnregistrerMouvement : entrée ou sortie de stock vers un chantier -->
+    <xs:element name="EnregistrerMouvementRequest">
+        <xs:complexType><xs:sequence>
+            <xs:element name="materiauId" type="xs:long"/>
+            <xs:element name="chantierId" type="xs:long"/>
+            <xs:element name="type" type="tns:TypeMouvement"/>
+            <xs:element name="quantite" type="xs:double"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+    <xs:element name="EnregistrerMouvementResponse">
+        <xs:complexType><xs:sequence>
+            <xs:element name="mouvementId" type="xs:long"/>
+            <xs:element name="stockApres" type="xs:double"/>
+            <xs:element name="enAlerte" type="xs:boolean"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+</xs:schema>

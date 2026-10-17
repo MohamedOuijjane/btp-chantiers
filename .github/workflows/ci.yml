@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chantiers:
+    name: Chantiers (Spring Boot)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/chantiers-service } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: maven }
+      - run: mvn -B verify
+
+  materiaux:
+    name: Matériaux (Spring-WS SOAP)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/materiaux-service } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: maven }
+      - run: mvn -B verify
+
+  taches:
+    name: Tâches (NestJS)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/taches-service } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm, cache-dependency-path: services/taches-service/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  ouvriers:
+    name: Ouvriers (FastAPI)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/ouvriers-service } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12', cache: pip }
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+
+  docker:
+    name: Build des images Docker
+    needs: [chantiers, materiaux, taches, ouvriers]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build

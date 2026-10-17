@@ -1,0 +1,35 @@
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: chantiers-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/chantiers_db}
+    username: ${DB_USER:btp}
+    password: ${DB_PASSWORD:btp}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  jackson:
+    default-property-inclusion: non_null
+
+services:
+  taches:
+    url: ${TACHES_URL:http://localhost:8082}
+  timeout: 2s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

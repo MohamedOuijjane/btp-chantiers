@@ -1,0 +1,117 @@
+name: btp-chantiers
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  # ---------- Bases de données (une par service) ----------
+  postgres:
+    image: postgres:16-alpine
+    <<: *restart
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-btp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-btp}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-btp}"]
+      interval: 5s
+      retries: 10
+    networks: [data]
+
+  mongo:
+    image: mongo:7
+    <<: *restart
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      retries: 10
+    networks: [data]
+
+  mysql:
+    image: mysql:8.4
+    <<: *restart
+    environment:
+      MYSQL_DATABASE: materiaux_db
+      MYSQL_USER: ${MYSQL_USER:-btp}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-btp}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 20
+    networks: [data]
+
+  # ---------- Modules métier ----------
+  chantiers-service:
+    build: ./services/chantiers-service
+    <<: *restart
+    ports: ["8081:8081"]   # accès direct à Swagger / WSDL en dev
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/chantiers_db
+      DB_USER: ${POSTGRES_USER:-btp}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-btp}
+      TACHES_URL: http://taches-service:8082
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [data, backend]
+
+  taches-service:
+    build: ./services/taches-service
+    <<: *restart
+    ports: ["8082:8082"]   # accès direct à Swagger / WSDL en dev
+    environment:
+      MONGO_URL: mongodb://mongo:27017/taches_db
+      CHANTIERS_URL: http://chantiers-service:8081
+      OUVRIERS_URL: http://ouvriers-service:8083
+      MATERIAUX_URL: http://materiaux-service:8084
+    depends_on:
+      mongo: { condition: service_healthy }
+    networks: [data, backend]
+
+  ouvriers-service:
+    build: ./services/ouvriers-service
+    <<: *restart
+    ports: ["8083:8083"]   # accès direct à Swagger / WSDL en dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-btp}:${POSTGRES_PASSWORD:-btp}@postgres:5432/ouvriers_db
+      TACHES_URL: http://taches-service:8082
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [data, backend]
+
+  materiaux-service:
+    build: ./services/materiaux-service
+    <<: *restart
+    ports: ["8084:8084"]   # accès direct à Swagger / WSDL en dev
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/materiaux_db
+      DB_USER: ${MYSQL_USER:-btp}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-btp}
+      CHANTIERS_URL: http://chantiers-service:8081
+    depends_on:
+      mysql: { condition: service_healthy }
+    networks: [data, backend]
+
+  # ---------- Point d'entrée unique ----------
+  gateway:
+    image: nginx:1.27-alpine
+    <<: *restart
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on: [chantiers-service, taches-service, ouvriers-service, materiaux-service]
+    networks: [backend]
+
+networks:
+  data:      # services <-> bases de données
+  backend:   # services <-> services et gateway
+
+volumes:
+  postgres-data:
+  mongo-data:
+  mysql-data:

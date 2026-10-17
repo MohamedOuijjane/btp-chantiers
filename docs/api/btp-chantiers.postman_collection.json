@@ -1,0 +1,366 @@
+{
+  "info": {
+    "name": "BTP Chantiers - Équipe 18",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "gateway",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Chantiers (REST)",
+      "item": [
+        {
+          "name": "Lister",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": []
+          }
+        },
+        {
+          "name": "Créer",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Résidence Al Amal\",\n  \"adresse\": \"Hay Mohammadi, Agadir\",\n  \"client\": \"Société Souss Immo\",\n  \"dateDebut\": \"2026-11-01\",\n  \"dateFinPrevue\": \"2027-06-30\",\n  \"budget\": 2500000,\n  \"statut\": \"EN_COURS\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Consulter",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/1",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "1"
+              ]
+            },
+            "header": []
+          }
+        },
+        {
+          "name": "Avancement",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/1/avancement",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "1",
+                "avancement"
+              ]
+            },
+            "header": []
+          }
+        },
+        {
+          "name": "Clôturer",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/1/cloture",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "1",
+                "cloture"
+              ]
+            },
+            "header": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ouvriers (REST)",
+      "item": [
+        {
+          "name": "Lister disponibles",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers?disponible=true",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers"
+              ]
+            },
+            "header": []
+          }
+        },
+        {
+          "name": "Créer",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"El Amrani\",\n  \"prenom\": \"Youssef\",\n  \"cin\": \"JB123456\",\n  \"specialite\": \"MACON\",\n  \"telephone\": \"0612345678\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Planning",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers/1/planning",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers",
+                "1",
+                "planning"
+              ]
+            },
+            "header": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Matériaux (SOAP)",
+      "item": [
+        {
+          "name": "AjouterMateriau",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:AjouterMateriauRequest><m:materiau><m:reference>CIM-01</m:reference><m:nom>Ciment CPJ45</m:nom><m:unite>sac</m:unite><m:stock>100</m:stock><m:seuilAlerte>20</m:seuilAlerte></m:materiau></m:AjouterMateriauRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          }
+        },
+        {
+          "name": "ListerMateriaux",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:ListerMateriauxRequest></m:ListerMateriauxRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          }
+        },
+        {
+          "name": "VerifierStock",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:VerifierStockRequest><m:materiauId>1</m:materiauId><m:quantite>40</m:quantite></m:VerifierStockRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          }
+        },
+        {
+          "name": "EnregistrerMouvement",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:EnregistrerMouvementRequest><m:materiauId>1</m:materiauId><m:chantierId>1</m:chantierId><m:type>SORTIE</m:type><m:quantite>10</m:quantite></m:EnregistrerMouvementRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tâches (REST)",
+      "item": [
+        {
+          "name": "Lister par chantier",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/taches?chantierId=1",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches"
+              ]
+            },
+            "header": []
+          }
+        },
+        {
+          "name": "Créer",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/taches",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chantierId\": 1,\n  \"titre\": \"Coulage des fondations\",\n  \"dateDebut\": \"2026-11-02\",\n  \"dateFin\": \"2026-11-10\",\n  \"ouvrierIds\": [\n    1\n  ],\n  \"besoinsMateriaux\": [\n    {\n      \"materiauId\": 1,\n      \"quantite\": 40\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Avancement",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/:id/avancement",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                ":id",
+                "avancement"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"avancement\": 60\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
