@@ -4,9 +4,9 @@
 
 | Principe | Mise en œuvre |
 |---|---|
-| **Autonomie des modules** | Chaque service a son propre code, son Dockerfile, sa base de données et son cycle de tests. |
-| **Database per service** | Aucun service ne lit la base d'un autre ; toute donnée externe passe par une API. |
-| **Interopérabilité** | 3 langages (Java, TypeScript, Python), 2 protocoles (REST/JSON, SOAP/XML), 3 SGBD. |
+| **Autonomie des modules** | Chaque service a son propre code, son Dockerfile, son schéma de base de données et son cycle de tests. |
+| **Base unique, un schéma par module** | Une seule base PostgreSQL `btp_db` ; chaque module a son schéma et son utilisateur, sans droit sur les autres. Toute donnée externe passe par une API ([ADR-0005](adr/0005-base-de-donnees-unique.md)). |
+| **Interopérabilité** | 3 langages (Java, TypeScript, Python), 4 frameworks, 2 protocoles (REST/JSON, SOAP/XML). |
 | **Contrats explicites** | OpenAPI généré par chaque service REST ; XSD contract-first pour SOAP. |
 | **Résilience** | Timeouts de 2 s sur tous les appels sortants ; modes dégradés documentés. |
 | **Point d'entrée unique** | Gateway nginx avec propagation d'un `X-Request-Id` pour tracer une requête à travers les services. |
