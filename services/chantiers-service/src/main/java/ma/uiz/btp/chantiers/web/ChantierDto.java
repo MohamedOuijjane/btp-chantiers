@@ -1,5 +1,6 @@
 package ma.uiz.btp.chantiers.web;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import ma.uiz.btp.chantiers.domain.Chantier;
 import ma.uiz.btp.chantiers.domain.StatutChantier;
@@ -19,6 +20,8 @@ public final class ChantierDto {
             @NotNull LocalDate dateDebut,
             @NotNull LocalDate dateFinPrevue,
             @NotNull @PositiveOrZero BigDecimal budget,
+            @Schema(description = "Ignoré à la création (toujours PLANIFIE). En modification : PLANIFIE, EN_COURS ou SUSPENDU ; "
+                    + "TERMINE est refusé (409), utiliser PATCH /api/chantiers/{id}/cloture.")
             StatutChantier statut) {
 
         @AssertTrue(message = "dateFinPrevue doit être postérieure ou égale à dateDebut")
