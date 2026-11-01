@@ -6,7 +6,7 @@ x-restart: &restart
 services:
   # ---------- Base de données unique ----------
   # Une seule base "btp_db" (exigence du projet), un schéma et un utilisateur par module :
-  # chaque module reste propriétaire de ses tables (voir docs/adr/0005-base-unique.md).
+  # chaque module reste propriétaire de ses tables (voir docs/adr/0005-base-de-donnees-unique.md).
   postgres:
     image: postgres:16-alpine
     <<: *restart
