@@ -7,7 +7,7 @@ L'équipe applique **Scrum** sur 3 sprints d'une semaine. Le backlog, les sprint
 | Rôle | Membre | Responsabilités |
 |---|---|---|
 | **Product Owner** | OUIJJANE Mohamed | Porte le besoin métier, rédige et priorise le backlog (Priority P0 → P3), accepte ou refuse les éléments en revue de sprint |
-| **Scrum Master** | IJJAALI Houssam | Anime les cérémonies, fait respecter la Definition of Ready et la Definition of Done, lève les blocages |
+| **Scrum Master** | BENZINEB Ilyas | Anime les cérémonies, fait respecter la Definition of Ready et la Definition of Done, lève les blocages |
 | **Développeurs** | toute l'équipe (Mohamed, Houssam, Ilyas, Hatim) | Estiment, réalisent, testent et relisent ; s'organisent eux-mêmes pour atteindre l'objectif du sprint |
 
 Le Product Owner développe aussi, mais il ne relit pas seul ses propres PR (CODEOWNERS impose un second relecteur).

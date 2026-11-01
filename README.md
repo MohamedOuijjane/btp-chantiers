@@ -174,8 +174,8 @@ Backlog, epics et planification : [GitHub Project de l'équipe](https://github.c
 | Membre | Rôle Scrum | Responsabilités |
 |---|---|---|
 | OUIJJANE Mohamed | Product Owner · développeur | Chef de projet, besoin métier et backlog ; modules Chantiers, gateway et front-end |
-| IJJAALI Houssam | Scrum Master · développeur | Architecture technique, animation des cérémonies ; module Tâches & Avancement |
-| BENZINEB Ilyas | Développeur | Responsable qualité (tests, recette, anomalies) ; module Ouvriers |
+| IJJAALI Houssam | Développeur | Architecture technique ; module Tâches & Avancement |
+| BENZINEB Ilyas | Scrum Master · développeur | Animation des cérémonies, responsable qualité (tests, recette, anomalies) ; module Ouvriers |
 | Hatim | Développeur | Module Matériaux (SOAP) |
 
 ## Documentation

@@ -22,8 +22,8 @@ Documents de référence : [cahier des charges](./), [architecture](../architect
 | Rôle | Membre | Responsabilités qualité |
 |---|---|---|
 | Product Owner / chef de projet | OUIJJANE Mohamed | Critères d'acceptation des user stories, validation de la recette, arbitrage des priorités |
-| Scrum Master / architecte | IJJAALI Houssam | Respect du processus (Definition of Ready / Done), cohérence des contrats d'API, revue des PR d'architecture |
-| Responsable qualité | BENZINEB Ilyas | Tenue de ce PAQ, plan de tests et recette, suivi des anomalies, contrôle des indicateurs |
+| Scrum Master / responsable qualité | BENZINEB Ilyas | Respect du processus (Definition of Ready / Done), tenue de ce PAQ, plan de tests et recette, suivi des anomalies, contrôle des indicateurs |
+| Architecte | IJJAALI Houssam | Cohérence des contrats d'API, revue des PR d'architecture |
 | Développeurs | toute l'équipe | Tests unitaires, revue croisée, respect des conventions |
 
 Chaque module a **deux propriétaires** dans `.github/CODEOWNERS` : une PR est toujours relue par une autre personne que son auteur.
