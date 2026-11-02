@@ -1,50 +1,145 @@
-# Mises à jour hebdomadaires des dépendances (lundi), 3 PR maximum par écosystème
+# Mises à jour des dépendances, prudentes jusqu'à la livraison :
+# - une fois par semaine (lundi), vers develop ;
+# - mineures et correctifs seulement, regroupés en une PR par écosystème et par dossier ;
+# - mises à jour majeures ignorées (elles seront traitées après la livraison du 20/11).
+# Les alertes et mises à jour de sécurité Dependabot ne dépendent pas de ce fichier.
 version: 2
 
 updates:
+  # Chantiers (Spring Boot)
   - package-ecosystem: maven
-    directories: ['/services/chantiers-service', '/services/materiaux-service']
-    schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    directory: /services/chantiers-service
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      mineures-et-correctifs:
+        patterns: ['*']
+        update-types: [minor, patch]
+    open-pull-requests-limit: 2
     labels: [dependencies]
-    commit-message: { prefix: 'chore(deps)' }
+    commit-message:
+      prefix: 'chore(deps)'
 
+  # Matériaux (Spring-WS)
+  - package-ecosystem: maven
+    directory: /services/materiaux-service
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      mineures-et-correctifs:
+        patterns: ['*']
+        update-types: [minor, patch]
+    open-pull-requests-limit: 2
+    labels: [dependencies]
+    commit-message:
+      prefix: 'chore(deps)'
+
+  # Tâches (NestJS)
   - package-ecosystem: npm
     directory: /services/taches-service
-    schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      mineures-et-correctifs:
+        patterns: ['*']
+        update-types: [minor, patch]
+    open-pull-requests-limit: 2
     labels: [dependencies]
-    commit-message: { prefix: 'chore(deps)' }
+    commit-message:
+      prefix: 'chore(deps)'
 
-  # Le dossier frontend/ sera créé par l'issue F1 (#24)
+  # Front-end (React)
   - package-ecosystem: npm
     directory: /frontend
-    schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      mineures-et-correctifs:
+        patterns: ['*']
+        update-types: [minor, patch]
+    open-pull-requests-limit: 2
     labels: [dependencies]
-    commit-message: { prefix: 'chore(deps)' }
+    commit-message:
+      prefix: 'chore(deps)'
 
+  # Ouvriers (FastAPI)
   - package-ecosystem: pip
     directory: /services/ouvriers-service
-    schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      mineures-et-correctifs:
+        patterns: ['*']
+        update-types: [minor, patch]
+    open-pull-requests-limit: 2
     labels: [dependencies]
-    commit-message: { prefix: 'chore(deps)' }
+    commit-message:
+      prefix: 'chore(deps)'
 
+  # Images Docker (une PR par dossier)
   - package-ecosystem: docker
     directories:
       - /services/chantiers-service
       - /services/taches-service
       - /services/ouvriers-service
       - /services/materiaux-service
-    schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+      - /frontend
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      mineures-et-correctifs:
+        patterns: ['*']
+        update-types: [minor, patch]
+    open-pull-requests-limit: 2
     labels: [dependencies]
-    commit-message: { prefix: 'chore(deps)' }
+    commit-message:
+      prefix: 'chore(deps)'
 
+  # Workflows GitHub Actions
   - package-ecosystem: github-actions
     directory: /
-    schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      mineures-et-correctifs:
+        patterns: ['*']
+        update-types: [minor, patch]
+    open-pull-requests-limit: 2
     labels: [dependencies]
-    commit-message: { prefix: 'chore(deps)' }
+    commit-message:
+      prefix: 'chore(deps)'

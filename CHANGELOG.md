@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+### Modifié
+- Dependabot : mises à jour hebdomadaires vers `develop`, mineures et correctifs seulement, regroupées en une PR par écosystème et par dossier ; mises à jour majeures ignorées jusqu'à la livraison.
+
 ## [0.1.0] - 2026-11-02
 
 ### Ajouté
@@ -14,10 +17,14 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Pipeline qualité : couverture (JaCoCo, Jest, pytest-cov), analyse statique (Checkstyle, SpotBugs, ESLint, ruff), SonarCloud, CodeQL, vérification du titre des PR, labels automatiques, Dependabot et workflow de release avec scan Trivy et publication sur ghcr.io ([#45](https://github.com/MohamedOuijjane/btp-chantiers/pull/45)).
 - Plan d'Assurance Qualité, documentation Scrum (rôles, cérémonies, Definition of Ready / Done, modèles de revue et de rétrospective, sprint 1), CHANGELOG, politique de sécurité, code de conduite et licence MIT ([#46](https://github.com/MohamedOuijjane/btp-chantiers/pull/46)).
 - Socle du front-end : Vite, React 18, TypeScript strict, Tailwind CSS + shadcn/ui, design system de la maquette en thème clair et sombre, layout et routes, image Docker servie derrière la gateway, job CI `frontend` ([#48](https://github.com/MohamedOuijjane/btp-chantiers/pull/48)).
+- Maquette du front-end validée par l'encadrant (8 écrans) dans `docs/frontend/maquette/` et section « Maquette validée » de l'architecture du front ([#47](https://github.com/MohamedOuijjane/btp-chantiers/pull/47)).
+- Front-end : types alignés sur les contrats cibles, fonctions `api.ts` à données fictives (latence et refus 409 / 422 / 503 simulés), hooks TanStack Query et guide de branchement `docs/frontend/integration.md` ([#53](https://github.com/MohamedOuijjane/btp-chantiers/pull/53)).
+- Front-end : pages Chantiers (liste filtrable, fiche avec onglets Tâches et Matériaux consommés, création, modification et clôture) conformes à la maquette ([#54](https://github.com/MohamedOuijjane/btp-chantiers/pull/54)).
 
 ### Modifié
 - Base de données unique PostgreSQL `btp_db` avec un schéma et un utilisateur par module ; Chantiers et Ouvriers migrés, MongoDB et MySQL conservés temporairement ([#1](https://github.com/MohamedOuijjane/btp-chantiers/pull/1)).
 - CODEOWNERS : deux relecteurs par module ([#1](https://github.com/MohamedOuijjane/btp-chantiers/pull/1)).
+- Nom complet de l'équipe (SALHI Hatim) dans le README et la documentation agile ([#47](https://github.com/MohamedOuijjane/btp-chantiers/pull/47)).
 - README réécrit : architecture, qualité, méthode agile, équipe et liens vers toute la documentation.
 - Modèle de pull request : type de changement, checklists de l'auteur et du relecteur.
 
