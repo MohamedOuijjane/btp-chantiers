@@ -28,3 +28,12 @@ export function formatNombre(valeur: number) {
 export function initiales(prenom: string, nom: string) {
   return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
 }
+
+/** 0612345678 → « 06 12 34 56 78 » ; +212612345678 → « +212 6 12 34 56 78 ». */
+export function formatTelephone(tel: string | null | undefined) {
+  if (!tel) return '—';
+  const m = /^(\+212|0)(\d)(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(tel);
+  if (!m) return tel;
+  const [, prefixe, a, b, c, d, e] = m;
+  return prefixe === '0' ? `0${a} ${b} ${c} ${d} ${e}` : `+212 ${a} ${b} ${c} ${d} ${e}`;
+}
