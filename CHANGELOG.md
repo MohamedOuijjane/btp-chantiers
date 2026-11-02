@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+### Sécurité
+- Exception temporaire du scan Trivy pour CVE-2026-47890 (spring-webmvc, SSE non utilisé dans Chantiers ni Matériaux), en attendant Spring Boot 4 ; expiration le 31/12/2026 (`.trivyignore`).
+
 ## [0.1.1] - 2026-11-02
 
 ### Modifié
