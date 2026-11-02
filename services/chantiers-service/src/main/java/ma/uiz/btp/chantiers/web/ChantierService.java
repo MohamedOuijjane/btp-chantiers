@@ -31,6 +31,7 @@ public class ChantierService {
                 .orElseThrow(() -> new RessourceIntrouvableException("Chantier " + id + " introuvable"));
     }
 
+    /** RG4 : un nouveau chantier est toujours PLANIFIE, le statut envoyé est ignoré. */
     public Chantier creer(ChantierDto.Requete r) {
         Chantier c = new Chantier();
         appliquer(c, r);
@@ -40,7 +41,14 @@ public class ChantierService {
     public Chantier modifier(Long id, ChantierDto.Requete r) {
         Chantier c = trouver(id);
         c.verifierModifiable();
+        if (r.statut() == StatutChantier.TERMINE) {
+            throw new RegleMetierException("Un chantier ne peut pas passer à TERMINE par modification : utiliser PATCH /api/chantiers/"
+                    + id + "/cloture.");
+        }
         appliquer(c, r);
+        if (r.statut() != null) {
+            c.setStatut(r.statut());
+        }
         return c;
     }
 
@@ -78,8 +86,5 @@ public class ChantierService {
         c.setDateDebut(r.dateDebut());
         c.setDateFinPrevue(r.dateFinPrevue());
         c.setBudget(r.budget());
-        if (r.statut() != null) {
-            c.setStatut(r.statut());
-        }
     }
 }

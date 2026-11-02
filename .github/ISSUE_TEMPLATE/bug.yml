@@ -1,0 +1,65 @@
+name: Bug (fiche d'anomalie)
+description: Signaler un écart entre le résultat obtenu et le résultat attendu
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      options:
+        - Infra
+        - Chantiers
+        - Tâches
+        - Ouvriers
+        - Matériaux
+        - Front-end
+        - Qualité
+    validations:
+      required: true
+  - type: input
+    id: endpoint
+    attributes:
+      label: Endpoint ou page
+      placeholder: "POST /api/taches, opération SOAP VerifierStock, page /chantiers/12…"
+    validations:
+      required: true
+  - type: textarea
+    id: etapes
+    attributes:
+      label: Étapes pour reproduire
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Résultat attendu
+    validations:
+      required: true
+  - type: textarea
+    id: obtenu
+    attributes:
+      label: Résultat obtenu
+    validations:
+      required: true
+  - type: dropdown
+    id: gravite
+    attributes:
+      label: Gravité
+      options:
+        - Bloquant
+        - Majeur
+        - Mineur
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Sortie de `docker compose logs <service>`, réponse HTTP, X-Request-Id…
+      render: shell
+    validations:
+      required: false

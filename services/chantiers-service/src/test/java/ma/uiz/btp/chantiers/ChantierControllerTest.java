@@ -61,6 +61,33 @@ class ChantierControllerTest {
     }
 
     @Test
+    void creationToujoursAuStatutPlanifie() throws Exception {
+        String avecStatut = CHANTIER.replace("\"budget\":2500000", "\"budget\":2500000,\"statut\":\"TERMINE\"");
+        mvc.perform(post("/api/chantiers").contentType(MediaType.APPLICATION_JSON).content(avecStatut))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.statut").value("PLANIFIE"));
+    }
+
+    @Test
+    void modificationVersTermineRefusee() throws Exception {
+        String id = creer();
+        String termine = CHANTIER.replace("\"budget\":2500000", "\"budget\":2500000,\"statut\":\"TERMINE\"");
+        mvc.perform(put("/api/chantiers/" + id).contentType(MediaType.APPLICATION_JSON).content(termine))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("/cloture")));
+        mvc.perform(get("/api/chantiers/" + id)).andExpect(jsonPath("$.statut").value("PLANIFIE"));
+    }
+
+    @Test
+    void modificationVersEnCoursAutorisee() throws Exception {
+        String id = creer();
+        String enCours = CHANTIER.replace("\"budget\":2500000", "\"budget\":2500000,\"statut\":\"EN_COURS\"");
+        mvc.perform(put("/api/chantiers/" + id).contentType(MediaType.APPLICATION_JSON).content(enCours))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statut").value("EN_COURS"));
+    }
+
+    @Test
     void chantierInexistantRenvoie404() throws Exception {
         mvc.perform(get("/api/chantiers/99999")).andExpect(status().isNotFound());
     }
