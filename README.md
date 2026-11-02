@@ -23,7 +23,9 @@
 - [Équipe](#équipe)
 - [Documentation](#documentation)
 
-## Problème et solution
+> Master d'Excellence Ingénierie Logicielle (S3), Faculté des Sciences Agadir, Université Ibn Zohr
+> Modules **Web Services** et **Qualité Logicielle**, Pr. IDRAIS, 2026-2027
+> **Équipe 18** : OUIJJANE Mohamed (chef de projet), IJJAALI Houssam, BENZINEB Ilyas, Hatim
 
 - **Problème :** dans beaucoup de PME du BTP, le suivi des chantiers se fait sur papier ou dans des fichiers Excel dispersés : retards, ruptures de stock et aucune vision de l'avancement réel.
 - **Solution :** une application web qui centralise chantiers, tâches, ouvriers et matériaux, et calcule automatiquement l'avancement de chaque chantier.
@@ -33,43 +35,36 @@
 
 ```mermaid
 flowchart LR
-    nav([Navigateur]) --> gw[Gateway nginx<br/>:8080]
+    client([Client / Postman / Front]) --> gw[API Gateway<br/>nginx :8080]
 
-    gw -->|/| FE[Front-end<br/>React]
-    gw -->|/api/chantiers| CH[Chantiers<br/>Spring Boot · REST]
-    gw -->|/api/taches| TA[Tâches & Avancement<br/>NestJS · REST]
-    gw -->|/api/ouvriers| OU[Ouvriers<br/>FastAPI · REST]
-    gw -->|/ws| MA[Matériaux<br/>Spring-WS · SOAP]
+    gw -->|/api/chantiers| CH[Chantiers<br/>Spring Boot · REST<br/>:8081]
+    gw -->|/api/taches| TA[Tâches & Avancement<br/>NestJS · REST<br/>:8082]
+    gw -->|/api/ouvriers| OU[Ouvriers<br/>FastAPI · REST<br/>:8083]
+    gw -->|/ws| MA[Matériaux<br/>Spring-WS · SOAP<br/>:8084]
 
-    CH -. REST : avancement .-> TA
-    TA -. REST : chantier actif ? .-> CH
-    TA -. REST : ouvrier disponible ? .-> OU
-    TA -. SOAP : stock suffisant ? .-> MA
-    OU -. REST : planning .-> TA
-    MA -. REST : chantier actif ? .-> CH
+    CH -. REST: avancement .-> TA
+    TA -. REST: chantier actif ? .-> CH
+    TA -. REST: ouvrier dispo ? .-> OU
+    TA -. SOAP: stock suffisant ? .-> MA
+    OU -. REST: planning .-> TA
+    MA -. REST: chantier actif ? .-> CH
 
-    subgraph db["PostgreSQL · btp_db"]
-      s1[schéma chantiers]
-      s2[schéma taches]
-      s3[schéma ouvriers]
-      s4[schéma materiaux]
-    end
-    CH --- s1
-    TA --- s2
-    OU --- s3
-    MA --- s4
+    CH --- db[(PostgreSQL · btp_db<br/>1 schéma par module)]
+    TA --- db
+    OU --- db
+    MA --- db
 ```
 
-Une seule base PostgreSQL `btp_db` : chaque module possède son schéma et son utilisateur, sans aucun droit sur les schémas des autres ([ADR-0005](docs/adr/0005-base-de-donnees-unique.md)). Toute donnée d'un autre module passe par son API.
-
-| Module | Responsable | Stack | Protocole | Schéma | Port |
+| Module | Responsable | Stack | Protocole | Schéma (base `btp_db`) | Port |
 |---|---|---|---|---|---|
 | **Chantiers** | OUIJJANE Mohamed | Java 21 · Spring Boot 3 | REST / JSON | `chantiers` | 8081 |
-| **Tâches & Avancement** | IJJAALI Houssam | TypeScript · NestJS 10 | REST / JSON + client SOAP | `taches` | 8082 |
+| **Tâches & Avancement** | IJJAALI Houssam | TypeScript · NestJS 10 | REST / JSON | `taches` | 8082 |
 | **Ouvriers** | BENZINEB Ilyas | Python 3.12 · FastAPI | REST / JSON | `ouvriers` | 8083 |
 | **Matériaux** | SALHI Hatim | Java 21 · Spring-WS | **SOAP / XML (WSDL)** | `materiaux` | 8084 |
 | **Front-end** | OUIJJANE Mohamed | React 18 · Vite · TypeScript | via la gateway | n/a | 8080 |
 | **Gateway** | OUIJJANE Mohamed | nginx | reverse proxy | n/a | **8080** |
+
+Toute l'application partage **une seule base PostgreSQL** (`btp_db`). Chaque module possède son propre schéma et son propre utilisateur, sans aucun droit sur les schémas des autres : voir [ADR-0005](docs/adr/0005-base-de-donnees-unique.md).
 
 > Migration en cours vers la base unique : Tâches (MongoDB, #6) et Matériaux (MySQL, #17) ; front-end en cours de réalisation ([architecture](docs/frontend/architecture.md), #24).
 

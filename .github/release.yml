@@ -1,0 +1,15 @@
+# Catégories des notes de version générées automatiquement (classées par label de PR)
+changelog:
+  categories:
+    - title: Nouveautés
+      labels: [feature]
+    - title: Corrections
+      labels: [bug]
+    - title: Documentation
+      labels: [docs]
+    - title: Infrastructure
+      labels: [infra]
+    - title: Dépendances
+      labels: [dependencies]
+    - title: Autres changements
+      labels: ['*']

@@ -1,0 +1,28 @@
+# Label du module selon les fichiers modifiés par la PR (actions/labeler v5)
+chantiers:
+  - changed-files:
+      - any-glob-to-any-file: 'services/chantiers-service/**'
+
+taches:
+  - changed-files:
+      - any-glob-to-any-file: 'services/taches-service/**'
+
+ouvriers:
+  - changed-files:
+      - any-glob-to-any-file: 'services/ouvriers-service/**'
+
+materiaux:
+  - changed-files:
+      - any-glob-to-any-file: ['services/materiaux-service/**', 'contracts/**']
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/**'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file: 'docs/**'
+
+infra:
+  - changed-files:
+      - any-glob-to-any-file: ['.github/**', 'gateway/**', 'docker-compose.yml', 'scripts/**']

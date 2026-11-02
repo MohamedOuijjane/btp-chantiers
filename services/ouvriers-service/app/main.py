@@ -65,7 +65,7 @@ def creer(data: OuvrierCreation, db: Session = Depends(get_db)):
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Un ouvrier avec la CIN {data.cin} existe déjà")
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Un ouvrier avec la CIN {data.cin} existe déjà") from None
     db.refresh(ouvrier)
     return ouvrier
 

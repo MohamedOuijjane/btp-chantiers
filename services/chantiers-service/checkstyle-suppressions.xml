@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<!-- Le projet indente à 4 espaces (.editorconfig) ; google_checks en attend 2 -->
+<suppressions>
+    <suppress checks="Indentation" files=".*"/>
+</suppressions>
