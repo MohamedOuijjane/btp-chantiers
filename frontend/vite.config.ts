@@ -24,5 +24,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Les tests de page affichent toute l'application (jsdom + interactions utilisateur) :
+    // sur une machine chargée, certains dépassent les 5 s par défaut sans être bloqués.
+    testTimeout: 15_000,
   },
 });

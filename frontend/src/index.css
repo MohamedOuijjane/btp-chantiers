@@ -85,6 +85,8 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    /* Ancres et focus clavier ne passent pas sous la barre du haut fixe (hauteur mesurée). */
+    scroll-padding-top: calc(var(--hauteur-topbar, 88px) + 12px);
   }
 
   body {

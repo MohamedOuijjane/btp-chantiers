@@ -46,7 +46,7 @@ export function ConsommationChantiers({ mouvements, materiaux, chantiers }: Prop
   if (!lignes.length) return <p className="m-0 text-muted">Aucune sortie de stock enregistrée.</p>;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table
         aria-label="Consommation par chantier"
         className="w-full min-w-[560px] border-collapse"

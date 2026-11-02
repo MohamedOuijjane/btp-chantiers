@@ -12,7 +12,7 @@ type Props = { materiaux?: Materiau[]; chargement: boolean };
 /** Tableau du stock (écran 7) : référence, stock, seuil, jauge et état d'alerte. */
 export function TableauStock({ materiaux, chargement }: Props) {
   return (
-    <div className="overflow-x-auto rounded-card border border-line bg-surface">
+    <div className="relative overflow-x-auto rounded-card border border-line bg-surface">
       <table className="w-full min-w-[860px] border-collapse">
         <thead>
           <tr className="bg-surface-2 text-left text-xs uppercase tracking-[0.08em] text-muted">

@@ -49,16 +49,17 @@ export function AppLayout() {
   }, [titre]);
 
   return (
-    <div className="flex min-h-screen flex-wrap">
+    // La fenêtre défile ; barre latérale et barre du haut restent en place (position sticky).
+    <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex min-w-0 flex-[999_1_560px] flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Topbar titre={titre} fil={fil} />
-        <div className="box-border flex w-full max-w-[1280px] flex-col gap-6 px-4 pb-12 pt-7 sm:px-8">
+        <main className="box-border flex w-full min-w-0 max-w-[1280px] flex-col gap-6 px-4 pb-12 pt-7 sm:px-8">
           <TitreContext.Provider value={setTitrePage}>
             {autorise ? <Outlet /> : <AccesRefuse />}
           </TitreContext.Provider>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

@@ -41,7 +41,7 @@ export function TableauTaches({
   const nbColonnes = avecChantier ? 7 : 6;
 
   return (
-    <div className="overflow-x-auto rounded-card border border-line bg-surface">
+    <div className="relative overflow-x-auto rounded-card border border-line bg-surface">
       <table className="w-full min-w-[920px] border-collapse">
         <thead>
           <tr className="bg-surface-2 text-left text-xs uppercase tracking-[0.08em] text-muted">

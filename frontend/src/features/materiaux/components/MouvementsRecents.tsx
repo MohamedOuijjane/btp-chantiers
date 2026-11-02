@@ -28,7 +28,7 @@ export function MouvementsRecents({ mouvements, chargement, materiaux, chantiers
   if (!mouvements?.length) return <p className="m-0 text-muted">Aucun mouvement enregistré.</p>;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table aria-label="Derniers mouvements" className="w-full min-w-[640px] border-collapse">
         <tbody>
           {mouvements.map((mv) => {
