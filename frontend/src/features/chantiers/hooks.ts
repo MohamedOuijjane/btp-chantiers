@@ -20,8 +20,12 @@ export function useChantiers(filtre: FiltreChantiers = {}) {
   });
 }
 
-export function useChantier(id: number) {
-  return useQuery({ queryKey: clesChantiers.detail(id), queryFn: () => api.getChantier(id) });
+export function useChantier(id: number, active = true) {
+  return useQuery({
+    queryKey: clesChantiers.detail(id),
+    queryFn: () => api.getChantier(id),
+    enabled: active,
+  });
 }
 
 export function useAvancementChantier(id: number, active = true) {

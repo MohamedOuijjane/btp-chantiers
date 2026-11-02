@@ -5,12 +5,16 @@ import { ChantierFichePage } from '@/features/chantiers/pages/ChantierFichePage'
 import { ChantiersPage } from '@/features/chantiers/pages/ChantiersPage';
 import { MateriauxPage } from '@/features/materiaux/pages/MateriauxPage';
 import { OuvriersPage } from '@/features/ouvriers/pages/OuvriersPage';
+import { ModifierTachePage } from '@/features/taches/pages/ModifierTachePage';
 import { NouvelleTachePage } from '@/features/taches/pages/NouvelleTachePage';
+import { TacheFichePage } from '@/features/taches/pages/TacheFichePage';
+import { TachesPage } from '@/features/taches/pages/TachesPage';
 
 import { AppLayout, type InfosPage } from './layout/AppLayout';
 import { PageIntrouvable } from './pages/PageIntrouvable';
 
 const CHANTIERS = { libelle: 'Chantiers', vers: '/chantiers' };
+const TACHES = { libelle: 'Tâches', vers: '/taches' };
 
 const page = (infos: InfosPage) => ({ handle: infos });
 
@@ -33,9 +37,31 @@ export const routes: RouteObject[] = [
       {
         path: 'chantiers/:id/taches/nouvelle',
         element: <NouvelleTachePage />,
+        // Surtitre de la maquette (écran 5) : « Chantiers · planification ».
+        ...page({ titre: 'Nouvelle tâche', fil: [CHANTIERS, { libelle: 'Planification' }] }),
+      },
+      {
+        path: 'taches',
+        element: <TachesPage />,
+        ...page({ titre: 'Toutes les tâches', fil: [{ libelle: 'Tâches' }] }),
+      },
+      {
+        path: 'taches/nouvelle',
+        element: <NouvelleTachePage />,
+        ...page({ titre: 'Nouvelle tâche', fil: [TACHES, { libelle: 'Planification' }] }),
+      },
+      {
+        path: 'taches/:id',
+        element: <TacheFichePage />,
+        // Le titre est remplacé par celui de la tâche une fois chargée.
+        ...page({ titre: ({ id }) => `Tâche n° ${id}`, fil: [TACHES] }),
+      },
+      {
+        path: 'taches/:id/modifier',
+        element: <ModifierTachePage />,
         ...page({
-          titre: 'Nouvelle tâche',
-          fil: ({ id }) => [CHANTIERS, { libelle: `Chantier n° ${id}`, vers: `/chantiers/${id}` }],
+          titre: 'Modifier la tâche',
+          fil: ({ id }) => [TACHES, { libelle: `Tâche n° ${id}`, vers: `/taches/${id}` }],
         }),
       },
       {
