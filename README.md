@@ -67,7 +67,7 @@ Une seule base PostgreSQL `btp_db` : chaque module possède son schéma et son u
 | **Chantiers** | OUIJJANE Mohamed | Java 21 · Spring Boot 3 | REST / JSON | `chantiers` | 8081 |
 | **Tâches & Avancement** | IJJAALI Houssam | TypeScript · NestJS 10 | REST / JSON + client SOAP | `taches` | 8082 |
 | **Ouvriers** | BENZINEB Ilyas | Python 3.12 · FastAPI | REST / JSON | `ouvriers` | 8083 |
-| **Matériaux** | Hatim | Java 21 · Spring-WS | **SOAP / XML (WSDL)** | `materiaux` | 8084 |
+| **Matériaux** | SALHI Hatim | Java 21 · Spring-WS | **SOAP / XML (WSDL)** | `materiaux` | 8084 |
 | **Front-end** | OUIJJANE Mohamed | React 18 · Vite · TypeScript | via la gateway | n/a | 8080 |
 | **Gateway** | OUIJJANE Mohamed | nginx | reverse proxy | n/a | **8080** |
 
@@ -176,7 +176,7 @@ Backlog, epics et planification : [GitHub Project de l'équipe](https://github.c
 | OUIJJANE Mohamed | Product Owner · développeur | Chef de projet, besoin métier et backlog ; modules Chantiers, gateway et front-end |
 | IJJAALI Houssam | Développeur | Architecture technique ; module Tâches & Avancement |
 | BENZINEB Ilyas | Scrum Master · développeur | Animation des cérémonies, responsable qualité (tests, recette, anomalies) ; module Ouvriers |
-| Hatim | Développeur | Module Matériaux (SOAP) |
+| SALHI Hatim | Développeur | Module Matériaux (SOAP) |
 
 ## Documentation
 

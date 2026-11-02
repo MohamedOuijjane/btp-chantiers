@@ -13,7 +13,7 @@
 |---|---|---|---|---|---|---|
 | #2 | Base de données unique `btp_db` (un schéma par module) | Infra | P0 | 4 h | Mohamed | En revue (PR #1) |
 | #6 | Migrer Tâches de MongoDB vers PostgreSQL | Tâches | P0 | 10 h | Houssam | Prêt |
-| #17 | Migrer Matériaux de MySQL vers PostgreSQL | Matériaux | P0 | 3 h | Hatim | Prêt |
+| #17 | Migrer Matériaux de MySQL vers PostgreSQL | Matériaux | P0 | 3 h | SALHI Hatim | Prêt |
 | #32 | Cahier des charges final | Livrables | P0 | 3 h | Mohamed | Prêt |
 | #33 | Dossier de conception (UML et architecture) | Livrables | P0 | 8 h | Mohamed | Prêt |
 | #4 | Nouveau chantier toujours au statut PLANIFIE | Chantiers | P1 | 2 h | Mohamed | En revue (PR #21) |
@@ -27,7 +27,7 @@
 |---|---|---|
 | Mohamed | 18 h | #2, #3, #4, #32, #33 |
 | Houssam | 10 h | #6 |
-| Hatim | 3 h | #17 |
+| SALHI Hatim | 3 h | #17 |
 | Ilyas | 1 h | #13 |
 
 Ilyas a de la marge sur ce sprint : il peut préparer le plan de tests (#35) et la matrice règle → test en avance.
