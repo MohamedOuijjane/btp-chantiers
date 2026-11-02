@@ -9,6 +9,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 ### Modifié
 - Dependabot : mises à jour hebdomadaires vers `develop`, mineures et correctifs seulement, regroupées en une PR par écosystème et par dossier ; mises à jour majeures ignorées jusqu'à la livraison.
 
+### Sécurité
+- Tomcat 10.1.61 pour Chantiers et Matériaux : corrige les CVE critiques de Tomcat détectées par le scan Trivy de la release ([#89](https://github.com/MohamedOuijjane/btp-chantiers/pull/89)).
+- Exception temporaire du scan Trivy pour CVE-2026-47884 (spring-webmvc, XsltView non utilisé dans Chantiers ni Matériaux), en attendant Spring Boot 4 ; expiration le 31/12/2026 (`.trivyignore`, [#89](https://github.com/MohamedOuijjane/btp-chantiers/pull/89)).
+
 ## [0.1.0] - 2026-11-02
 
 ### Ajouté
