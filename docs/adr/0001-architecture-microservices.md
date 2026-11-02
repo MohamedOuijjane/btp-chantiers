@@ -1,6 +1,6 @@
 # ADR-0001 : Architecture microservices avec une base par service
 
-- **Statut :** Accepté
+- **Statut :** Accepté, modifié par [ADR-0005](0005-base-de-donnees-unique.md) (base unique, un schéma par module)
 - **Date :** 17/10/2026
 
 ## Contexte

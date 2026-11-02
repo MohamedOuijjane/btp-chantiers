@@ -5,9 +5,9 @@ spring:
   application:
     name: chantiers-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/chantiers_db}
-    username: ${DB_USER:btp}
-    password: ${DB_PASSWORD:btp}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/btp_db?currentSchema=chantiers}
+    username: ${DB_USER:chantiers_user}
+    password: ${DB_PASSWORD:chantiers}
   jpa:
     hibernate:
       ddl-auto: update

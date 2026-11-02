@@ -1,7 +1,25 @@
-# Chaque module est revu par son responsable (remplacer par les identifiants GitHub)
-/services/chantiers-service/  @OUIJJANE-GITHUB
-/services/taches-service/     @IJJAALI-GITHUB
-/services/ouvriers-service/   @BENZINEB-GITHUB
-/docker-compose.yml           @IJJAALI-GITHUB
-/docs/qualite/                @BENZINEB-GITHUB
-/frontend/  @MohamedOuijjane @IJJ01
+# Relecteurs obligatoires par dossier (la dernière règle correspondante l'emporte).
+# Deux propriétaires par module : l'auteur d'une PR ne peut pas l'approuver lui-même,
+# le second propriétaire peut donc toujours valider.
+
+# Par défaut : chef de projet + architecte
+*                              @MohamedOuijjane @IJJ01
+
+# Modules métier
+/services/chantiers-service/   @MohamedOuijjane @hatimSa
+/services/taches-service/      @IJJ01 @ilyassbz69
+/services/ouvriers-service/    @ilyassbz69 @IJJ01
+/services/materiaux-service/   @hatimSa @MohamedOuijjane
+
+# Contrat SOAP : fournisseur (Matériaux) + consommateur (Tâches)
+/contracts/                    @hatimSa @IJJ01
+
+# Infrastructure et CI
+/docker-compose.yml            @MohamedOuijjane @IJJ01
+/gateway/                      @MohamedOuijjane @IJJ01
+/scripts/                      @MohamedOuijjane @IJJ01
+/.github/                      @MohamedOuijjane @IJJ01
+/frontend/                     @MohamedOuijjane @IJJ01
+
+# Livrables qualité
+/docs/qualite/                 @ilyassbz69 @MohamedOuijjane
