@@ -11,7 +11,7 @@ import { formatDate, formatMontant } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { ChantierDialog } from '../components/ChantierDialog';
-import { Td, Th } from '../components/tableau';
+import { Td, Th } from '@/components/common/Tableau';
 import { useAvancementChantier, useChantiers } from '../hooks';
 import { FILTRES, refChantier, tonAvancement } from '../presentation';
 import type { Chantier, StatutChantier } from '../types';

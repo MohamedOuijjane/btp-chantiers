@@ -33,7 +33,7 @@ describe('Layout et routes', () => {
   it('construit le fil d’Ariane de la création de tâche', () => {
     afficher('/chantiers/7/taches/nouvelle');
     const fil = screen.getByRole('navigation', { name: "Fil d'Ariane" });
-    expect(fil).toHaveTextContent('Chantiers·Chantier n° 7');
+    expect(fil).toHaveTextContent('Chantiers·Planification');
   });
 
   it('bascule le thème et mémorise le choix', async () => {

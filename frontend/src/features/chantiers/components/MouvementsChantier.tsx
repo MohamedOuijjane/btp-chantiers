@@ -5,7 +5,7 @@ import { useMateriaux } from '@/features/materiaux/hooks';
 import type { Mouvement } from '@/features/materiaux/types';
 import { formatDateCourte, formatNombre } from '@/lib/format';
 
-import { Encart, Td, Th } from './tableau';
+import { Encart, Td, Th } from '@/components/common/Tableau';
 
 type Props = { mouvements?: Mouvement[]; chargement: boolean; erreur: ApiError | null };
 

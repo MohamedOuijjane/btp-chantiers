@@ -1,4 +1,12 @@
-import { Building2, HardHat, LayoutDashboard, Package, Users, type LucideIcon } from 'lucide-react';
+import {
+  Building2,
+  ClipboardList,
+  HardHat,
+  LayoutDashboard,
+  Package,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
@@ -11,6 +19,7 @@ const SECTIONS: { titre: string; liens: Lien[] }[] = [
     liens: [
       { vers: '/', libelle: 'Tableau de bord', icone: LayoutDashboard, exact: true },
       { vers: '/chantiers', libelle: 'Chantiers', icone: Building2 },
+      { vers: '/taches', libelle: 'Tâches', icone: ClipboardList },
     ],
   },
   {

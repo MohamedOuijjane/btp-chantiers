@@ -5,17 +5,28 @@
  *   GET    /api/taches?chantierId=&ouvrierId=
  *   GET    /api/taches/{id}
  *   POST   /api/taches
+ *   PUT    /api/taches/{id}               (cible, à créer)
+ *   PATCH  /api/taches/{id}/statut        (cible, à créer)
  *   PATCH  /api/taches/{id}/avancement
  *   PATCH  /api/taches/{id}/ouvriers
- *   PATCH  /api/taches/{id}/blocage      (cible, #11)
+ *   PATCH  /api/taches/{id}/blocage       (cible, #11)
+ *   GET    /api/taches/{id}/historique    (cible, à créer)
  *   DELETE /api/taches/{id}
  */
-import { base, prochainId } from '@/api/donnees-fictives';
+import { aujourdHui, base, prochainId } from '@/api/donnees-fictives';
 import { conflit, introuvable, invalide, refus } from '@/api/errors';
 import { appelFictif, verifierDisponible } from '@/api/simulation';
 import type { StatutTache } from '@/components/common/statuts';
 
-import type { BesoinMateriau, Blocage, FiltreTaches, Tache, TacheCreation } from './types';
+import type {
+  BesoinMateriau,
+  Blocage,
+  FiltreTaches,
+  Tache,
+  TacheCreation,
+  TacheModification,
+  TransitionStatut,
+} from './types';
 
 function trouver(id: number): Tache {
   const tache = base.taches.find((t) => t.id === id);
@@ -29,8 +40,35 @@ function statutDepuis(avancement: number): StatutTache {
   return avancement > 0 ? 'EN_COURS' : 'A_FAIRE';
 }
 
+/** Change le statut et l'inscrit dans l'historique. */
+function definirStatut(tache: Tache, statut: StatutTache, motif?: string) {
+  if (tache.statut === statut && !motif) return;
+  tache.statut = statut;
+  base.historique.push({ tacheId: tache.id, statut, date: aujourdHui(), motif });
+}
+
 const chevauche = (a: { dateDebut: string; dateFin: string }, b: typeof a) =>
   a.dateDebut <= b.dateFin && b.dateDebut <= a.dateFin;
+
+function verifierDates(d: { dateDebut: string; dateFin: string }) {
+  if (d.dateFin < d.dateDebut) {
+    throw invalide('Données invalides', {
+      dateFin: 'La date de fin doit être postérieure ou égale à la date de début',
+    });
+  }
+}
+
+/** Le chantier existe et n'est pas clôturé (RG-03) : sinon 404 ou 409. */
+function verifierChantier(chantierId: number) {
+  verifierDisponible('chantiers');
+  const chantier = base.chantiers.find((c) => c.id === chantierId);
+  if (!chantier) throw introuvable(`Chantier ${chantierId} introuvable`);
+  if (chantier.statut === 'TERMINE') {
+    throw conflit(
+      `Le chantier « ${chantier.nom} » est clôturé : ses tâches ne peuvent plus changer`,
+    );
+  }
+}
 
 /** Ouvriers existants, disponibles et libres sur la période (RG-04). */
 function verifierOuvriers(
@@ -90,22 +128,13 @@ export function getTache(id: number) {
 }
 
 /**
- * Réel : POST /api/taches → 201 Tache | 400 | 404 | 409 (conflit de planning)
- *        | 422 (chantier terminé, ouvrier indisponible, stock insuffisant) | 503 (module injoignable)
+ * Réel : POST /api/taches → 201 Tache | 400 | 404 | 409 (chantier clôturé, conflit de planning)
+ *        | 422 (ouvrier indisponible, stock insuffisant) | 503 (module injoignable)
  */
 export function creerTache(donnees: TacheCreation) {
   return appelFictif('taches', () => {
-    if (donnees.dateFin < donnees.dateDebut) {
-      throw invalide('Données invalides', {
-        dateFin: 'La date de fin doit être postérieure ou égale à la date de début',
-      });
-    }
-    verifierDisponible('chantiers');
-    const chantier = base.chantiers.find((c) => c.id === donnees.chantierId);
-    if (!chantier) throw introuvable(`Chantier ${donnees.chantierId} introuvable`);
-    if (chantier.statut === 'TERMINE') {
-      throw refus('Impossible d’ajouter une tâche à un chantier terminé');
-    }
+    verifierDates(donnees);
+    verifierChantier(donnees.chantierId);
     const ouvrierIds = donnees.ouvrierIds ?? [];
     const besoinsMateriaux = donnees.besoinsMateriaux ?? [];
     verifierOuvriers(ouvrierIds, donnees);
@@ -121,6 +150,49 @@ export function creerTache(donnees: TacheCreation) {
       motif: null,
     };
     base.taches.push(tache);
+    base.historique.push({ tacheId: tache.id, statut: 'A_FAIRE', date: aujourdHui() });
+    return tache;
+  });
+}
+
+/**
+ * Réel (cible, à créer) : PUT /api/taches/{id} → 200 Tache | 400 | 404
+ *        | 409 (chantier clôturé, conflit de planning) | 422 | 503
+ */
+export function modifierTache(id: number, donnees: TacheModification) {
+  return appelFictif('taches', () => {
+    const tache = trouver(id);
+    verifierDates(donnees);
+    verifierChantier(tache.chantierId);
+    if (donnees.chantierId !== tache.chantierId) verifierChantier(donnees.chantierId);
+    const ouvrierIds = donnees.ouvrierIds ?? [];
+    const besoinsMateriaux = donnees.besoinsMateriaux ?? [];
+    verifierOuvriers(ouvrierIds, donnees, id);
+    verifierStock(besoinsMateriaux);
+    Object.assign(tache, { ...donnees, ouvrierIds, besoinsMateriaux });
+    return tache;
+  });
+}
+
+/**
+ * Réel (cible, à créer) : PATCH /api/taches/{id}/statut { statut } → 200 Tache | 404 | 409
+ * Transitions : À faire → En cours, En cours → Terminée (l'avancement passe alors à 100 %).
+ * 409 si la transition n'est pas permise (tâche bloquée, déjà terminée) ou si le chantier est clôturé.
+ */
+export function changerStatut(id: number, statut: TransitionStatut) {
+  return appelFictif('taches', () => {
+    const tache = trouver(id);
+    verifierChantier(tache.chantierId);
+    const permis = statut === 'EN_COURS' ? tache.statut === 'A_FAIRE' : tache.statut === 'EN_COURS';
+    if (!permis) {
+      throw conflit(
+        tache.statut === 'BLOQUEE'
+          ? 'Débloquez la tâche avant de changer son statut'
+          : `Passage impossible de « ${tache.statut} » à « ${statut} »`,
+      );
+    }
+    if (statut === 'TERMINEE') tache.avancement = 100;
+    definirStatut(tache, statut);
     return tache;
   });
 }
@@ -132,10 +204,11 @@ export function majAvancement(id: number, avancement: number) {
       throw invalide('Données invalides', { avancement: 'L’avancement doit être entre 0 et 100' });
     }
     const tache = trouver(id);
-    if (tache.statut === 'BLOQUEE')
+    if (tache.statut === 'BLOQUEE') {
       throw conflit('Débloquez la tâche avant de modifier son avancement');
+    }
     tache.avancement = avancement;
-    tache.statut = statutDepuis(avancement);
+    definirStatut(tache, statutDepuis(avancement));
     return tache;
   });
 }
@@ -163,15 +236,28 @@ export function bloquerTache(id: number, blocage: Blocage) {
     const tache = trouver(id);
     if (tache.statut === 'TERMINEE') throw conflit('Une tâche terminée ne peut pas être bloquée');
     if (blocage.bloquee) {
-      if (!blocage.motif.trim())
+      if (!blocage.motif.trim()) {
         throw invalide('Données invalides', { motif: 'Le motif est obligatoire' });
-      tache.statut = 'BLOQUEE';
+      }
       tache.motif = blocage.motif.trim();
+      definirStatut(tache, 'BLOQUEE', tache.motif);
     } else {
-      tache.statut = statutDepuis(tache.avancement);
       tache.motif = null;
+      definirStatut(tache, statutDepuis(tache.avancement));
     }
     return tache;
+  });
+}
+
+/** Réel (cible, à créer) : GET /api/taches/{id}/historique → 200 ChangementStatut[] (du plus récent au plus ancien) | 404 */
+export function getHistorique(id: number) {
+  return appelFictif('taches', () => {
+    trouver(id);
+    // Tri stable : à date égale, le changement enregistré en dernier reste en tête.
+    return base.historique
+      .filter((h) => h.tacheId === id)
+      .reverse()
+      .sort((a, b) => b.date.localeCompare(a.date));
   });
 }
 
