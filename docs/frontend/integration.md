@@ -51,19 +51,48 @@ Fichier : `src/features/chantiers/api.ts`
 
 ## Tâches & Avancement · IJJAALI Houssam · #50
 
-Fichier : `src/features/taches/api.ts`
+Fichier : `src/features/taches/api.ts`. Pages déjà construites avec les données fictives (#28) : liste `/taches`, fiche `/taches/:id`, création `/taches/nouvelle` et `/chantiers/:id/taches/nouvelle`, modification `/taches/:id/modifier`, onglet Tâches de la fiche chantier.
+
+### Fonctions à brancher
 
 | Fonction | Endpoint réel | Codes | Issue backend |
 |---|---|---|---|
 | `listerTaches(filtre)` | `GET /api/taches?chantierId=&ouvrierId=` | 200 | #6 (`id` entier) |
 | `getTache(id)` | `GET /api/taches/{id}` | 200, 404 | #6 |
 | `creerTache(donnees)` | `POST /api/taches` | 201, 400, 404, 409, 422, 503 | #6, #10 (conflit de planning → 409) |
-| `majAvancement(id, avancement)` | `PATCH /api/taches/{id}/avancement` `{ avancement }` | 200, 400, 404 | |
+| `modifierTache(id, donnees)` | `PUT /api/taches/{id}` (mêmes champs que la création) | 200, 400, 404, 409, 422, 503 | **à créer** |
+| `changerStatut(id, statut)` | `PATCH /api/taches/{id}/statut` `{ statut: "EN_COURS" \| "TERMINEE" }` | 200, 404, 409 | **à créer** |
+| `majAvancement(id, avancement)` | `PATCH /api/taches/{id}/avancement` `{ avancement }` | 200, 400, 404, 409 | |
 | `affecterOuvriers(id, ouvrierIds)` | `PATCH /api/taches/{id}/ouvriers` `{ ouvrierIds }` | 200, 409, 422 | #10 |
-| `bloquerTache(id, blocage)` | `PATCH /api/taches/{id}/blocage` `{ bloquee, motif? }` | 200, 400, 404, 409 | **#11** (endpoint à créer) |
+| `bloquerTache(id, blocage)` | `PATCH /api/taches/{id}/blocage` `{ bloquee, motif? }` | 200, 400, 404, 409 | **#11** (à créer) |
+| `getHistorique(id)` | `GET /api/taches/{id}/historique` → `[{ tacheId, statut, date, motif? }]`, du plus récent au plus ancien | 200, 404 | **à créer** |
 | `supprimerTache(id)` | `DELETE /api/taches/{id}` | 204, 404 | |
 
 Avant #6, l'API renvoie `_id` (chaîne) : ne pas adapter le front, attendre #6.
+
+### Endpoints à créer côté Tâches
+
+Les pages en ont besoin ; leur comportement est celui des fonctions fictives (à reprendre dans les tests Jest) :
+
+- **`PUT /api/taches/{id}`** : modification ; mêmes vérifications que la création (chantier, ouvriers en excluant la tâche elle-même, stock).
+- **`PATCH /api/taches/{id}/statut`** : transitions À faire → En cours et En cours → Terminée (l'avancement passe alors à 100 %, cohérent avec RG5) ; toute autre transition, une tâche bloquée ou un chantier clôturé → **409**.
+- **`GET /api/taches/{id}/historique`** : chaque changement de statut (création, statut, avancement, blocage) est enregistré avec sa date et, pour un blocage, son motif.
+
+### Erreurs attendues par les pages
+
+Le corps d'erreur NestJS `{ statusCode, message, error }` devient un `ApiError` (`message` en chaîne, ou tableau joint ; `champs` si le message cite un champ de validation). La page affiche un bandeau (titre selon le code, message, code HTTP, `X-Request-Id`) et un toast.
+
+| Code | Cas | Message attendu dans `message` |
+|---|---|---|
+| 400 | Validation (`dateFin` avant `dateDebut`, titre vide…) | Erreur par champ si possible (affichée sous le champ) |
+| 404 | Tâche, chantier, ouvrier ou matériau inconnu | « Tâche 12 introuvable » |
+| 409 | **Chantier clôturé** (création, modification, statut) | « Le chantier « … » est clôturé : ses tâches ne peuvent plus changer » |
+| 409 | **Ouvrier déjà occupé** sur la période (RG-04, #10) | « Rachid Bouzid est déjà affecté à « … » sur cette période » |
+| 409 | Transition de statut impossible, tâche bloquée | « Débloquez la tâche avant de changer son statut » |
+| 422 | Ouvrier indisponible, **stock insuffisant** (SOAP `VerifierStock`) | « Stock insuffisant pour Ciment CPJ 45 : 400 sacs demandés, 320 sacs en stock » |
+| 503 | Chantiers, Ouvriers ou Matériaux injoignable | « Le module Ouvriers est indisponible, réessayez dans un instant. » |
+
+**Mode dégradé :** si Ouvriers ne répond pas, la fiche et la liste restent affichées ; le bandeau « Informations ouvriers indisponibles » remplace les noms (hook `useOuvriersTaches`, `sourceDisponible: false`). Rien à faire côté Tâches pour ce cas.
 
 ## Ouvriers · BENZINEB Ilyas · #51
 
