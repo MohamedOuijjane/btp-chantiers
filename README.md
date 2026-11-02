@@ -7,7 +7,7 @@ Elle est composée de **4 microservices hétérogènes** qui communiquent par **
 
 > Master d'Excellence Ingénierie Logicielle (S3), Faculté des Sciences Agadir, Université Ibn Zohr
 > Modules **Web Services** et **Qualité Logicielle**, Pr. IDRAIS, 2026-2027
-> **Équipe 18** : OUIJJANE Mohamed (chef de projet), IJJAALI Houssam, BENZINEB Ilyas
+> **Équipe 18** : OUIJJANE Mohamed (chef de projet), IJJAALI Houssam, BENZINEB Ilyas, Hatim
 
 ---
 
@@ -29,19 +29,21 @@ flowchart LR
     OU -. REST: planning .-> TA
     MA -. REST: chantier actif ? .-> CH
 
-    CH --- pg1[(PostgreSQL<br/>chantiers_db)]
-    OU --- pg2[(PostgreSQL<br/>ouvriers_db)]
-    TA --- mg[(MongoDB<br/>taches_db)]
-    MA --- my[(MySQL<br/>materiaux_db)]
+    CH --- db[(PostgreSQL · btp_db<br/>1 schéma par module)]
+    TA --- db
+    OU --- db
+    MA --- db
 ```
 
-| Module | Responsable | Stack | Protocole | Base de données | Port |
+| Module | Responsable | Stack | Protocole | Schéma (base `btp_db`) | Port |
 |---|---|---|---|---|---|
-| **Chantiers** | OUIJJANE Mohamed | Java 21 · Spring Boot 3 | REST / JSON | PostgreSQL | 8081 |
-| **Tâches & Avancement** | IJJAALI Houssam | TypeScript · NestJS 10 | REST / JSON | MongoDB | 8082 |
-| **Ouvriers** | BENZINEB Ilyas | Python 3.12 · FastAPI | REST / JSON | PostgreSQL | 8083 |
-| **Matériaux** | *(à attribuer)* | Java 21 · Spring-WS | **SOAP / XML (WSDL)** | MySQL | 8084 |
-| **Gateway** | Architecte | nginx | reverse proxy | n/a | **8080** |
+| **Chantiers** | OUIJJANE Mohamed | Java 21 · Spring Boot 3 | REST / JSON | `chantiers` | 8081 |
+| **Tâches & Avancement** | IJJAALI Houssam | TypeScript · NestJS 10 | REST / JSON | `taches` | 8082 |
+| **Ouvriers** | BENZINEB Ilyas | Python 3.12 · FastAPI | REST / JSON | `ouvriers` | 8083 |
+| **Matériaux** | Hatim | Java 21 · Spring-WS | **SOAP / XML (WSDL)** | `materiaux` | 8084 |
+| **Gateway** | OUIJJANE Mohamed | nginx | reverse proxy | n/a | **8080** |
+
+Toute l'application partage **une seule base PostgreSQL** (`btp_db`). Chaque module possède son propre schéma et son propre utilisateur, sans aucun droit sur les schémas des autres : voir [ADR-0005](docs/adr/0005-base-de-donnees-unique.md).
 
 Les choix d'architecture sont justifiés dans les [ADR](docs/adr/), et les échanges entre modules sont détaillés dans [docs/architecture.md](docs/architecture.md).
 
@@ -105,7 +107,7 @@ btp-chantiers/
 
 ## Développement
 
-Chaque service peut être lancé seul (base de données locale requise) :
+Chaque service peut être lancé seul. Démarrer d'abord la base : `docker compose up -d postgres`.
 
 ```bash
 # Chantiers / Matériaux

@@ -4,22 +4,31 @@ x-restart: &restart
   restart: unless-stopped
 
 services:
-  # ---------- Bases de données (une par service) ----------
+  # ---------- Base de données unique ----------
+  # Une seule base "btp_db" (exigence du projet), un schéma et un utilisateur par module :
+  # chaque module reste propriétaire de ses tables (voir docs/adr/0005-base-de-donnees-unique.md).
   postgres:
     image: postgres:16-alpine
     <<: *restart
     environment:
+      POSTGRES_DB: btp_db
       POSTGRES_USER: ${POSTGRES_USER:-btp}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-btp}
+      CHANTIERS_DB_PASSWORD: ${CHANTIERS_DB_PASSWORD:-chantiers}
+      TACHES_DB_PASSWORD: ${TACHES_DB_PASSWORD:-taches}
+      OUVRIERS_DB_PASSWORD: ${OUVRIERS_DB_PASSWORD:-ouvriers}
+      MATERIAUX_DB_PASSWORD: ${MATERIAUX_DB_PASSWORD:-materiaux}
+    ports: ["5432:5432"]   # accès avec DBeaver / pgAdmin en dev
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./scripts/init-postgres.sh:/docker-entrypoint-initdb.d/init.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-btp}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-btp} -d btp_db"]
       interval: 5s
       retries: 10
     networks: [data]
 
+  # TEMPORAIRE : supprimé quand Tâches sera migré vers PostgreSQL (issue Houssam)
   mongo:
     image: mongo:7
     <<: *restart
@@ -30,6 +39,7 @@ services:
       retries: 10
     networks: [data]
 
+  # TEMPORAIRE : supprimé quand Matériaux sera migré vers PostgreSQL (issue Hatim)
   mysql:
     image: mysql:8.4
     <<: *restart
@@ -49,11 +59,11 @@ services:
   chantiers-service:
     build: ./services/chantiers-service
     <<: *restart
-    ports: ["8081:8081"]   # accès direct à Swagger / WSDL en dev
+    ports: ["8081:8081"]   # accès direct en dev
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/chantiers_db
-      DB_USER: ${POSTGRES_USER:-btp}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-btp}
+      DB_URL: jdbc:postgresql://postgres:5432/btp_db?currentSchema=chantiers
+      DB_USER: chantiers_user
+      DB_PASSWORD: ${CHANTIERS_DB_PASSWORD:-chantiers}
       TACHES_URL: http://taches-service:8082
     depends_on:
       postgres: { condition: service_healthy }
@@ -62,7 +72,7 @@ services:
   taches-service:
     build: ./services/taches-service
     <<: *restart
-    ports: ["8082:8082"]   # accès direct à Swagger / WSDL en dev
+    ports: ["8082:8082"]   # accès direct en dev
     environment:
       MONGO_URL: mongodb://mongo:27017/taches_db
       CHANTIERS_URL: http://chantiers-service:8081
@@ -75,9 +85,9 @@ services:
   ouvriers-service:
     build: ./services/ouvriers-service
     <<: *restart
-    ports: ["8083:8083"]   # accès direct à Swagger / WSDL en dev
+    ports: ["8083:8083"]   # accès direct en dev
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-btp}:${POSTGRES_PASSWORD:-btp}@postgres:5432/ouvriers_db
+      DATABASE_URL: postgresql+psycopg://ouvriers_user:${OUVRIERS_DB_PASSWORD:-ouvriers}@postgres:5432/btp_db
       TACHES_URL: http://taches-service:8082
     depends_on:
       postgres: { condition: service_healthy }
@@ -86,7 +96,7 @@ services:
   materiaux-service:
     build: ./services/materiaux-service
     <<: *restart
-    ports: ["8084:8084"]   # accès direct à Swagger / WSDL en dev
+    ports: ["8084:8084"]   # accès direct en dev
     environment:
       DB_URL: jdbc:mysql://mysql:3306/materiaux_db
       DB_USER: ${MYSQL_USER:-btp}
