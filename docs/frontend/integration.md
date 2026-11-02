@@ -33,7 +33,7 @@ Chaque fonction de `api.ts` porte en commentaire l'endpoint réel à appeler et 
 | Chantiers (Spring) : `application/problem+json` `{ status, detail, erreurs? }` | `message = detail`, `champs = erreurs` |
 | Ouvriers (FastAPI) : `{ detail: "..." }` ou `{ detail: [{ loc, msg }] }` | chaîne → `message` ; tableau → `champs` (dernier élément de `loc`) |
 | Tâches (NestJS) : `{ statusCode, message, error }` | chaîne → `message` ; tableau → messages joints |
-| Matériaux (SOAP) : `soap:Fault` (`faultcode`, `faultstring`) | `Client` → `422`, `Server` → `503`, `message = faultstring` |
+| Matériaux (SOAP) : `soap:Fault` (`faultcode`, `faultstring`) | `Introuvable` → `404`, `Conflit` → `409`, `Client` → `422`, `Server` → `503`, `message = faultstring` (voir la section Matériaux) |
 
 ## Chantiers · OUIJJANE Mohamed · #49
 
@@ -135,16 +135,77 @@ FastAPI renvoie `{ "detail": "…" }` ou, en validation, `{ "detail": [{ "loc": 
 
 ## Matériaux · SALHI Hatim · #52
 
-Fichier : `src/features/materiaux/api.ts`. Toutes les opérations sont des `POST /ws` en SOAP 1.1 (`Content-Type: text/xml; charset=utf-8`, namespace `http://btp.uiz.ma/materiaux`). Les préfixes de la réponse (`ns2:`, `SOAP-ENV:`) doivent être ignorés à la lecture.
+Fichier : `src/features/materiaux/api.ts`. Page déjà construite avec les données fictives (#30) : `/materiaux` (stock avec jauge et état d'alerte, filtre « en alerte », derniers mouvements, consommation par chantier, dialogues « Nouveau matériau » et « Mouvement de stock »), onglet « Matériaux consommés » de la fiche chantier, pastille du nombre d'alertes dans la barre latérale.
 
-| Fonction | Opération SOAP | Erreurs | Issue backend |
+Toutes les opérations sont des `POST /ws` en SOAP 1.1 (`Content-Type: text/xml; charset=utf-8`, namespace `http://btp.uiz.ma/materiaux`). Les préfixes de la réponse (`ns2:`, `SOAP-ENV:`) doivent être ignorés à la lecture.
+
+### Fonctions à brancher
+
+| Fonction | Opération SOAP | Erreurs (après conversion) | Issue backend |
 |---|---|---|---|
-| `listerMateriaux(enAlerteSeulement)` | `ListerMateriaux` | | #17 (PostgreSQL) |
-| `getMateriau(id)` | `GetMateriau` | Fault (introuvable) | |
-| `ajouterMateriau(donnees)` | `AjouterMateriau` | Fault `Client` (validation) | #19 (XSD) |
-| `verifierStock(materiauId, quantite)` | `VerifierStock` | | |
-| `enregistrerMouvement(donnees)` | `EnregistrerMouvement` | Fault `Client` : stock insuffisant, chantier inexistant ou terminé | |
-| `listerMouvements(filtre)` | `ListerMouvements` `{ chantierId?, materiauId? }` | | **#18** (opération à créer) |
+| `listerMateriaux(enAlerteSeulement)` | `ListerMateriaux` | 503 | #17 (PostgreSQL) |
+| `getMateriau(id)` | `GetMateriau` | 404 | |
+| `ajouterMateriau(donnees)` | `AjouterMateriau` | 409 référence déjà utilisée, 422 validation XSD | #19 (XSD) |
+| `verifierStock(materiauId, quantite)` | `VerifierStock` | 404 | |
+| `enregistrerMouvement(donnees)` | `EnregistrerMouvement` | 404 matériau ou chantier inconnu, **409 chantier clôturé**, **422 stock insuffisant**, 503 Chantiers injoignable | |
+| `listerMouvements(filtre)` | `ListerMouvements` `{ chantierId?, materiauId? }`, du plus récent au plus ancien | 503 | **#18** (opération à créer) |
+
+La consommation par chantier est calculée côté front à partir de `ListerMouvements` (somme des sorties par chantier et par matériau) : pas d'opération supplémentaire.
+
+### Des SOAP Faults aux `ApiError`
+
+Le service répond toujours en HTTP 200 (succès) ou 500 (SOAP Fault). Le client SOAP (`src/api/soap.ts`, à écrire au branchement) lit l'enveloppe et lève une `ErreurApi` :
+
+1. **Pas de réponse** (réseau coupé) → `status: 0`. **HTTP 502 / 503 / 504** de la gateway (service arrêté) → `status: 503`.
+2. **Réponse avec `Body/Fault`** → lire `faultcode` et `faultstring` en ignorant les préfixes. `faultstring` peut porter un attribut `xml:lang="fr"` : avec fast-xml-parser, le texte est alors dans `#text`.
+3. **Code HTTP de l'`ApiError`** selon le nom local du `faultcode` :
+
+| `faultcode` (nom local) | Cas côté service | `ApiError.status` | Affichage dans la page |
+|---|---|---|---|
+| `Introuvable` | Matériau ou chantier inconnu | 404 | Alerte « Introuvable » |
+| `Conflit` | Référence déjà utilisée ; mouvement vers un chantier clôturé (RG-09) | 409 | Alerte « Conflit » dans le dialogue + toast |
+| `Client` | Stock insuffisant (RG-07), validation XSD, quantité ≤ 0 | 422 | Alerte « Demande refusée » dans le dialogue + toast |
+| `Server` | Erreur interne, Chantiers injoignable | 503 | Alerte « Module indisponible » ; encart sur la page si la lecture du stock échoue |
+
+4. `message = faultstring` ; `requestId` = en-tête `X-Request-Id` de la gateway. Une SOAP Fault ne désigne pas de champ : pas de `champs`, le message s'affiche en alerte (la validation par champ est faite avant l'envoi par Zod).
+
+Exemple de faute attendue pour un mouvement vers un chantier clôturé :
+
+```xml
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <SOAP-ENV:Fault>
+      <faultcode xmlns:m="http://btp.uiz.ma/materiaux">m:Conflit</faultcode>
+      <faultstring xml:lang="fr">Le chantier « Entrepôt logistique » est clôturé : aucun mouvement de stock possible</faultstring>
+    </SOAP-ENV:Fault>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+Conversion attendue (à tester avec Vitest : réponse normale, faute avec et sans préfixe, `xml:lang`) :
+
+```ts
+const CODES: Record<string, number> = { Introuvable: 404, Conflit: 409, Client: 422, Server: 503 };
+const nomLocal = (qname: string) => qname.split(':').pop() ?? qname;
+// fault = Envelope.Body.Fault lu par fast-xml-parser avec removeNSPrefix: true
+const texte = (v: unknown) => (typeof v === 'object' && v ? (v as { '#text': string })['#text'] : String(v));
+throw new ErreurApi({
+  status: CODES[nomLocal(texte(fault.faultcode))] ?? 503,
+  message: texte(fault.faultstring),
+  requestId: reponse.headers.get('X-Request-Id') ?? undefined,
+});
+```
+
+**À faire côté Matériaux** (aujourd'hui, toutes les erreurs métier sont des fautes `Client`, donc 422) : déclarer des codes de faute personnalisés pour distinguer 404 et 409, par exemple
+`@SoapFault(faultCode = FaultCode.CUSTOM, customFaultCode = "{http://btp.uiz.ma/materiaux}Conflit")` sur une `ConflitException` (référence déjà utilisée, chantier clôturé) et `…}Introuvable` sur `IntrouvableException`. Le chantier clôturé lève aujourd'hui `IntrouvableException` dans `ChantiersClient` : il doit devenir un `Conflit`. Les autres cas restent en `Client` (422) ou `Server` (503).
+
+### Test manuel (à décrire dans la PR de #52)
+
+1. Sortie de 5 t de « Fer à béton HA12 » (stock 2,4 t) : alerte 422 « Stock insuffisant », stock inchangé.
+2. Mouvement vers « Entrepôt logistique » (clôturé) : alerte 409.
+3. « Nouveau matériau » avec la référence `MAT-001` : alerte 409.
+4. Sortie qui fait passer un matériau sous son seuil : toast d'alerte, badge « En alerte », pastille de la barre latérale mise à jour.
+5. `docker compose stop materiaux-service` : encart « Stock indisponible » (503) ; `docker compose stop chantiers-service` puis un mouvement : alerte 503.
 
 ## Tester une intégration
 
