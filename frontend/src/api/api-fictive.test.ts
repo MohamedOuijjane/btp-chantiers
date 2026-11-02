@@ -124,8 +124,8 @@ describe('Tâches (fictif)', () => {
     );
   });
 
-  it('renvoie 422 pour un chantier terminé', async () => {
-    await echoue(taches.creerTache({ ...nouvelleTache, chantierId: 5 }), 422, /terminé/);
+  it('renvoie 409 pour un chantier clôturé', async () => {
+    await echoue(taches.creerTache({ ...nouvelleTache, chantierId: 5 }), 409, /clôturé/);
   });
 
   it('renvoie 503 si Tâches ou un module appelé est en panne', async () => {

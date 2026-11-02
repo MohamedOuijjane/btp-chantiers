@@ -10,7 +10,7 @@
 import type { Chantier } from '@/features/chantiers/types';
 import type { Materiau, Mouvement } from '@/features/materiaux/types';
 import type { Ouvrier } from '@/features/ouvriers/types';
-import type { Tache } from '@/features/taches/types';
+import type { ChangementStatut, Tache } from '@/features/taches/types';
 
 export const ENTREPRISE = 'Souss Bâtiment';
 
@@ -20,6 +20,7 @@ export type BaseFictive = {
   ouvriers: Ouvrier[];
   materiaux: Materiau[];
   mouvements: Mouvement[];
+  historique: ChangementStatut[];
 };
 
 const chantiers: Chantier[] = [
@@ -299,10 +300,33 @@ const mouvements: Mouvement[] = [
   { id: 1, date: '2026-10-25', materiauId: 2, chantierId: 1, type: 'SORTIE', quantite: 14 },
 ];
 
+/**
+ * Historique des statuts de départ, déduit des tâches : création (À faire) au début de la tâche,
+ * passage En cours au démarrage, Terminée à la date de fin, Bloquée pour la toiture.
+ */
+function historiqueInitial(liste: Tache[]): ChangementStatut[] {
+  return liste.flatMap((t) => {
+    const h: ChangementStatut[] = [{ tacheId: t.id, statut: 'A_FAIRE', date: t.dateDebut }];
+    if (t.avancement > 0) h.push({ tacheId: t.id, statut: 'EN_COURS', date: t.dateDebut });
+    if (t.statut === 'TERMINEE') h.push({ tacheId: t.id, statut: 'TERMINEE', date: t.dateFin });
+    if (t.statut === 'BLOQUEE') {
+      h.push({ tacheId: t.id, statut: 'BLOQUEE', date: '2026-10-30', motif: t.motif ?? undefined });
+    }
+    return h;
+  });
+}
+
 /** Nouvelle copie des données de départ. */
 export function creerDonneesFictives(): BaseFictive {
   return JSON.parse(
-    JSON.stringify({ chantiers, taches, ouvriers, materiaux, mouvements }),
+    JSON.stringify({
+      chantiers,
+      taches,
+      ouvriers,
+      materiaux,
+      mouvements,
+      historique: historiqueInitial(taches),
+    }),
   ) as BaseFictive;
 }
 

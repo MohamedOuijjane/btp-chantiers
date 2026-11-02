@@ -38,3 +38,18 @@ export type TacheCreation = {
 export type Blocage = { bloquee: true; motif: string } | { bloquee: false };
 
 export type FiltreTaches = { chantierId?: number; ouvrierId?: number };
+
+/** Corps de PUT /api/taches/{id} (cible, à créer) : mêmes champs que la création. */
+export type TacheModification = TacheCreation;
+
+/** Changements de statut proposés dans l'interface : À faire → En cours → Terminée. */
+export type TransitionStatut = 'EN_COURS' | 'TERMINEE';
+
+/** Entrée de l'historique des statuts d'une tâche (GET /api/taches/{id}/historique, cible). */
+export type ChangementStatut = {
+  tacheId: number;
+  statut: StatutTache;
+  /** Date ISO aaaa-mm-jj. */
+  date: string;
+  motif?: string;
+};
