@@ -206,11 +206,11 @@ describe('Matériaux (fictif)', () => {
     expect((await materiaux.getMateriau(3)).stock).toBe(2.4);
   });
 
-  it('refuse un mouvement vers un chantier terminé (422)', async () => {
+  it('refuse un mouvement vers un chantier clôturé (409)', async () => {
     await echoue(
       materiaux.enregistrerMouvement({ materiauId: 2, chantierId: 5, type: 'SORTIE', quantite: 1 }),
-      422,
-      /terminé/,
+      409,
+      /clôturé/,
     );
   });
 
