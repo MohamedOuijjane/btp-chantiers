@@ -6,8 +6,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-02
+
 ### Sécurité
-- Exception temporaire du scan Trivy pour CVE-2026-47890 (spring-webmvc, SSE non utilisé dans Chantiers ni Matériaux), en attendant Spring Boot 4 ; expiration le 31/12/2026 (`.trivyignore`).
+- Exception temporaire du scan Trivy pour CVE-2026-47890 (spring-webmvc, SSE non utilisé dans Chantiers ni Matériaux), en attendant Spring Boot 4 ([#94](https://github.com/MohamedOuijjane/btp-chantiers/issues/94)) ; expiration le 31/12/2026 (`.trivyignore`, [#95](https://github.com/MohamedOuijjane/btp-chantiers/pull/95)).
 
 ## [0.1.1] - 2026-11-02
 
@@ -47,6 +49,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Gateway : le WSDL obtenu via le port 8080 annonce la bonne adresse ([#22](https://github.com/MohamedOuijjane/btp-chantiers/pull/22)).
 - Ouvriers : l'erreur 409 sur une CIN en double n'expose plus l'exception SQL d'origine ([#45](https://github.com/MohamedOuijjane/btp-chantiers/pull/45)).
 
-[Unreleased]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.1...develop
+[Unreleased]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.2...develop
+[0.1.2]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/MohamedOuijjane/btp-chantiers/releases/tag/v0.1.0
