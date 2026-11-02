@@ -2,10 +2,15 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
+import { reinitialiserDonneesFictives } from '@/api/donnees-fictives';
+import { reinitialiserPannes } from '@/api/simulation';
+
 afterEach(() => {
   cleanup();
   localStorage.clear();
   document.documentElement.classList.remove('dark');
+  reinitialiserDonneesFictives();
+  reinitialiserPannes();
 });
 
 // jsdom ne fournit pas matchMedia : préférence système « clair » par défaut.
