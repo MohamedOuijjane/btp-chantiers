@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
+import { useMateriaux } from '@/features/materiaux/hooks';
 import { cn } from '@/lib/utils';
 
 type Lien = { vers: string; libelle: string; icone: LucideIcon; exact?: boolean };
@@ -35,6 +36,8 @@ const SECTIONS: { titre: string; liens: Lien[] }[] = [
 const UTILISATEUR = { nom: 'Samir Haddou', role: 'Conducteur de travaux', initiales: 'SH' };
 
 export function Sidebar() {
+  // Pastille de la maquette : nombre de matériaux en alerte (stock ≤ seuil).
+  const alertes = useMateriaux(true).data?.length ?? 0;
   return (
     <aside className="flex flex-[1_1_248px] flex-col bg-side text-side-ink">
       <div className="bande-danger h-2" aria-hidden="true" />
@@ -81,6 +84,12 @@ export function Sidebar() {
                       className={isActive ? 'text-[#F59E0B]' : 'text-side-muted'}
                     />
                     {libelle}
+                    {vers === '/materiaux' && alertes > 0 && (
+                      <span className="ml-auto min-w-[22px] rounded-full bg-[#F59E0B] px-[7px] py-0.5 text-center text-xs font-bold text-[#1C1917]">
+                        <span aria-hidden="true">{alertes}</span>
+                        <span className="sr-only">, {alertes} en alerte</span>
+                      </span>
+                    )}
                   </>
                 )}
               </NavLink>
