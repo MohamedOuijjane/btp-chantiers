@@ -6,6 +6,7 @@ import { EtatVide } from '@/components/common/EtatVide';
 import { Encart } from '@/components/common/Tableau';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDroits } from '@/features/auth/contexte';
 import { cn } from '@/lib/utils';
 
 import { CarteOuvrier } from '../components/CarteOuvrier';
@@ -19,6 +20,7 @@ import { SPECIALITES, type Specialite } from '../types';
 export function OuvriersPage() {
   const [params, setParams] = useSearchParams();
   const [creation, setCreation] = useState(false);
+  const peutCreer = useDroits().peut('ouvriers.ecrire');
   const { data: ouvriers, isPending, error } = useOuvriers();
 
   // Filtres, recherche (?q= de la topbar) et ouvrier choisi portés par l'URL.
@@ -100,10 +102,12 @@ export function OuvriersPage() {
           </span>
           Disponibles uniquement
         </button>
-        <Button onClick={() => setCreation(true)} className="ml-auto px-[18px] font-bold">
-          <Plus size={18} aria-hidden="true" />
-          Nouvel ouvrier
-        </Button>
+        {peutCreer && (
+          <Button onClick={() => setCreation(true)} className="ml-auto px-[18px] font-bold">
+            <Plus size={18} aria-hidden="true" />
+            Nouvel ouvrier
+          </Button>
+        )}
       </div>
 
       {error ? (

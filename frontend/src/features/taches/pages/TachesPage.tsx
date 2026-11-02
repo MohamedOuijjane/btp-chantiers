@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { EtatVide } from '@/components/common/EtatVide';
 import { Encart } from '@/components/common/Tableau';
 import { Button } from '@/components/ui/button';
+import { useDroits } from '@/features/auth/contexte';
 import { useChantiers } from '@/features/chantiers/hooks';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ const CLASSE_SELECT =
 /** Liste de toutes les tâches : filtres chantier, statut et ouvrier, recherche, tri par date. */
 export function TachesPage() {
   const [params, setParams] = useSearchParams();
+  const planifie = useDroits().peut('taches.ecrire');
   const { data: taches, isPending, error } = useTaches();
   const chantiers = useChantiers();
   const equipe = useOuvriersTaches();
@@ -101,12 +103,14 @@ export function TachesPage() {
             );
           })}
         </div>
-        <Button asChild className="ml-auto px-[18px] font-bold">
-          <Link to="/taches/nouvelle" className="no-underline">
-            <Plus size={18} aria-hidden="true" />
-            Nouvelle tâche
-          </Link>
-        </Button>
+        {planifie && (
+          <Button asChild className="ml-auto px-[18px] font-bold">
+            <Link to="/taches/nouvelle" className="no-underline">
+              <Plus size={18} aria-hidden="true" />
+              Nouvelle tâche
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -174,6 +178,7 @@ export function TachesPage() {
           chantiers={parChantier}
           tri={tri}
           onTri={() => definir('tri', tri === 'asc' ? 'desc' : undefined)}
+          lectureSeule={!planifie}
         />
       )}
     </>

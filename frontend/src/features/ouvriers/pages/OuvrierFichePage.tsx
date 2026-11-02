@@ -8,6 +8,7 @@ import { EtatVide } from '@/components/common/EtatVide';
 import { Pastille } from '@/components/common/Pastille';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDroits } from '@/features/auth/contexte';
 import { useRetirerOuvrier } from '@/features/taches/hooks';
 import { formatDate, formatTelephone, initiales } from '@/lib/format';
 import { notifierErreur } from '@/lib/erreurs';
@@ -28,6 +29,7 @@ export function OuvrierFichePage() {
   const planning = usePlanning(id);
   const modifier = useModifierOuvrier();
   const [dialogue, setDialogue] = useState<Dialogue>(null);
+  const gere = useDroits().peut('ouvriers.ecrire');
   const retirer = useRetirerOuvrier();
   useTitrePage(o ? `${o.prenom} ${o.nom}` : undefined);
 
@@ -91,42 +93,44 @@ export function OuvrierFichePage() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         {retour}
-        <div className="flex flex-wrap gap-2.5">
-          <Button
-            variant="outline"
-            className="bg-surface"
-            disabled={!o}
-            onClick={() => setDialogue('modifier')}
-          >
-            <Pencil size={16} aria-hidden="true" />
-            Modifier
-          </Button>
-          <Button
-            variant="outline"
-            className="bg-surface"
-            disabled={!o || modifier.isPending}
-            onClick={basculer}
-          >
-            {o?.disponible ? 'Rendre indisponible' : 'Rendre disponible'}
-          </Button>
-          <Button
-            variant="outline"
-            className="bg-surface"
-            disabled={!o}
-            onClick={() => setDialogue('supprimer')}
-          >
-            <Trash2 size={16} aria-hidden="true" />
-            Supprimer
-          </Button>
-          <Button
-            className="px-[18px] font-bold"
-            disabled={!o}
-            onClick={() => setDialogue('affecter')}
-          >
-            <UserPlus size={18} aria-hidden="true" />
-            Affecter à une tâche
-          </Button>
-        </div>
+        {gere && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button
+              variant="outline"
+              className="bg-surface"
+              disabled={!o}
+              onClick={() => setDialogue('modifier')}
+            >
+              <Pencil size={16} aria-hidden="true" />
+              Modifier
+            </Button>
+            <Button
+              variant="outline"
+              className="bg-surface"
+              disabled={!o || modifier.isPending}
+              onClick={basculer}
+            >
+              {o?.disponible ? 'Rendre indisponible' : 'Rendre disponible'}
+            </Button>
+            <Button
+              variant="outline"
+              className="bg-surface"
+              disabled={!o}
+              onClick={() => setDialogue('supprimer')}
+            >
+              <Trash2 size={16} aria-hidden="true" />
+              Supprimer
+            </Button>
+            <Button
+              className="px-[18px] font-bold"
+              disabled={!o}
+              onClick={() => setDialogue('affecter')}
+            >
+              <UserPlus size={18} aria-hidden="true" />
+              Affecter à une tâche
+            </Button>
+          </div>
+        )}
       </div>
 
       <section aria-label="Identité de l’ouvrier" className="carte flex flex-col gap-[18px] p-6">
@@ -170,7 +174,7 @@ export function OuvrierFichePage() {
         <h2 id="titre-planning-fiche" className="titre m-0 text-xl tracking-[0.04em]">
           Planning et affectations
         </h2>
-        <PlanningOuvrier ouvrierId={id} onRetirer={retirerDe} />
+        <PlanningOuvrier ouvrierId={id} onRetirer={gere ? retirerDe : undefined} />
       </section>
 
       {o && (
