@@ -1,0 +1,56 @@
+name: User story
+description: Nouvelle fonctionnalité exprimée du point de vue de l'utilisateur
+labels: ["feature"]
+body:
+  - type: input
+    id: role
+    attributes:
+      label: En tant que
+      placeholder: conducteur de travaux, chef de chantier, magasinier, direction…
+    validations:
+      required: true
+  - type: input
+    id: action
+    attributes:
+      label: Je veux
+      placeholder: affecter un ouvrier à une tâche
+    validations:
+      required: true
+  - type: input
+    id: benefice
+    attributes:
+      label: Afin de
+      placeholder: savoir qui travaille sur quoi
+    validations:
+      required: true
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Critères d'acceptation
+      description: Une case par critère, au format « Étant donné… quand… alors… ».
+      value: |
+        - [ ] Étant donné … quand … alors …
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      multiple: true
+      options:
+        - Infra
+        - Chantiers
+        - Tâches
+        - Ouvriers
+        - Matériaux
+        - Front-end
+        - Qualité
+    validations:
+      required: true
+  - type: input
+    id: regles
+    attributes:
+      label: Règles de gestion concernées
+      placeholder: RG-CH-1, RG-TA-2…
+    validations:
+      required: false
