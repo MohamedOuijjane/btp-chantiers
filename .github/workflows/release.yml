@@ -45,7 +45,7 @@ jobs:
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "aquasec/trivy:${TRIVY_VERSION}" image \
             --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
             "${IMAGE}:${{ steps.version.outputs.valeur }}"
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
