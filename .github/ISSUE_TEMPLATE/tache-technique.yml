@@ -1,0 +1,27 @@
+name: Tâche technique
+description: Travail technique sans valeur directe pour l'utilisateur (infra, refactoring, CI…)
+labels: ["infra"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Quoi et pourquoi.
+    validations:
+      required: true
+  - type: textarea
+    id: taches
+    attributes:
+      label: Tâches
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: dependances
+    attributes:
+      label: Dépendances
+      description: Issues dont celle-ci dépend (ajoutez-les aussi dans « Relationships » → « Blocked by »).
+      placeholder: "#6"
+    validations:
+      required: false

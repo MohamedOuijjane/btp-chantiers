@@ -34,7 +34,7 @@ public class ChantierController {
     }
 
     @PostMapping
-    @Operation(summary = "Créer un chantier")
+    @Operation(summary = "Créer un chantier", description = "Le chantier est toujours créé au statut PLANIFIE (RG4) : le champ statut est ignoré.")
     public ResponseEntity<ChantierDto.Reponse> creer(@Valid @RequestBody ChantierDto.Requete requete) {
         var cree = ChantierDto.Reponse.de(service.creer(requete));
         var location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(cree.id()).toUri();
@@ -42,7 +42,9 @@ public class ChantierController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Modifier un chantier (interdit s'il est terminé)")
+    @Operation(summary = "Modifier un chantier (interdit s'il est terminé)",
+            description = "Le statut peut passer à PLANIFIE, EN_COURS ou SUSPENDU. Le passage à TERMINE est refusé (409) : "
+                    + "utiliser PATCH /api/chantiers/{id}/cloture.")
     public ChantierDto.Reponse modifier(@PathVariable Long id, @Valid @RequestBody ChantierDto.Requete requete) {
         return ChantierDto.Reponse.de(service.modifier(id, requete));
     }

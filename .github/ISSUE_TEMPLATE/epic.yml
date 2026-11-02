@@ -1,0 +1,53 @@
+name: Epic
+description: Regrouper plusieurs issues autour d'un même objectif
+title: "EPIC · "
+labels: ["epic"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Une epic regroupe des issues (sub-issues). Après la création, rattachez-les avec « Add sub-issue ».
+  - type: textarea
+    id: objectif
+    attributes:
+      label: Objectif
+      description: Le résultat attendu quand l'epic est terminée.
+    validations:
+      required: true
+  - type: textarea
+    id: inclus
+    attributes:
+      label: Périmètre inclus
+      placeholder: "- …"
+    validations:
+      required: true
+  - type: textarea
+    id: exclu
+    attributes:
+      label: Périmètre exclu
+      placeholder: "- …"
+    validations:
+      required: false
+  - type: textarea
+    id: fin
+    attributes:
+      label: Critères de fin de l'epic
+      value: |
+        - [ ] Toutes les sub-issues sont fermées
+        - [ ]
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      options:
+        - Infra
+        - Chantiers
+        - Tâches
+        - Ouvriers
+        - Matériaux
+        - Front-end
+        - Qualité
+    validations:
+      required: true

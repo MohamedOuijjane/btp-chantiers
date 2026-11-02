@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Classes générées à partir du contrat XSD : hors analyse SpotBugs -->
+<FindBugsFilter>
+    <Match>
+        <Package name="ma.uiz.btp.materiaux.ws.gen"/>
+    </Match>
+</FindBugsFilter>

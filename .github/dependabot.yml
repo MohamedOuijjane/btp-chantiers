@@ -1,0 +1,50 @@
+# Mises à jour hebdomadaires des dépendances (lundi), 3 PR maximum par écosystème
+version: 2
+
+updates:
+  - package-ecosystem: maven
+    directories: ['/services/chantiers-service', '/services/materiaux-service']
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies]
+    commit-message: { prefix: 'chore(deps)' }
+
+  - package-ecosystem: npm
+    directory: /services/taches-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies]
+    commit-message: { prefix: 'chore(deps)' }
+
+  # Le dossier frontend/ sera créé par l'issue F1 (#24)
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies]
+    commit-message: { prefix: 'chore(deps)' }
+
+  - package-ecosystem: pip
+    directory: /services/ouvriers-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies]
+    commit-message: { prefix: 'chore(deps)' }
+
+  - package-ecosystem: docker
+    directories:
+      - /services/chantiers-service
+      - /services/taches-service
+      - /services/ouvriers-service
+      - /services/materiaux-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies]
+    commit-message: { prefix: 'chore(deps)' }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies]
+    commit-message: { prefix: 'chore(deps)' }

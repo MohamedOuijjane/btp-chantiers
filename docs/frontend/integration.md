@@ -1,0 +1,98 @@
+# Brancher le front sur les API
+
+Le front est développé en deux temps :
+
+1. **Interface seule** (#26 à #30, OUIJJANE Mohamed) : chaque page est conforme à la [maquette validée](maquette/) et lit des **données fictives**. Elles viennent de `src/features/<module>/api.ts`, sans aucun appel réseau.
+2. **Intégration** (#49 à #52) : chaque développeur remplace les fonctions de `api.ts` de son module par de vrais appels à son backend, **via la gateway**.
+
+Ce guide décrit l'étape 2.
+
+## Ce qui change et ce qui ne change pas
+
+| Fichier | À l'intégration |
+|---|---|
+| `src/features/<module>/api.ts` | **À modifier** : chaque fonction appelle l'API réelle au lieu de lire la base fictive |
+| `src/features/<module>/types.ts` | Ne change pas : les types suivent déjà les contrats cibles |
+| `src/features/<module>/hooks.ts` | Ne change pas |
+| Pages et composants | Ne changent pas |
+| `src/api/errors.ts` | Ne change pas : toute erreur doit devenir un `ApiError` |
+| `src/api/donnees-fictives.ts`, `src/api/simulation.ts` | Supprimés quand les 4 modules sont branchés |
+
+Chaque fonction de `api.ts` porte en commentaire l'endpoint réel à appeler et les codes de retour attendus.
+
+## Règles communes
+
+- **Chemins relatifs uniquement** : `/api/chantiers`, `/api/taches`, `/api/ouvriers`, `/ws`. Ne jamais appeler `localhost:8081` ni un nom Docker : en développement, Vite relaie `/api` et `/ws` vers la gateway (`http://localhost:8080`) ; en Docker, la gateway sert le front et les API sur la même origine.
+- **Signatures identiques** : une fonction garde ses paramètres et son type de retour, et renvoie une `Promise`.
+- **Erreurs** : toute réponse en erreur est convertie en `ApiError { status, message, champs?, requestId? }` et levée (`throw new ErreurApi(...)`). Le réseau coupé donne `status: 0`. `requestId` reprend l'en-tête `X-Request-Id` de la gateway.
+- **Client du module** : chaque développeur écrit le petit client dont il a besoin. Ce client reste dans `src/api/` pour être partagé : `http.ts` pour le REST, `soap.ts` pour le SOAP. Le premier qui l'écrit le rend réutilisable par les autres.
+- **Tests** : la conversion des erreurs du module est testée avec Vitest.
+
+| Format d'erreur reçu | Conversion en `ApiError` |
+|---|---|
+| Chantiers (Spring) : `application/problem+json` `{ status, detail, erreurs? }` | `message = detail`, `champs = erreurs` |
+| Ouvriers (FastAPI) : `{ detail: "..." }` ou `{ detail: [{ loc, msg }] }` | chaîne → `message` ; tableau → `champs` (dernier élément de `loc`) |
+| Tâches (NestJS) : `{ statusCode, message, error }` | chaîne → `message` ; tableau → messages joints |
+| Matériaux (SOAP) : `soap:Fault` (`faultcode`, `faultstring`) | `Client` → `422`, `Server` → `503`, `message = faultstring` |
+
+## Chantiers · OUIJJANE Mohamed · #49
+
+Fichier : `src/features/chantiers/api.ts`
+
+| Fonction | Endpoint réel | Codes | Issue backend |
+|---|---|---|---|
+| `listerChantiers(filtre)` | `GET /api/chantiers?statut=` | 200 | |
+| `getChantier(id)` | `GET /api/chantiers/{id}` | 200, 404 | |
+| `creerChantier(donnees)` | `POST /api/chantiers` | 201, 400 | #4 (statut PLANIFIE) |
+| `modifierChantier(id, donnees)` | `PUT /api/chantiers/{id}` | 200, 400, 404, 409 | |
+| `cloturerChantier(id)` | `PATCH /api/chantiers/{id}/cloture` | 200, 404, 409 | |
+| `supprimerChantier(id)` | `DELETE /api/chantiers/{id}` | 204, 404, 409 | #5 (refus si des tâches existent) |
+| `getAvancement(id)` | `GET /api/chantiers/{id}/avancement` | 200 (`sourceDisponible`), 404 | |
+
+## Tâches & Avancement · IJJAALI Houssam · #50
+
+Fichier : `src/features/taches/api.ts`
+
+| Fonction | Endpoint réel | Codes | Issue backend |
+|---|---|---|---|
+| `listerTaches(filtre)` | `GET /api/taches?chantierId=&ouvrierId=` | 200 | #6 (`id` entier) |
+| `getTache(id)` | `GET /api/taches/{id}` | 200, 404 | #6 |
+| `creerTache(donnees)` | `POST /api/taches` | 201, 400, 404, 409, 422, 503 | #6, #10 (conflit de planning → 409) |
+| `majAvancement(id, avancement)` | `PATCH /api/taches/{id}/avancement` `{ avancement }` | 200, 400, 404 | |
+| `affecterOuvriers(id, ouvrierIds)` | `PATCH /api/taches/{id}/ouvriers` `{ ouvrierIds }` | 200, 409, 422 | #10 |
+| `bloquerTache(id, blocage)` | `PATCH /api/taches/{id}/blocage` `{ bloquee, motif? }` | 200, 400, 404, 409 | **#11** (endpoint à créer) |
+| `supprimerTache(id)` | `DELETE /api/taches/{id}` | 204, 404 | |
+
+Avant #6, l'API renvoie `_id` (chaîne) : ne pas adapter le front, attendre #6.
+
+## Ouvriers · BENZINEB Ilyas · #51
+
+Fichier : `src/features/ouvriers/api.ts`
+
+| Fonction | Endpoint réel | Codes | Issue backend |
+|---|---|---|---|
+| `listerOuvriers(filtre)` | `GET /api/ouvriers?specialite=&disponible=` | 200 | #13 |
+| `getOuvrier(id)` | `GET /api/ouvriers/{id}` | 200, 404 | |
+| `creerOuvrier(donnees)` | `POST /api/ouvriers` | 201, 409, 422 | |
+| `modifierOuvrier(id, donnees)` | `PATCH /api/ouvriers/{id}` | 200, 404, 422 | |
+| `supprimerOuvrier(id)` | `DELETE /api/ouvriers/{id}` | 204, 404, 409 | #15 (refus si tâches en cours) |
+| `getPlanning(id)` | `GET /api/ouvriers/{id}/planning` | 200 (`sourceDisponible`), 404 | **#14** (`sourceDisponible` en camelCase), #13 (`id` entier des tâches) |
+
+## Matériaux · SALHI Hatim · #52
+
+Fichier : `src/features/materiaux/api.ts`. Toutes les opérations sont des `POST /ws` en SOAP 1.1 (`Content-Type: text/xml; charset=utf-8`, namespace `http://btp.uiz.ma/materiaux`). Les préfixes de la réponse (`ns2:`, `SOAP-ENV:`) doivent être ignorés à la lecture.
+
+| Fonction | Opération SOAP | Erreurs | Issue backend |
+|---|---|---|---|
+| `listerMateriaux(enAlerteSeulement)` | `ListerMateriaux` | | #17 (PostgreSQL) |
+| `getMateriau(id)` | `GetMateriau` | Fault (introuvable) | |
+| `ajouterMateriau(donnees)` | `AjouterMateriau` | Fault `Client` (validation) | #19 (XSD) |
+| `verifierStock(materiauId, quantite)` | `VerifierStock` | | |
+| `enregistrerMouvement(donnees)` | `EnregistrerMouvement` | Fault `Client` : stock insuffisant, chantier inexistant ou terminé | |
+| `listerMouvements(filtre)` | `ListerMouvements` `{ chantierId?, materiauId? }` | | **#18** (opération à créer) |
+
+## Tester une intégration
+
+1. `docker compose up -d --build` (backend), puis dans `frontend/` : `npm run dev` (http://localhost:5173).
+2. Parcourir la page du module et chaque cas d'erreur de la maquette : 400 (champ), 404, 409, 422, et 503 (arrêter le module appelé avec `docker compose stop <service>`).
+3. Décrire ce test manuel dans la PR, avec les captures.
