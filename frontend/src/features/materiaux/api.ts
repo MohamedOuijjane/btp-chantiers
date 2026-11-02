@@ -9,9 +9,12 @@
  *   VerifierStock(materiauId, quantite)
  *   EnregistrerMouvement(materiauId, chantierId, type, quantite)
  *   ListerMouvements(chantierId?, materiauId?)   (cible, #18)
+ *
+ * Erreurs simulées comme les SOAP Faults converties (voir integration.md) :
+ *   faultcode Introuvable → 404, Conflit → 409, Client → 422, Server ou module injoignable → 503.
  */
 import { aujourdHui, base, prochainId } from '@/api/donnees-fictives';
-import { conflit, introuvable, invalide, refus } from '@/api/errors';
+import { conflit, introuvable, refus } from '@/api/errors';
 import { appelFictif, verifierDisponible } from '@/api/simulation';
 
 import type {
@@ -39,22 +42,30 @@ export function listerMateriaux(enAlerteSeulement = false) {
   );
 }
 
-/** Réel : SOAP GetMateriau { id } → materiau | SOAP Fault (introuvable) */
+/** Réel : SOAP GetMateriau { id } → materiau | Fault Introuvable (→ 404) */
 export function getMateriau(id: number) {
   return appelFictif('materiaux', () => trouver(id));
 }
 
-/** Réel : SOAP AjouterMateriau { materiau } → materiau (avec id) | SOAP Fault Client */
+/**
+ * Réel : SOAP AjouterMateriau { materiau } → materiau (avec id)
+ *        | Fault Client (→ 422) : validation XSD | Fault Conflit (→ 409) : référence déjà utilisée.
+ */
 export function ajouterMateriau(donnees: MateriauCreation) {
   return appelFictif('materiaux', () => {
-    if (donnees.stock < 0 || donnees.seuilAlerte < 0) {
-      throw invalide('Données invalides', { stock: 'Le stock et le seuil doivent être positifs' });
+    if (!donnees.reference.trim() || !donnees.nom.trim() || !donnees.unite.trim()) {
+      throw refus('Référence, nom et unité sont obligatoires');
     }
-    if (base.materiaux.some((m) => m.reference === donnees.reference)) {
-      throw conflit(`La référence ${donnees.reference} existe déjà`);
+    if (donnees.stock < 0 || donnees.seuilAlerte < 0) {
+      throw refus('Le stock et le seuil doivent être positifs ou nuls');
+    }
+    const reference = donnees.reference.trim().toUpperCase();
+    if (base.materiaux.some((m) => m.reference === reference)) {
+      throw conflit(`La référence ${reference} est déjà utilisée`);
     }
     const materiau: Materiau = {
       ...donnees,
+      reference,
       id: prochainId(base.materiaux),
       enAlerte: enAlerte(donnees),
     };
@@ -73,25 +84,31 @@ export function verifierStock(materiauId: number, quantite: number) {
 
 /**
  * Réel : SOAP EnregistrerMouvement { materiauId, chantierId, type, quantite }
- *        → { mouvementId, stockApres, enAlerte } | SOAP Fault Client (→ 422) :
- *        stock insuffisant (RG-07), chantier inexistant ou terminé (RG-09).
+ *        → { mouvementId, stockApres, enAlerte }
+ *        | Fault Introuvable (→ 404) : matériau ou chantier inexistant
+ *        | Fault Conflit (→ 409) : chantier clôturé (RG-09)
+ *        | Fault Client (→ 422) : stock insuffisant (RG-07), quantité invalide
+ *        | Fault Server ou Chantiers injoignable (→ 503)
  */
 export function enregistrerMouvement(donnees: MouvementCreation) {
   return appelFictif('materiaux', (): ResultatMouvement => {
-    if (donnees.quantite <= 0) {
-      throw invalide('Données invalides', { quantite: 'La quantité doit être positive' });
-    }
+    if (!(donnees.quantite > 0)) throw refus('La quantité doit être positive');
     const m = trouver(donnees.materiauId);
     verifierDisponible('chantiers');
     const chantier = base.chantiers.find((c) => c.id === donnees.chantierId);
-    if (!chantier) throw refus(`Chantier ${donnees.chantierId} inexistant`);
+    if (!chantier) throw introuvable(`Chantier ${donnees.chantierId} introuvable`);
     if (chantier.statut === 'TERMINE') {
-      throw refus(`Le chantier « ${chantier.nom} » est terminé`);
+      throw conflit(
+        `Le chantier « ${chantier.nom} » est clôturé : aucun mouvement de stock possible`,
+      );
     }
     if (donnees.type === 'SORTIE' && donnees.quantite > m.stock) {
-      throw refus(`Stock insuffisant pour ${m.nom} : ${m.stock} ${m.unite} disponibles`);
+      throw refus(
+        `Stock insuffisant pour ${m.nom} : ${donnees.quantite} ${m.unite} demandés, ${m.stock} ${m.unite} disponibles`,
+      );
     }
     m.stock = donnees.type === 'ENTREE' ? m.stock + donnees.quantite : m.stock - donnees.quantite;
+    m.stock = Math.round(m.stock * 1000) / 1000;
     m.enAlerte = enAlerte(m);
     const mouvementId = prochainId(base.mouvements);
     base.mouvements.push({ ...donnees, id: mouvementId, date: aujourdHui() });
