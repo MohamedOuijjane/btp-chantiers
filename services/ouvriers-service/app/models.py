@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
 
-class Specialite(str, enum.Enum):
+class Specialite(enum.StrEnum):
     MACON = "MACON"
     FERRAILLEUR = "FERRAILLEUR"
     COFFREUR = "COFFREUR"
