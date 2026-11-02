@@ -209,6 +209,42 @@ throw new ErreurApi({
 4. Sortie qui fait passer un matériau sous son seuil : toast d'alerte, badge « En alerte », pastille de la barre latérale mise à jour.
 5. `docker compose stop materiaux-service` : encart « Stock indisponible » (503) ; `docker compose stop chantiers-service` puis un mouvement : alerte 503.
 
+## Authentification (#104)
+
+Aujourd'hui, la connexion est **fictive** : aucun service d'authentification n'existe et les comptes de démonstration sont dans `src/features/auth/api.ts`. Tout le code est isolé dans `src/features/auth/` pour pouvoir brancher un vrai service émettant un JWT sans toucher aux pages.
+
+| Fichier | Rôle | Au branchement |
+|---|---|---|
+| `api.ts` | `connecter`, `deconnecter`, comptes de démo | **À modifier** (voir ci-dessous) |
+| `types.ts` | `Role`, `Utilisateur`, `Session { utilisateur, jeton }` | Ne change pas si le service renvoie ce format |
+| `permissions.ts` | Sections visibles et actions autorisées par profil, page d'accueil | Ne change pas (affichage seulement) |
+| `session.ts` | Lecture / écriture de la session en `sessionStorage` (protégée par try/catch) | Ne change pas |
+| `contexte.ts`, `AuthProvider.tsx` | `useAuth()` (utilisateur, jeton, connecter, deconnecter), `useDroits()` (`peut`, `voit`) | Ne changent pas |
+| `components/RouteProtegee.tsx` | Redirige vers `/connexion` en gardant la page demandée | Ne change pas |
+| `components/MenuUtilisateur.tsx`, `AccesRefuse.tsx`, `pages/ConnexionPage.tsx` | Topbar (nom, profil, Déconnexion), page refusée, écran 1 de la maquette | Ne changent pas |
+
+### Comptes de démonstration
+
+Mot de passe commun : `chantier2026`. Le choix d'un profil sur l'écran de connexion remplit les deux champs.
+
+| Profil | E-mail | Menu | Actions | Page après connexion |
+|---|---|---|---|---|
+| Direction | `nadia.belkadi@souss-batiment.demo` | tout | créer, modifier, clôturer un chantier | Tableau de bord |
+| Conducteur de travaux | `samir.haddou@souss-batiment.demo` | tout | toutes | Tableau de bord |
+| Chef de chantier | `karim.aitali@souss-batiment.demo` | sans Matériaux | tâches (création, statut), ouvriers (fiche, affectations) | Tableau de bord |
+| Magasinier | `fatima.idrissi@souss-batiment.demo` | Tableau de bord, Chantiers, Matériaux | stock (nouveau matériau, entrée / sortie) | Matériaux |
+
+Une action non autorisée est **masquée** ; une page hors du profil (lien direct) affiche « Accès refusé ». Chaque route déclare sa section et, pour un formulaire, l'action requise (`handle` dans `src/app/routes.tsx`).
+
+### Brancher un vrai service
+
+1. **`api.ts`** : `connecter({ email, motDePasse })` appelle `POST /api/auth/login` et renvoie `{ jeton, utilisateur: { id, email, nom, initiales, role } }` ; un **401** devient `ErreurApi { status: 401, message }` (message unique, sans dire si c'est l'e-mail ou le mot de passe qui est faux). `deconnecter()` appelle `POST /api/auth/logout` (204). Supprimer ensuite `COMPTES_DEMO`, `MOT_DE_PASSE_DEMO` et `sessionDemo` (les tests utiliseront MSW et une session écrite avec `ecrireSession`).
+2. **Jeton sur chaque appel** : le client `src/api/http.ts` (et `soap.ts`) ajoute `Authorization: Bearer <jeton>`, lu avec `lireSession()` (le client n'est pas un composant React).
+3. **Session expirée** : sur un **401** d'une API métier, le client appelle `effacerSession()` puis renvoie vers `/connexion` (la garde de routes ramène ensuite à la page en cours).
+4. **Gateway** : ajouter `location /api/auth/` vers le service d'authentification. La signature du JWT est vérifiée soit par chaque module (Spring Security resource server, guard NestJS, dépendance FastAPI, intercepteur Spring-WS), soit à la gateway (`auth_request` de nginx) ; le rôle est porté par une claim `role` avec les valeurs de `Role`.
+5. **Droits côté serveur** : `permissions.ts` ne fait que de l'affichage. Chaque module doit refuser lui-même une action interdite au profil avec un **403**, affiché « Accès refusé » (`titreErreur`).
+6. **Stockage** : `sessionStorage` suffit pour la démonstration (la session se ferme avec l'onglet). Avec un vrai JWT, préférer un jeton d'accès court et un jeton de rafraîchissement en cookie `HttpOnly`, pour limiter l'impact d'une faille XSS.
+
 ## Tableau de bord (#26)
 
 Le tableau de bord n'a pas d'API propre : il lit les hooks des quatre modules (chantiers, avancements, tâches, historique récent, ouvriers, matériaux, mouvements). Il fonctionnera dès que chaque module sera branché, sans modification. Chaque carte gère la panne de son module (503) : bandeau en haut de page et encadré « non disponible » dans la carte, les autres cartes restant affichées.
