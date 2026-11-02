@@ -4,6 +4,7 @@ import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
 import { ChantierFichePage } from '@/features/chantiers/pages/ChantierFichePage';
 import { ChantiersPage } from '@/features/chantiers/pages/ChantiersPage';
 import { MateriauxPage } from '@/features/materiaux/pages/MateriauxPage';
+import { OuvrierFichePage } from '@/features/ouvriers/pages/OuvrierFichePage';
 import { OuvriersPage } from '@/features/ouvriers/pages/OuvriersPage';
 import { ModifierTachePage } from '@/features/taches/pages/ModifierTachePage';
 import { NouvelleTachePage } from '@/features/taches/pages/NouvelleTachePage';
@@ -15,6 +16,7 @@ import { PageIntrouvable } from './pages/PageIntrouvable';
 
 const CHANTIERS = { libelle: 'Chantiers', vers: '/chantiers' };
 const TACHES = { libelle: 'Tâches', vers: '/taches' };
+const EQUIPES = { libelle: 'Équipes', vers: '/ouvriers' };
 
 const page = (infos: InfosPage) => ({ handle: infos });
 
@@ -68,6 +70,12 @@ export const routes: RouteObject[] = [
         path: 'ouvriers',
         element: <OuvriersPage />,
         ...page({ titre: 'Ouvriers', fil: [{ libelle: 'Équipes' }] }),
+      },
+      {
+        path: 'ouvriers/:id',
+        element: <OuvrierFichePage />,
+        // Le titre est remplacé par le nom de l'ouvrier une fois chargé.
+        ...page({ titre: ({ id }) => `Ouvrier n° ${id}`, fil: [EQUIPES] }),
       },
       {
         path: 'materiaux',
