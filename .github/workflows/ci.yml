@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: services/chantiers-service } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21', cache: maven }
       - name: Tests, couverture (JaCoCo), Checkstyle et SpotBugs
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: services/materiaux-service } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21', cache: maven }
       - name: Tests, couverture (JaCoCo), Checkstyle et SpotBugs
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: services/taches-service } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: npm, cache-dependency-path: services/taches-service/package-lock.json }
       - run: npm ci
@@ -104,7 +104,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: services/ouvriers-service } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with: { python-version: '3.12', cache: pip }
       - run: pip install -r requirements-dev.txt
@@ -135,7 +135,7 @@ jobs:
         if: env.SONAR_TOKEN == ''
         run: |
           echo "### SonarCloud ignoré : secret SONAR_TOKEN absent (PR depuis un fork ou Dependabot)" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.SONAR_TOKEN != ''
         with: { fetch-depth: 0 }
       - uses: actions/download-artifact@v4
@@ -161,7 +161,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: frontend } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: npm, cache-dependency-path: frontend/package-lock.json }
       - run: npm ci
@@ -175,5 +175,5 @@ jobs:
     needs: [chantiers, materiaux, taches, ouvriers, frontend]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker compose build
