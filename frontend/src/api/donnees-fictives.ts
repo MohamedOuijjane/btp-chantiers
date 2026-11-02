@@ -300,14 +300,22 @@ const mouvements: Mouvement[] = [
   { id: 1, date: '2026-10-25', materiauId: 2, chantierId: 1, type: 'SORTIE', quantite: 14 },
 ];
 
+/** Date des données de la maquette : rien n'est daté après le 01/11/2026. */
+const AU = '2026-11-01';
+const auPlusTard = (date: string, limite: string) => (date < limite ? date : limite);
+
 /**
- * Historique des statuts de départ, déduit des tâches : création (À faire) au début de la tâche,
- * passage En cours au démarrage, Terminée à la date de fin, Bloquée pour la toiture.
+ * Historique des statuts de départ, déduit des tâches : création (À faire) au plus tard le 26/10
+ * (planification), démarrage au plus tard le 01/11, Terminée à la date de fin, Bloquée le 30/10.
  */
 function historiqueInitial(liste: Tache[]): ChangementStatut[] {
   return liste.flatMap((t) => {
-    const h: ChangementStatut[] = [{ tacheId: t.id, statut: 'A_FAIRE', date: t.dateDebut }];
-    if (t.avancement > 0) h.push({ tacheId: t.id, statut: 'EN_COURS', date: t.dateDebut });
+    const h: ChangementStatut[] = [
+      { tacheId: t.id, statut: 'A_FAIRE', date: auPlusTard(t.dateDebut, '2026-10-26') },
+    ];
+    if (t.avancement > 0) {
+      h.push({ tacheId: t.id, statut: 'EN_COURS', date: auPlusTard(t.dateDebut, AU) });
+    }
     if (t.statut === 'TERMINEE') h.push({ tacheId: t.id, statut: 'TERMINEE', date: t.dateFin });
     if (t.statut === 'BLOQUEE') {
       h.push({ tacheId: t.id, statut: 'BLOQUEE', date: '2026-10-30', motif: t.motif ?? undefined });

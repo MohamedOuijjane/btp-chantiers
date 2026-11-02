@@ -20,6 +20,7 @@ export const clesTaches = {
   liste: (filtre: FiltreTaches = {}) => ['taches', 'liste', filtre] as const,
   detail: (id: number) => ['taches', 'detail', id] as const,
   historique: (id: number) => ['taches', 'historique', id] as const,
+  historiqueRecent: (limite: number) => ['taches', 'historique', 'recent', limite] as const,
 };
 
 /** Une tâche modifiée change l'avancement des chantiers et le planning des ouvriers. */
@@ -41,6 +42,14 @@ export function useTache(id: number) {
 
 export function useHistorique(id: number) {
   return useQuery({ queryKey: clesTaches.historique(id), queryFn: () => api.getHistorique(id) });
+}
+
+/** Derniers changements de statut, toutes tâches confondues (tableau de bord). */
+export function useHistoriqueRecent(limite = 10) {
+  return useQuery({
+    queryKey: clesTaches.historiqueRecent(limite),
+    queryFn: () => api.listerHistorique(limite),
+  });
 }
 
 /**

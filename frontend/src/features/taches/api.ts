@@ -11,6 +11,7 @@
  *   PATCH  /api/taches/{id}/ouvriers
  *   PATCH  /api/taches/{id}/blocage       (cible, #11)
  *   GET    /api/taches/{id}/historique    (cible, à créer)
+ *   GET    /api/taches/historique?limite= (cible, à créer)
  *   DELETE /api/taches/{id}
  */
 import { aujourdHui, base, prochainId } from '@/api/donnees-fictives';
@@ -259,6 +260,19 @@ export function getHistorique(id: number) {
       .reverse()
       .sort((a, b) => b.date.localeCompare(a.date));
   });
+}
+
+/**
+ * Réel (cible, à créer) : GET /api/taches/historique?limite= → 200 ChangementStatut[]
+ * Derniers changements de statut, toutes tâches confondues (tableau de bord).
+ */
+export function listerHistorique(limite = 10) {
+  return appelFictif('taches', () =>
+    [...base.historique]
+      .reverse()
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, limite),
+  );
 }
 
 /** Réel : DELETE /api/taches/{id} → 204 | 404 */
