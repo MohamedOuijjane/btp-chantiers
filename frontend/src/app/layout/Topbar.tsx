@@ -1,18 +1,45 @@
 import { Bell, Moon, Search, Sun } from 'lucide-react';
-import { Fragment } from 'react';
+import { Fragment, useLayoutEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { useTheme } from '@/app/useTheme';
 import { Button } from '@/components/ui/button';
 import { MenuUtilisateur } from '@/features/auth/components/MenuUtilisateur';
 
+import { MenuMobile } from './Sidebar';
+
 export type Miette = { libelle: string; vers?: string };
 
 type Props = { titre: string; fil: Miette[] };
 
+/** Variable CSS lue par `scroll-padding-top` (index.css) : ancres et focus restent sous la barre. */
+export const VAR_HAUTEUR_TOPBAR = '--hauteur-topbar';
+
+/** Publie la hauteur réelle de la barre (elle passe sur plusieurs lignes en petit écran). */
+function useHauteurPubliee() {
+  const ref = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const racine = document.documentElement.style;
+    const publier = () => racine.setProperty(VAR_HAUTEUR_TOPBAR, `${el.offsetHeight}px`);
+    publier();
+    if (typeof ResizeObserver === 'undefined')
+      return () => racine.removeProperty(VAR_HAUTEUR_TOPBAR);
+    const obs = new ResizeObserver(publier);
+    obs.observe(el);
+    return () => {
+      obs.disconnect();
+      racine.removeProperty(VAR_HAUTEUR_TOPBAR);
+    };
+  }, []);
+  return ref;
+}
+
 export function Topbar({ titre, fil }: Props) {
   const { theme, basculer } = useTheme();
   const sombre = theme === 'sombre';
+  const ref = useHauteurPubliee();
   // La recherche est portée par l'URL (?q=) : chaque liste la lit et filtre ses lignes.
   const [params, setParams] = useSearchParams();
   const rechercher = (q: string) =>
@@ -26,8 +53,13 @@ export function Topbar({ titre, fil }: Props) {
     );
 
   return (
-    <header className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-line bg-surface px-4 py-4 sm:px-8">
-      <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-0.5">
+    // Fixe au défilement, au-dessus du contenu (z-30) mais sous les dialogues (z-50) et les toasts.
+    <header
+      ref={ref}
+      className="sticky top-0 z-30 flex flex-wrap items-center gap-x-3 gap-y-3 border-b border-line bg-surface px-4 py-3 sm:gap-x-4 sm:px-8 sm:py-4"
+    >
+      <MenuMobile />
+      <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-0.5">
         <nav aria-label="Fil d'Ariane">
           <ol className="surtitre flex flex-wrap items-center gap-1.5 text-muted">
             {fil.map((m, i) => (
@@ -46,10 +78,11 @@ export function Topbar({ titre, fil }: Props) {
             ))}
           </ol>
         </nav>
-        <h1 className="titre m-0 text-[30px] leading-[1.05]">{titre}</h1>
+        <h1 className="titre m-0 truncate text-[24px] leading-[1.05] sm:text-[30px]">{titre}</h1>
       </div>
 
-      <label className="flex min-h-cible flex-[1_1_180px] items-center sm:flex-[0_1_260px] gap-2 rounded-btn border border-line bg-surface-2 px-3 text-muted">
+      {/* Mobile : la recherche passe sur sa propre ligne, sous le titre et les boutons. */}
+      <label className="order-last flex min-h-cible w-full items-center gap-2 rounded-btn border border-line bg-surface-2 px-3 text-muted md:order-none md:w-auto md:flex-[0_1_260px]">
         <Search size={18} aria-hidden="true" />
         <input
           type="search"

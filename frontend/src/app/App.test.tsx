@@ -1,8 +1,9 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { afficherApp as afficher } from '@/test/rendu';
 
+import { VAR_HAUTEUR_TOPBAR } from './layout/Topbar';
 import { CLE_THEME } from './useTheme';
 
 describe('Layout et routes', () => {
@@ -34,6 +35,37 @@ describe('Layout et routes', () => {
     afficher('/chantiers/7/taches/nouvelle');
     const fil = screen.getByRole('navigation', { name: "Fil d'Ariane" });
     expect(fil).toHaveTextContent('Chantiers·Planification');
+  });
+
+  it('ouvre le menu mobile, navigue et le referme', async () => {
+    const { router } = afficher('/');
+    await userEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));
+
+    const tiroir = screen.getByRole('dialog', { name: 'Menu' });
+    const nav = within(tiroir).getByRole('navigation', { name: 'Navigation principale' });
+    await userEvent.click(within(nav).getByRole('link', { name: 'Chantiers' }));
+
+    expect(router.state.location.pathname).toBe('/chantiers');
+    expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument();
+  });
+
+  it('ferme le menu mobile avec Échap ou le bouton de fermeture', async () => {
+    afficher('/');
+    await userEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Fermer le menu' }));
+    expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument();
+  });
+
+  it('publie la hauteur de la barre du haut pour scroll-padding-top', () => {
+    const { unmount } = afficher('/');
+    const racine = document.documentElement.style;
+    expect(racine.getPropertyValue(VAR_HAUTEUR_TOPBAR)).toMatch(/^\d+px$/);
+    unmount();
+    expect(racine.getPropertyValue(VAR_HAUTEUR_TOPBAR)).toBe('');
   });
 
   it('bascule le thème et mémorise le choix', async () => {
