@@ -150,7 +150,18 @@ Chaque opération du contrat (`ListerMateriaux`, `GetMateriau`, `AjouterMateriau
 
 Les règles RG-xx renvoient au tableau de `docs/architecture.md` ; leur numérotation sera alignée sur le cahier des charges final.
 
-## 7. Charte graphique
+## 7. Maquette validée
+
+Maquette validée par l'encadrant le 01/11/2026 ; elle fait référence pour le développement du front.
+
+| | |
+|---|---|
+| ![Connexion](maquette/01-connexion.png)<br/>**1. Connexion** | ![Tableau de bord](maquette/02-tableau-de-bord.png)<br/>**2. Tableau de bord** |
+| ![Chantiers](maquette/03-chantiers.png)<br/>**3. Chantiers** | ![Fiche chantier](maquette/04-fiche-chantier.png)<br/>**4. Fiche chantier** |
+| ![Nouvelle tâche](maquette/05-nouvelle-tache.png)<br/>**5. Nouvelle tâche** (refus 422) | ![Ouvriers](maquette/06-ouvriers.png)<br/>**6. Ouvriers et planning** |
+| ![Matériaux](maquette/07-materiaux.png)<br/>**7. Matériaux et stock** | ![Thème sombre et mode dégradé](maquette/08-sombre-degrade.png)<br/>**8. Thème sombre et mode dégradé** |
+
+## 8. Charte graphique
 
 | Élément | Choix |
 |---|---|
@@ -176,7 +187,7 @@ Badges de statut, identiques sur toutes les pages (composant `StatutBadge`) :
 
 Accessibilité : contrastes AA, navigation clavier complète (composants Radix), focus visible, libellés sur tous les champs.
 
-## 8. Déploiement
+## 9. Déploiement
 
 - **`frontend/Dockerfile`** multi-stage : `node:22-alpine` installe les dépendances (`npm ci`) et construit (`npm run build`) ; `nginx:1.27-alpine` sert le dossier `dist/`.
 - **`frontend/nginx.conf`** : `listen 80;`, `try_files $uri $uri/ /index.html;` pour que les routes React (`/chantiers/12`) fonctionnent après un rechargement, cache long sur `/assets/` (fichiers versionnés par Vite).
@@ -184,13 +195,13 @@ Accessibilité : contrastes AA, navigation clavier complète (composants Radix),
 - **`docker-compose.yml`** : nouveau service `frontend` (build `./frontend`, réseau `backend`, sans port publié), ajouté au `depends_on` de la gateway.
 - **`gateway/nginx.conf`** : `location / { set $u http://frontend:80; proxy_pass $u; }`, en plus des routes `/api/...` et `/ws` existantes.
 
-## 9. Qualité
+## 10. Qualité
 
 - **Tests unitaires** (Vitest + Testing Library + MSW) : hooks de données, formulaires (validation et affichage des erreurs 400 / 409 / 422), client SOAP (réponse normale, SOAP Fault avec et sans préfixe, `xml:lang`), normalisation des erreurs des 3 modules REST.
 - **Test de bout en bout** (Playwright) : le scénario de démo complet sur la stack Docker (créer un chantier, un ouvrier, un matériau, une tâche ; refus pour stock insuffisant ; avancement à 60 % ; planning de l'ouvrier).
 - **CI** : nouveau job `frontend` dans `.github/workflows/ci.yml` : `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
 
-## 10. Dépendances backend
+## 11. Dépendances backend
 
 | Besoin du front | Issue backend |
 |---|---|

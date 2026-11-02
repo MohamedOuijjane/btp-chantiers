@@ -39,7 +39,7 @@ services:
       retries: 10
     networks: [data]
 
-  # TEMPORAIRE : supprimé quand Matériaux sera migré vers PostgreSQL (issue Hatim)
+  # TEMPORAIRE : supprimé quand Matériaux sera migré vers PostgreSQL (issue SALHI Hatim)
   mysql:
     image: mysql:8.4
     <<: *restart
