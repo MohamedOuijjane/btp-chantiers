@@ -1,23 +1,18 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { RouterProvider, createMemoryRouter } from 'react-router-dom';
+
+import { afficherApp as afficher } from '@/test/rendu';
 
 import { CLE_THEME } from './useTheme';
-import { futurRouteur, routes } from './routes';
-
-function afficher(url: string) {
-  const router = createMemoryRouter(routes, { initialEntries: [url], future: futurRouteur });
-  render(<RouterProvider router={router} future={{ v7_startTransition: true }} />);
-}
 
 describe('Layout et routes', () => {
   it.each([
     ['/', 'Tableau de bord'],
-    ['/chantiers', 'Chantiers'],
+    ['/chantiers', 'Tous les chantiers'],
     ['/chantiers/12', 'Chantier n° 12'],
     ['/chantiers/12/taches/nouvelle', 'Nouvelle tâche'],
     ['/ouvriers', 'Ouvriers'],
-    ['/materiaux', 'Matériaux'],
+    ['/materiaux', 'Matériaux et stock'],
     ['/inconnue', 'Page introuvable'],
   ])('%s affiche le titre « %s »', (url, titre) => {
     afficher(url);
@@ -38,7 +33,7 @@ describe('Layout et routes', () => {
   it('construit le fil d’Ariane de la création de tâche', () => {
     afficher('/chantiers/7/taches/nouvelle');
     const fil = screen.getByRole('navigation', { name: "Fil d'Ariane" });
-    expect(fil).toHaveTextContent('Souss Bâtiment·Chantiers·Chantier n° 7');
+    expect(fil).toHaveTextContent('Chantiers·Chantier n° 7');
   });
 
   it('bascule le thème et mémorise le choix', async () => {

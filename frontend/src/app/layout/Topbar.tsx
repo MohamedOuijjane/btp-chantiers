@@ -1,6 +1,6 @@
 import { Bell, Moon, Search, Sun } from 'lucide-react';
 import { Fragment } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { useTheme } from '@/app/useTheme';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,17 @@ type Props = { titre: string; fil: Miette[] };
 export function Topbar({ titre, fil }: Props) {
   const { theme, basculer } = useTheme();
   const sombre = theme === 'sombre';
+  // La recherche est portée par l'URL (?q=) : chaque liste la lit et filtre ses lignes.
+  const [params, setParams] = useSearchParams();
+  const rechercher = (q: string) =>
+    setParams(
+      (p) => {
+        if (q) p.set('q', q);
+        else p.delete('q');
+        return p;
+      },
+      { replace: true },
+    );
 
   return (
     <header className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-line bg-surface px-4 py-4 sm:px-8">
@@ -42,6 +53,8 @@ export function Topbar({ titre, fil }: Props) {
         <input
           type="search"
           aria-label="Rechercher"
+          value={params.get('q') ?? ''}
+          onChange={(e) => rechercher(e.target.value)}
           placeholder="Rechercher un chantier, un ouvrier…"
           className="min-w-0 flex-1 border-none bg-transparent text-ink outline-none placeholder:text-muted"
         />

@@ -19,10 +19,15 @@ export const routes: RouteObject[] = [
     element: <AppLayout />,
     children: [
       { index: true, element: <DashboardPage />, ...page({ titre: 'Tableau de bord' }) },
-      { path: 'chantiers', element: <ChantiersPage />, ...page({ titre: 'Chantiers' }) },
+      {
+        path: 'chantiers',
+        element: <ChantiersPage />,
+        ...page({ titre: 'Tous les chantiers', fil: [{ libelle: 'Chantiers' }] }),
+      },
       {
         path: 'chantiers/:id',
         element: <ChantierFichePage />,
+        // Le titre est remplacé par le nom du chantier une fois chargé.
         ...page({ titre: ({ id }) => `Chantier n° ${id}`, fil: [CHANTIERS] }),
       },
       {
@@ -33,8 +38,16 @@ export const routes: RouteObject[] = [
           fil: ({ id }) => [CHANTIERS, { libelle: `Chantier n° ${id}`, vers: `/chantiers/${id}` }],
         }),
       },
-      { path: 'ouvriers', element: <OuvriersPage />, ...page({ titre: 'Ouvriers' }) },
-      { path: 'materiaux', element: <MateriauxPage />, ...page({ titre: 'Matériaux' }) },
+      {
+        path: 'ouvriers',
+        element: <OuvriersPage />,
+        ...page({ titre: 'Ouvriers', fil: [{ libelle: 'Équipes' }] }),
+      },
+      {
+        path: 'materiaux',
+        element: <MateriauxPage />,
+        ...page({ titre: 'Matériaux et stock', fil: [{ libelle: 'Magasin' }] }),
+      },
       { path: '*', element: <PageIntrouvable />, ...page({ titre: 'Page introuvable' }) },
     ],
   },

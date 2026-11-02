@@ -54,3 +54,10 @@ export const indisponible = (module: string) =>
     status: 503,
     message: `Le module ${module} est indisponible, réessayez dans un instant.`,
   });
+
+// Les erreurs des hooks TanStack Query sont des ApiError (et non des Error génériques).
+declare module '@tanstack/react-query' {
+  interface Register {
+    defaultError: ApiError;
+  }
+}
