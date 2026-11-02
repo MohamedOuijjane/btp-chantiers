@@ -1,6 +1,6 @@
 # ADR-0002 : Technologies hétérogènes
 
-- **Statut :** Accepté
+- **Statut :** Accepté ; colonne « Base » remplacée par [ADR-0005](0005-base-de-donnees-unique.md) (PostgreSQL unique)
 - **Date :** 17/10/2026
 
 ## Contexte
