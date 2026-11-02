@@ -1,0 +1,8 @@
+# Vulnérabilités ignorées par le scan Trivy de la release (.github/workflows/release.yml).
+# Chaque entrée est justifiée, validée par le responsable du projet et expire : elle doit être
+# revue à cette date.
+
+# spring-webmvc 6.2.x : exécution de code à distance via XsltView. Correctif seulement dans
+# Spring Framework 7.0.9 (Spring Boot 4, mise à jour majeure reportée après la livraison du 20/11).
+# Non exploitable ici : Chantiers et Matériaux n'utilisent ni XsltView ni aucun rendu XSLT.
+CVE-2026-47884 exp:2026-12-31

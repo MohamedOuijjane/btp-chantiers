@@ -19,6 +19,8 @@
 
     <properties>
         <java.version>21</java.version>
+        <!-- Tomcat 10.1.61 : corrige les CVE critiques de Tomcat < 10.1.58 (scan Trivy de la release) -->
+        <tomcat.version>10.1.61</tomcat.version>
         <springdoc.version>2.10.0</springdoc.version>
         <jacoco.version>0.8.16</jacoco.version>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
