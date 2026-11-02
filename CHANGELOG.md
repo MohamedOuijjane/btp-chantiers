@@ -6,6 +6,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-02
+
 ### Modifié
 - Dependabot : mises à jour hebdomadaires vers `develop`, mineures et correctifs seulement, regroupées en une PR par écosystème et par dossier ; mises à jour majeures ignorées jusqu'à la livraison.
 
@@ -37,5 +39,6 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Gateway : le WSDL obtenu via le port 8080 annonce la bonne adresse ([#22](https://github.com/MohamedOuijjane/btp-chantiers/pull/22)).
 - Ouvriers : l'erreur 409 sur une CIN en double n'expose plus l'exception SQL d'origine ([#45](https://github.com/MohamedOuijjane/btp-chantiers/pull/45)).
 
-[Unreleased]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.0...develop
+[Unreleased]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.1...develop
+[0.1.1]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/MohamedOuijjane/btp-chantiers/releases/tag/v0.1.0
