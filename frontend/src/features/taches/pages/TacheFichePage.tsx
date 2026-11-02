@@ -9,6 +9,7 @@ import { EtatVide } from '@/components/common/EtatVide';
 import { StatutBadge } from '@/components/common/StatutBadge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDroits } from '@/features/auth/contexte';
 import { useChantier } from '@/features/chantiers/hooks';
 import { SPECIALITES } from '@/features/ouvriers/types';
 import { formatDate, initiales } from '@/lib/format';
@@ -25,6 +26,7 @@ export function TacheFichePage() {
   const chantier = useChantier(t?.chantierId ?? 0, Boolean(t));
   const equipe = useOuvriersTaches();
   useTitrePage(t?.titre);
+  const planifie = useDroits().peut('taches.ecrire');
 
   const retour = (
     <Link
@@ -58,7 +60,7 @@ export function TacheFichePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         {retour}
         <div className="flex flex-wrap gap-2.5">
-          {t && !clos ? (
+          {!planifie ? null : t && !clos ? (
             <Button asChild variant="outline" className="bg-surface">
               <Link to={`/taches/${id}/modifier`} className="no-underline">
                 <Pencil size={16} aria-hidden="true" />
@@ -71,7 +73,7 @@ export function TacheFichePage() {
               Modifier
             </Button>
           )}
-          {t && <ActionStatut tache={t} lectureSeule={clos} taille="default" />}
+          {t && planifie && <ActionStatut tache={t} lectureSeule={clos} taille="default" />}
         </div>
       </div>
 

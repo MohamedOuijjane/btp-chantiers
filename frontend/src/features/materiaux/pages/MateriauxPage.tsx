@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { EtatVide } from '@/components/common/EtatVide';
 import { Encart } from '@/components/common/Tableau';
 import { Button } from '@/components/ui/button';
+import { useDroits } from '@/features/auth/contexte';
 import { useChantiers } from '@/features/chantiers/hooks';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ import { useMateriaux, useMouvements } from '../hooks';
 export function MateriauxPage() {
   const [params, setParams] = useSearchParams();
   const [dialogue, setDialogue] = useState<'materiau' | 'mouvement' | null>(null);
+  const gereStock = useDroits().peut('materiaux.ecrire');
   const { data: materiaux, isPending, error } = useMateriaux();
   const mouvements = useMouvements();
   const chantiers = useChantiers();
@@ -86,24 +88,26 @@ export function MateriauxPage() {
           </span>
           En alerte uniquement
         </button>
-        <div className="ml-auto flex flex-wrap gap-2.5">
-          <Button
-            variant="outline"
-            className="bg-surface"
-            disabled={!materiaux}
-            onClick={() => setDialogue('materiau')}
-          >
-            Nouveau matériau
-          </Button>
-          <Button
-            className="px-[18px] font-bold"
-            disabled={!materiaux}
-            onClick={() => setDialogue('mouvement')}
-          >
-            <ArrowDownUp size={18} aria-hidden="true" />
-            Entrée / sortie de stock
-          </Button>
-        </div>
+        {gereStock && (
+          <div className="ml-auto flex flex-wrap gap-2.5">
+            <Button
+              variant="outline"
+              className="bg-surface"
+              disabled={!materiaux}
+              onClick={() => setDialogue('materiau')}
+            >
+              Nouveau matériau
+            </Button>
+            <Button
+              className="px-[18px] font-bold"
+              disabled={!materiaux}
+              onClick={() => setDialogue('mouvement')}
+            >
+              <ArrowDownUp size={18} aria-hidden="true" />
+              Entrée / sortie de stock
+            </Button>
+          </div>
+        )}
       </div>
 
       {error ? (

@@ -8,6 +8,7 @@ import { reinitialiserPannes } from '@/api/simulation';
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  sessionStorage.clear();
   document.documentElement.classList.remove('dark');
   reinitialiserDonneesFictives();
   reinitialiserPannes();

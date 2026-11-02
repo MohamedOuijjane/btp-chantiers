@@ -9,6 +9,10 @@ export function titreErreur(e: Pick<ApiError, 'status'>) {
       return 'Réseau indisponible';
     case 400:
       return 'Données invalides';
+    case 401:
+      return 'Connexion refusée';
+    case 403:
+      return 'Accès refusé';
     case 404:
       return 'Introuvable';
     case 409:
