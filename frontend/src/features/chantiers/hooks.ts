@@ -1,5 +1,5 @@
 // Hooks TanStack Query du module Chantiers : les pages n'utilisent que ces hooks.
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { ApiError } from '@/api/errors';
 
@@ -33,6 +33,16 @@ export function useAvancementChantier(id: number, active = true) {
     queryKey: clesChantiers.avancement(id),
     queryFn: () => api.getAvancement(id),
     enabled: active,
+  });
+}
+
+/** Avancement de plusieurs chantiers (tableau de bord) : une requête par chantier, même cache que la fiche. */
+export function useAvancementsChantiers(ids: number[]) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: clesChantiers.avancement(id),
+      queryFn: () => api.getAvancement(id),
+    })),
   });
 }
 

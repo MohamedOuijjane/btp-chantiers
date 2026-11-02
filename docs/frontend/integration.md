@@ -66,16 +66,18 @@ Fichier : `src/features/taches/api.ts`. Pages déjà construites avec les donné
 | `affecterOuvriers(id, ouvrierIds)` | `PATCH /api/taches/{id}/ouvriers` `{ ouvrierIds }` | 200, 409, 422 | #10 |
 | `bloquerTache(id, blocage)` | `PATCH /api/taches/{id}/blocage` `{ bloquee, motif? }` | 200, 400, 404, 409 | **#11** (à créer) |
 | `getHistorique(id)` | `GET /api/taches/{id}/historique` → `[{ tacheId, statut, date, motif? }]`, du plus récent au plus ancien | 200, 404 | **à créer** |
+| `listerHistorique(limite)` | `GET /api/taches/historique?limite=` → derniers changements de statut, toutes tâches confondues (tableau de bord) | 200 | **à créer** (#99) |
 | `supprimerTache(id)` | `DELETE /api/taches/{id}` | 204, 404 | |
 
 Avant #6, l'API renvoie `_id` (chaîne) : ne pas adapter le front, attendre #6.
 
 ### Endpoints à créer côté Tâches
 
-Les pages en ont besoin ; leur comportement est celui des fonctions fictives (à reprendre dans les tests Jest) :
+Les pages (dont le tableau de bord, #26) en ont besoin ; leur comportement est celui des fonctions fictives (à reprendre dans les tests Jest) :
 
 - **`PUT /api/taches/{id}`** : modification ; mêmes vérifications que la création (chantier, ouvriers en excluant la tâche elle-même, stock).
 - **`PATCH /api/taches/{id}/statut`** : transitions À faire → En cours et En cours → Terminée (l'avancement passe alors à 100 %, cohérent avec RG5) ; toute autre transition, une tâche bloquée ou un chantier clôturé → **409**.
+- **`GET /api/taches/historique?limite=`** : mêmes entrées, toutes tâches confondues, du plus récent au plus ancien ; utilisé par « Dernières activités » du tableau de bord.
 - **`GET /api/taches/{id}/historique`** : chaque changement de statut (création, statut, avancement, blocage) est enregistré avec sa date et, pour un blocage, son motif.
 
 ### Erreurs attendues par les pages
@@ -206,6 +208,12 @@ throw new ErreurApi({
 3. « Nouveau matériau » avec la référence `MAT-001` : alerte 409.
 4. Sortie qui fait passer un matériau sous son seuil : toast d'alerte, badge « En alerte », pastille de la barre latérale mise à jour.
 5. `docker compose stop materiaux-service` : encart « Stock indisponible » (503) ; `docker compose stop chantiers-service` puis un mouvement : alerte 503.
+
+## Tableau de bord (#26)
+
+Le tableau de bord n'a pas d'API propre : il lit les hooks des quatre modules (chantiers, avancements, tâches, historique récent, ouvriers, matériaux, mouvements). Il fonctionnera dès que chaque module sera branché, sans modification. Chaque carte gère la panne de son module (503) : bandeau en haut de page et encadré « non disponible » dans la carte, les autres cartes restant affichées.
+
+Pour la démo avec les données fictives, `?panne=taches` (ou `?panne=taches,ouvriers`) dans l'URL simule l'arrêt de ces modules (`src/api/simulation.ts`, supprimé à l'intégration).
 
 ## Tester une intégration
 
