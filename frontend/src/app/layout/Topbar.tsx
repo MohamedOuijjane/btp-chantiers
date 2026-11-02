@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { useTheme } from '@/app/useTheme';
 import { Button } from '@/components/ui/button';
+import { MenuUtilisateur } from '@/features/auth/components/MenuUtilisateur';
 
 export type Miette = { libelle: string; vers?: string };
 
@@ -74,6 +75,8 @@ export function Topbar({ titre, fil }: Props) {
       <Button variant="outline" size="icon" aria-label="Notifications">
         <Bell size={20} aria-hidden="true" />
       </Button>
+
+      <MenuUtilisateur />
     </header>
   );
 }

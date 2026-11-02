@@ -1,5 +1,7 @@
 import type { RouteObject } from 'react-router-dom';
 
+import { RouteProtegee } from '@/features/auth/components/RouteProtegee';
+import { ConnexionPage } from '@/features/auth/pages/ConnexionPage';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
 import { ChantierFichePage } from '@/features/chantiers/pages/ChantierFichePage';
 import { ChantiersPage } from '@/features/chantiers/pages/ChantiersPage';
@@ -21,42 +23,66 @@ const EQUIPES = { libelle: 'Équipes', vers: '/ouvriers' };
 const page = (infos: InfosPage) => ({ handle: infos });
 
 export const routes: RouteObject[] = [
+  // Seule page publique : toutes les autres passent par la garde de routes.
+  { path: 'connexion', element: <ConnexionPage /> },
   {
-    element: <AppLayout />,
+    element: (
+      <RouteProtegee>
+        <AppLayout />
+      </RouteProtegee>
+    ),
     children: [
-      { index: true, element: <DashboardPage />, ...page({ titre: 'Tableau de bord' }) },
+      {
+        index: true,
+        element: <DashboardPage />,
+        ...page({ titre: 'Tableau de bord', section: 'dashboard' }),
+      },
       {
         path: 'chantiers',
         element: <ChantiersPage />,
-        ...page({ titre: 'Tous les chantiers', fil: [{ libelle: 'Chantiers' }] }),
+        ...page({
+          titre: 'Tous les chantiers',
+          fil: [{ libelle: 'Chantiers' }],
+          section: 'chantiers',
+        }),
       },
       {
         path: 'chantiers/:id',
         element: <ChantierFichePage />,
         // Le titre est remplacé par le nom du chantier une fois chargé.
-        ...page({ titre: ({ id }) => `Chantier n° ${id}`, fil: [CHANTIERS] }),
+        ...page({ titre: ({ id }) => `Chantier n° ${id}`, fil: [CHANTIERS], section: 'chantiers' }),
       },
       {
         path: 'chantiers/:id/taches/nouvelle',
         element: <NouvelleTachePage />,
         // Surtitre de la maquette (écran 5) : « Chantiers · planification ».
-        ...page({ titre: 'Nouvelle tâche', fil: [CHANTIERS, { libelle: 'Planification' }] }),
+        ...page({
+          titre: 'Nouvelle tâche',
+          fil: [CHANTIERS, { libelle: 'Planification' }],
+          section: 'taches',
+          action: 'taches.ecrire',
+        }),
       },
       {
         path: 'taches',
         element: <TachesPage />,
-        ...page({ titre: 'Toutes les tâches', fil: [{ libelle: 'Tâches' }] }),
+        ...page({ titre: 'Toutes les tâches', fil: [{ libelle: 'Tâches' }], section: 'taches' }),
       },
       {
         path: 'taches/nouvelle',
         element: <NouvelleTachePage />,
-        ...page({ titre: 'Nouvelle tâche', fil: [TACHES, { libelle: 'Planification' }] }),
+        ...page({
+          titre: 'Nouvelle tâche',
+          fil: [TACHES, { libelle: 'Planification' }],
+          section: 'taches',
+          action: 'taches.ecrire',
+        }),
       },
       {
         path: 'taches/:id',
         element: <TacheFichePage />,
         // Le titre est remplacé par celui de la tâche une fois chargée.
-        ...page({ titre: ({ id }) => `Tâche n° ${id}`, fil: [TACHES] }),
+        ...page({ titre: ({ id }) => `Tâche n° ${id}`, fil: [TACHES], section: 'taches' }),
       },
       {
         path: 'taches/:id/modifier',
@@ -64,23 +90,29 @@ export const routes: RouteObject[] = [
         ...page({
           titre: 'Modifier la tâche',
           fil: ({ id }) => [TACHES, { libelle: `Tâche n° ${id}`, vers: `/taches/${id}` }],
+          section: 'taches',
+          action: 'taches.ecrire',
         }),
       },
       {
         path: 'ouvriers',
         element: <OuvriersPage />,
-        ...page({ titre: 'Ouvriers', fil: [{ libelle: 'Équipes' }] }),
+        ...page({ titre: 'Ouvriers', fil: [{ libelle: 'Équipes' }], section: 'ouvriers' }),
       },
       {
         path: 'ouvriers/:id',
         element: <OuvrierFichePage />,
         // Le titre est remplacé par le nom de l'ouvrier une fois chargé.
-        ...page({ titre: ({ id }) => `Ouvrier n° ${id}`, fil: [EQUIPES] }),
+        ...page({ titre: ({ id }) => `Ouvrier n° ${id}`, fil: [EQUIPES], section: 'ouvriers' }),
       },
       {
         path: 'materiaux',
         element: <MateriauxPage />,
-        ...page({ titre: 'Matériaux et stock', fil: [{ libelle: 'Magasin' }] }),
+        ...page({
+          titre: 'Matériaux et stock',
+          fil: [{ libelle: 'Magasin' }],
+          section: 'materiaux',
+        }),
       },
       { path: '*', element: <PageIntrouvable />, ...page({ titre: 'Page introuvable' }) },
     ],

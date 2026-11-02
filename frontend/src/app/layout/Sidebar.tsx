@@ -9,33 +9,44 @@ import {
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
+import { useDroits } from '@/features/auth/contexte';
+import type { Section } from '@/features/auth/permissions';
 import { useMateriaux } from '@/features/materiaux/hooks';
 import { cn } from '@/lib/utils';
 
-type Lien = { vers: string; libelle: string; icone: LucideIcon; exact?: boolean };
+type Lien = { vers: string; libelle: string; icone: LucideIcon; section: Section; exact?: boolean };
 
 const SECTIONS: { titre: string; liens: Lien[] }[] = [
   {
     titre: 'Pilotage',
     liens: [
-      { vers: '/', libelle: 'Tableau de bord', icone: LayoutDashboard, exact: true },
-      { vers: '/chantiers', libelle: 'Chantiers', icone: Building2 },
-      { vers: '/taches', libelle: 'Tâches', icone: ClipboardList },
+      {
+        vers: '/',
+        libelle: 'Tableau de bord',
+        icone: LayoutDashboard,
+        section: 'dashboard',
+        exact: true,
+      },
+      { vers: '/chantiers', libelle: 'Chantiers', icone: Building2, section: 'chantiers' },
+      { vers: '/taches', libelle: 'Tâches', icone: ClipboardList, section: 'taches' },
     ],
   },
   {
     titre: 'Ressources',
     liens: [
-      { vers: '/ouvriers', libelle: 'Ouvriers', icone: Users },
-      { vers: '/materiaux', libelle: 'Matériaux', icone: Package },
+      { vers: '/ouvriers', libelle: 'Ouvriers', icone: Users, section: 'ouvriers' },
+      { vers: '/materiaux', libelle: 'Matériaux', icone: Package, section: 'materiaux' },
     ],
   },
 ];
 
-// Profil de démonstration de la maquette : l'authentification n'est pas dans le périmètre.
-const UTILISATEUR = { nom: 'Samir Haddou', role: 'Conducteur de travaux', initiales: 'SH' };
-
 export function Sidebar() {
+  // Le menu ne montre que les sections du profil connecté.
+  const { voit } = useDroits();
+  const sections = SECTIONS.map((s) => ({
+    ...s,
+    liens: s.liens.filter((l) => voit(l.section)),
+  })).filter((s) => s.liens.length > 0);
   // Pastille de la maquette : nombre de matériaux en alerte (stock ≤ seuil).
   const alertes = useMateriaux(true).data?.length ?? 0;
   return (
@@ -55,7 +66,7 @@ export function Sidebar() {
       </div>
 
       <nav aria-label="Navigation principale" className="flex flex-col gap-1 px-3 py-2">
-        {SECTIONS.map((section, i) => (
+        {sections.map((section, i) => (
           <div key={section.titre} className="flex flex-col gap-1">
             <span
               className={cn('surtitre px-2.5 pb-1.5 text-side-muted', i === 0 ? 'pt-2' : 'pt-3.5')}
@@ -97,21 +108,6 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-
-      <div className="mt-auto flex flex-col gap-2.5 px-3 pb-5 pt-4">
-        <div className="flex items-center gap-3 rounded-btn bg-side-active p-3">
-          <span
-            className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[#F59E0B] font-bold text-[#1C1917]"
-            aria-hidden="true"
-          >
-            {UTILISATEUR.initiales}
-          </span>
-          <span className="flex min-w-0 flex-col">
-            <span className="font-bold">{UTILISATEUR.nom}</span>
-            <span className="text-[13px] text-side-muted">{UTILISATEUR.role}</span>
-          </span>
-        </div>
-      </div>
     </aside>
   );
 }

@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useMatches, useParams, type Params } from 'react-router-dom';
 
+import { AccesRefuse } from '@/features/auth/components/AccesRefuse';
+import { useDroits } from '@/features/auth/contexte';
+import type { Action, Section } from '@/features/auth/permissions';
+
 import { TitreContext } from '../titre';
 
 import { Sidebar } from './Sidebar';
@@ -13,6 +17,10 @@ import { Topbar, type Miette } from './Topbar';
 export type InfosPage = {
   titre: string | ((params: Params) => string);
   fil?: Miette[] | ((params: Params) => Miette[]);
+  /** Section du menu à laquelle appartient la page (droit de lecture du profil). */
+  section?: Section;
+  /** Action nécessaire pour ouvrir la page (ex. formulaire de création). */
+  action?: Action;
 };
 
 const RACINE: Miette = { libelle: 'Souss Bâtiment', vers: '/' };
@@ -31,6 +39,11 @@ export function AppLayout() {
   const titre = titrePage ?? (infos ? resoudre(infos.titre, params) : '');
   const fil = infos?.fil ? resoudre(infos.fil, params) : [RACINE];
 
+  // Une page hors des droits du profil affiche « Accès refusé » (le menu ne la propose pas).
+  const { voit, peut } = useDroits();
+  const autorise =
+    (!infos?.section || voit(infos.section)) && (!infos?.action || peut(infos.action));
+
   useEffect(() => {
     document.title = titre ? `${titre} · BTP Chantiers` : 'BTP Chantiers';
   }, [titre]);
@@ -42,7 +55,7 @@ export function AppLayout() {
         <Topbar titre={titre} fil={fil} />
         <div className="box-border flex w-full max-w-[1280px] flex-col gap-6 px-4 pb-12 pt-7 sm:px-8">
           <TitreContext.Provider value={setTitrePage}>
-            <Outlet />
+            {autorise ? <Outlet /> : <AccesRefuse />}
           </TitreContext.Provider>
         </div>
       </main>
