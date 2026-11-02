@@ -6,3 +6,9 @@
 # Spring Framework 7.0.9 (Spring Boot 4, mise à jour majeure reportée après la livraison du 20/11).
 # Non exploitable ici : Chantiers et Matériaux n'utilisent ni XsltView ni aucun rendu XSLT.
 CVE-2026-47884 exp:2026-12-31
+
+# spring-webmvc 6.2.x : corruption du flux Server-Sent Events (SSE) lors du rendu de fragments.
+# Correctif seulement dans Spring Framework 7.0.9 (Spring Boot 4, reporté après la livraison du 20/11).
+# Non exploitable ici : Chantiers et Matériaux n'utilisent ni SSE (SseEmitter, text/event-stream)
+# ni rendu de fragments de vues.
+CVE-2026-47890 exp:2026-12-31
