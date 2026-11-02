@@ -115,3 +115,18 @@ export function useChangerStatut() {
     onSuccess: () => rafraichir(qc),
   });
 }
+
+/** Retire un ouvrier d'une tâche : lecture de la tâche puis PATCH /api/taches/{id}/ouvriers. */
+export function useRetirerOuvrier() {
+  const qc = useQueryClient();
+  return useMutation<Tache, ApiError, { tacheId: number; ouvrierId: number }>({
+    mutationFn: async ({ tacheId, ouvrierId }) => {
+      const t = await api.getTache(tacheId);
+      return api.affecterOuvriers(
+        tacheId,
+        t.ouvrierIds.filter((o) => o !== ouvrierId),
+      );
+    },
+    onSuccess: () => rafraichir(qc),
+  });
+}

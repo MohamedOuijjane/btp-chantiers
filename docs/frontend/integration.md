@@ -96,16 +96,42 @@ Le corps d'erreur NestJS `{ statusCode, message, error }` devient un `ApiError` 
 
 ## Ouvriers · BENZINEB Ilyas · #51
 
-Fichier : `src/features/ouvriers/api.ts`
+Fichier : `src/features/ouvriers/api.ts`. Pages déjà construites avec les données fictives (#29) : équipe `/ouvriers` (cartes filtrables par spécialité et disponibilité, planning de l'ouvrier choisi), fiche `/ouvriers/:id` (identité, disponibilité, affectations, planning), dialogues création / modification / suppression.
+
+### Fonctions à brancher
 
 | Fonction | Endpoint réel | Codes | Issue backend |
 |---|---|---|---|
 | `listerOuvriers(filtre)` | `GET /api/ouvriers?specialite=&disponible=` | 200 | #13 |
 | `getOuvrier(id)` | `GET /api/ouvriers/{id}` | 200, 404 | |
 | `creerOuvrier(donnees)` | `POST /api/ouvriers` | 201, 409, 422 | |
-| `modifierOuvrier(id, donnees)` | `PATCH /api/ouvriers/{id}` | 200, 404, 422 | |
+| `modifierOuvrier(id, donnees)` | `PATCH /api/ouvriers/{id}` (dont la bascule `disponible`) | 200, 404, 422 | |
 | `supprimerOuvrier(id)` | `DELETE /api/ouvriers/{id}` | 204, 404, 409 | #15 (refus si tâches en cours) |
 | `getPlanning(id)` | `GET /api/ouvriers/{id}/planning` | 200 (`sourceDisponible`), 404 | **#14** (`sourceDisponible` en camelCase), #13 (`id` entier des tâches) |
+
+Les **affectations** (affecter l'ouvrier à une tâche, le retirer) passent par le module Tâches : `PATCH /api/taches/{id}/ouvriers` (`useAffecterOuvriers`, `useRetirerOuvrier`), branché dans #50. Rien à faire côté Ouvriers.
+
+### Erreurs attendues par les pages
+
+FastAPI renvoie `{ "detail": "…" }` ou, en validation, `{ "detail": [{ "loc": [...], "msg": "…" }] }`. Conversion en `ApiError` : chaîne → `message` ; tableau → `champs` (clé = dernier élément de `loc`). Les champs du formulaire s'appellent comme les attributs Pydantic (`prenom`, `nom`, `cin`, `specialite`, `telephone`) : un message par champ s'affiche directement sous la saisie.
+
+| Code | Cas | Affichage |
+|---|---|---|
+| 404 | Ouvrier inconnu | Page « Ouvrier introuvable » |
+| 409 | **CIN déjà utilisée** (RG-06) | Sous le champ CIN ; renvoyer de préférence `{ "detail": [{ "loc": ["body", "cin"], "msg": "…" }] }` avec le code 409 pour que le message aille sous le champ, sinon `{ "detail": "…" }` s'affiche en alerte |
+| 409 | Suppression d'un ouvrier affecté à des tâches en cours (#15) | Alerte dans le dialogue de suppression |
+| 422 | Validation Pydantic : CIN mal formée, téléphone non marocain, champ vide | Sous chaque champ |
+| 503 | Ouvriers injoignable (vu depuis la gateway) | Encart « Équipe indisponible » sur la liste |
+
+**Mode dégradé :** si le planning revient avec `sourceDisponible: false` (Tâches injoignable), la page affiche « Planning non disponible » et le reste de la fiche fonctionne. Le front lit `sourceDisponible` en camelCase : #14 doit être mergée avant le branchement.
+
+### Test manuel (à décrire dans la PR de #51)
+
+1. Créer un ouvrier, puis recréer la même CIN : message 409 sous le champ.
+2. Saisir une CIN `12AB` ou un téléphone `0412` : messages 422 sous les champs.
+3. Rendre un ouvrier indisponible depuis sa fiche : badge « Indisponible » dans la liste et filtre « Disponibles uniquement ».
+4. Supprimer un ouvrier affecté à une tâche en cours : refus 409.
+5. `docker compose stop taches-service` : planning « non disponible », fiche consultable.
 
 ## Matériaux · SALHI Hatim · #52
 

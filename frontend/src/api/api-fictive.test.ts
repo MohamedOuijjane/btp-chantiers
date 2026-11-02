@@ -181,10 +181,10 @@ describe('Ouvriers (fictif)', () => {
     expect(await ouvriers.getPlanning(1)).toMatchObject({ taches: [], sourceDisponible: false });
   });
 
-  it('refuse une CIN déjà utilisée (409) ou mal formée (400)', async () => {
+  it('refuse une CIN déjà utilisée (409) ou mal formée (422)', async () => {
     const base = { nom: 'Idrissi', prenom: 'Ali', specialite: 'PEINTRE' as const, telephone: null };
     await echoue(ouvriers.creerOuvrier({ ...base, cin: 'JB123456' }), 409);
-    const e = await echoue(ouvriers.creerOuvrier({ ...base, cin: '12AB' }), 400);
+    const e = await echoue(ouvriers.creerOuvrier({ ...base, cin: '12AB' }), 422);
     expect(e.champs).toHaveProperty('cin');
   });
 });
