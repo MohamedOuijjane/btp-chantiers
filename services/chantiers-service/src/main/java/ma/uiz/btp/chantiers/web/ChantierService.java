@@ -33,6 +33,7 @@ public class ChantierService {
 
     /** RG4 : un nouveau chantier est toujours PLANIFIE, le statut envoyé est ignoré. */
     public Chantier creer(ChantierDto.Requete r) {
+        verifierDonnees(r);
         Chantier c = new Chantier();
         appliquer(c, r);
         return repository.save(c);
@@ -45,6 +46,7 @@ public class ChantierService {
             throw new RegleMetierException("Un chantier ne peut pas passer à TERMINE par modification : utiliser PATCH /api/chantiers/"
                     + id + "/cloture.");
         }
+        verifierDonnees(r);
         appliquer(c, r);
         if (r.statut() != null) {
             c.setStatut(r.statut());
@@ -77,6 +79,24 @@ public class ChantierService {
         List<TachesClient.TacheResume> liste = taches.get();
         double moyenne = liste.stream().mapToInt(TachesClient.TacheResume::avancement).average().orElse(0);
         return new ChantierDto.Avancement(id, liste.size(), Math.round(moyenne * 10) / 10.0, true);
+    }
+
+    /**
+     * RG1 (dates cohérentes) et budget positif ou nul, vérifiés dans le service et pas seulement
+     * par la validation du DTO, qui ne s'applique qu'aux appels HTTP annotés @Valid.
+     */
+    private void verifierDonnees(ChantierDto.Requete r) {
+        if (r.dateDebut() == null || r.dateFinPrevue() == null || r.budget() == null) {
+            throw new RegleMetierException(
+                    "La date de début, la date de fin prévue et le budget sont obligatoires.");
+        }
+        if (r.dateFinPrevue().isBefore(r.dateDebut())) {
+            throw new RegleMetierException(
+                    "La date de fin prévue doit être postérieure ou égale à la date de début.");
+        }
+        if (r.budget().signum() < 0) {
+            throw new RegleMetierException("Le budget doit être positif ou nul.");
+        }
     }
 
     private void appliquer(Chantier c, ChantierDto.Requete r) {
