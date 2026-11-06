@@ -411,7 +411,7 @@ class ChantierServiceTest {
 
             // Assert
             assertEquals(1L, a.chantierId());
-            assertNull(a.nombreTaches());
+            assertEquals(0, a.nombreTaches());
             assertNull(a.avancementGlobal());
             assertFalse(a.sourceDisponible());
         }
