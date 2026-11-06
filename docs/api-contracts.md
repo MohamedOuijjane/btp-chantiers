@@ -28,7 +28,15 @@ POST /api/chantiers
 }
 ```
 
-Les erreurs sont renvoyées au format RFC 9457 (`application/problem+json`).
+Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json`), avec un message en français dans `detail`. Les erreurs de validation (400) portent en plus `erreurs`, un message par champ (RG-01 sur `dateFinPrevue`). Un paramètre invalide (`?statut=INCONNU`, `/api/chantiers/abc`) ou un JSON mal formé donnent aussi un 400 au même format.
+
+```json
+400 Bad Request
+{ "status": 400, "detail": "Données invalides",
+  "erreurs": { "dateFinPrevue": "La date de fin prévue doit être postérieure ou égale à la date de début" } }
+```
+
+`GET /api/chantiers/{id}/avancement` renvoie toujours les 4 champs. Si Tâches est injoignable : `{ "chantierId": 1, "nombreTaches": 0, "avancementGlobal": null, "sourceDisponible": false }`.
 
 ## Tâches & Avancement · REST · `:8082`
 
