@@ -52,7 +52,11 @@ public class SecuriteConfig {
     SecurityFilterChain filtres(HttpSecurity http, AuthenticationEntryPoint nonAuthentifie)
             throws Exception {
         return http
-                // API sans état, jeton dans l'en-tête Authorization.
+                // CSRF : l'API REST (/api/**) est sans état, authentifiée par l'en-tête
+                // Authorization et n'émet aucun cookie : un site tiers ne peut pas forger de
+                // requête authentifiée, le jeton CSRF n'y protège de rien et bloquerait les
+                // POST, PUT et PATCH (403). La protection reste active sur les autres routes.
+                .csrf(c -> c.ignoringRequestMatchers("/api/**"))
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
