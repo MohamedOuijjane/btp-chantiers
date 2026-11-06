@@ -68,6 +68,8 @@ Toute l'application partage **une seule base PostgreSQL** (`btp_db`). Chaque mod
 
 > Migration en cours vers la base unique : Tâches (MongoDB, #6) et Matériaux (MySQL, #17) ; front-end en cours de réalisation ([architecture](docs/frontend/architecture.md), #24).
 
+**Authentification :** la connexion émet un JWT (Chantiers, `POST /api/auth/login`) que la gateway vérifie avant toute requête vers `/api/*` et `/ws`. Tâches, Ouvriers et Matériaux n'ont rien à vérifier : voir [ADR-0006](docs/adr/0006-authentification-jwt-gateway.md).
+
 Les choix d'architecture sont justifiés dans les [ADR](docs/adr/) et les échanges entre modules sont détaillés dans [docs/architecture.md](docs/architecture.md).
 
 ## Démarrage rapide
@@ -77,11 +79,32 @@ Les choix d'architecture sont justifiés dans les [ADR](docs/adr/) et les échan
 ```bash
 git clone https://github.com/MohamedOuijjane/btp-chantiers.git
 cd btp-chantiers
-cp .env.example .env               # optionnel
+cp .env.example .env               # obligatoire : secret JWT et mot de passe des comptes de démo
 docker compose up --build -d --wait   # ou : make up
 docker compose ps                  # tous les services doivent être "healthy"
 ./scripts/demo.sh                  # scénario de démonstration de bout en bout
 ```
+
+Sans `.env`, `docker compose` refuse de démarrer (`JWT_SECRET` et `DEMO_MOT_DE_PASSE` manquants). Hors démonstration, remplacer `JWT_SECRET` par un secret généré (`openssl rand -base64 48`).
+
+**Base déjà créée avant l'authentification** (volume `postgres-data` existant) : ajouter le schéma `auth` et son utilisateur, sans perte de données :
+
+```bash
+docker compose exec -T postgres sh /docker-entrypoint-initdb.d/init.sh
+```
+
+### Comptes de démonstration
+
+Mot de passe commun : celui de `DEMO_MOT_DE_PASSE` dans `.env` (`chantier2026` dans `.env.example`). Sur l'écran de connexion, choisir un profil remplit l'adresse e-mail.
+
+| Profil | E-mail | Accès |
+|---|---|---|
+| Direction | `nadia.belkadi@souss-batiment.demo` | Tout ; créer, modifier, clôturer un chantier |
+| Conducteur de travaux | `samir.haddou@souss-batiment.demo` | Tout, toutes les actions |
+| Chef de chantier | `karim.aitali@souss-batiment.demo` | Sans Matériaux ; tâches et ouvriers |
+| Magasinier | `fatima.idrissi@souss-batiment.demo` | Tableau de bord, Chantiers, Matériaux ; stock |
+
+Les personnes et la société Souss Bâtiment sont fictives. Après 5 échecs de connexion pour un même e-mail (ou 20 pour une même adresse IP) en 15 minutes, la connexion répond `429`.
 
 | Accès | URL |
 |---|---|

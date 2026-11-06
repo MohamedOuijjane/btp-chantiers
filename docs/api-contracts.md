@@ -4,6 +4,30 @@
 
 La documentation détaillée (schémas, exemples, essais en ligne) est générée automatiquement par chaque service : voir le [README](../README.md#documentation-interactive-des-api).
 
+## Authentification · REST · Chantiers `:8081`
+
+Via la gateway (`:8080`), **toutes les routes `/api/*` et `/ws` exigent un jeton** (`Authorization: Bearer <jeton>`), sauf `POST /api/auth/login`, le WSDL et `/health` ([ADR-0006](adr/0006-authentification-jwt-gateway.md)). Sans jeton valide : `401` (`application/problem+json`) ; si Chantiers ne peut pas vérifier le jeton : `503`. Les services reçoivent `X-Utilisateur` (e-mail) et `X-Role`, écrits par la gateway. Les appels entre services (réseau Docker interne) ne passent pas par la gateway et restent sans jeton.
+
+| Méthode | Endpoint | Description | Codes |
+|---|---|---|---|
+| POST | `/api/auth/login` | Connexion : JWT HS256 valable 8 h | 200, 400, 401, 429 |
+| GET | `/api/auth/moi` | Utilisateur du jeton | 200, 401 |
+| GET | `/api/auth/verifier` | Vérification par la gateway : en-têtes `X-Utilisateur`, `X-Utilisateur-Id`, `X-Role` | 200, 401 |
+
+```json
+POST /api/auth/login
+{ "email": "samir.haddou@souss-batiment.demo", "motDePasse": "…" }
+
+200 OK
+{ "token": "eyJhbGciOiJIUzI1NiJ9…",
+  "utilisateur": { "id": 2, "email": "samir.haddou@souss-batiment.demo", "nom": "Samir Haddou",
+                   "initiales": "SH", "role": "CONDUCTEUR" } }
+```
+
+- Rôles : `DIRECTION`, `CONDUCTEUR`, `CHEF_CHANTIER`, `MAGASINIER`. Claims du jeton : `sub` (e-mail), `uid`, `nom`, `initiales`, `role`, `iss` = `btp-chantiers`.
+- `401` : même message (« Adresse e-mail ou mot de passe incorrect. ») pour un e-mail inconnu et un mauvais mot de passe.
+- `429` : après 5 échecs pour un même e-mail, ou 20 pour une même adresse IP, en 15 minutes ; en-tête `Retry-After` (secondes).
+
 ## Chantiers · REST · `:8081`
 
 | Méthode | Endpoint | Description | Codes |
