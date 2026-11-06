@@ -10,7 +10,11 @@
  * - Réseau coupé, délai dépassé (10 s) ou réponse 502 / 503 / 504 → 503 « module indisponible ».
  * - Annulation : le `signal` reçu (TanStack Query) interrompt l'appel ; l'erreur d'annulation est
  *   propagée telle quelle, sans devenir une ErreurApi.
+ * - Authentification (ADR-0006) : envoie `Authorization: Bearer <jeton>` si une session existe ;
+ *   un 401 reçu avec un jeton efface la session et ramène à /connexion (« Session expirée »).
  */
+import { lireSession, signalerSessionExpiree } from '@/features/auth/session';
+
 import { ErreurApi } from './errors';
 
 /** Délai maximal d'un appel, au-delà duquel le module est considéré comme indisponible. */
@@ -170,6 +174,9 @@ export async function requete<T>(
   const requestId = nouvelIdentifiant();
   const entetes: Record<string, string> = { Accept: 'application/json', 'X-Request-Id': requestId };
   if (corps !== undefined) entetes['Content-Type'] = 'application/json';
+  // Jeton de la session (ADR-0006) : la gateway le vérifie avant de transmettre la requête.
+  const jeton = lireSession()?.jeton;
+  if (jeton) entetes.Authorization = `Bearer ${jeton}`;
 
   const controleur = new AbortController();
   let delaiDepasse = false;
@@ -202,6 +209,9 @@ export async function requete<T>(
   }
 
   if (!reponse.ok) {
+    // 401 alors qu'un jeton a été envoyé : session expirée (ou jeton refusé). AuthProvider efface
+    // la session et ramène à /connexion. Sans jeton (connexion refusée), rien de plus à faire.
+    if (reponse.status === 401 && jeton) signalerSessionExpiree();
     const idReponse = reponse.headers.get('X-Request-Id') ?? requestId;
     throw versErreurApi(module, reponse.status, contenu, idReponse);
   }

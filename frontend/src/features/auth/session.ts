@@ -30,3 +30,22 @@ export function effacerSession() {
     // rien à effacer
   }
 }
+
+// Session expirée : src/api/http.ts reçoit un 401 alors qu'il a envoyé un jeton. Il n'est pas un
+// composant React : il prévient AuthProvider par cet abonnement, qui ramène à /connexion.
+type Ecouteur = () => void;
+const ecouteurs = new Set<Ecouteur>();
+
+/** Abonnement à l'expiration de la session ; renvoie la fonction de désabonnement. */
+export function surSessionExpiree(ecouteur: Ecouteur): () => void {
+  ecouteurs.add(ecouteur);
+  return () => {
+    ecouteurs.delete(ecouteur);
+  };
+}
+
+/** Efface la session et prévient les abonnés (AuthProvider). */
+export function signalerSessionExpiree() {
+  effacerSession();
+  for (const ecouteur of [...ecouteurs]) ecouteur();
+}

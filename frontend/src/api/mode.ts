@@ -4,6 +4,8 @@
  *
  *   VITE_API_MODE=fictif|reel        valeur par défaut de tous les modules (fictif si absente)
  *   VITE_API_CHANTIERS=fictif|reel   (idem : VITE_API_TACHES, VITE_API_OUVRIERS, VITE_API_MATERIAUX)
+ *   VITE_API_AUTH=fictif|reel        connexion (ADR-0006) ; reel dès qu'un module est en reel,
+ *                                    car la gateway exige un jeton sur /api/* et /ws
  *
  * Les valeurs viennent de frontend/.env.development et .env.production (ou de l'environnement
  * au moment du build). Les tests restent en fictif, sauf ceux qui changent la variable

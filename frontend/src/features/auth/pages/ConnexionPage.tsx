@@ -6,6 +6,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { versApiError, type ApiError } from '@/api/errors';
+import { estReel } from '@/api/mode';
 import { useTheme } from '@/app/useTheme';
 import { AlerteErreur } from '@/components/common/AlerteErreur';
 import { Champ } from '@/components/common/Champ';
@@ -23,7 +24,7 @@ const ATOUTS = ['4 modules', 'REST et SOAP', 'Données en temps réel'];
 
 /** Écran 1 de la maquette : connexion, avec choix rapide d'un profil de démonstration. */
 export function ConnexionPage() {
-  const { utilisateur, deconnecte, connecter } = useAuth();
+  const { utilisateur, deconnecte, sessionExpiree, connecter } = useAuth();
   const depuis = (useLocation().state as EtatConnexion | null)?.depuis;
   const [erreur, setErreur] = useState<ApiError | null>(null);
   const { theme, basculer } = useTheme();
@@ -44,9 +45,13 @@ export function ConnexionPage() {
   const email = watch('email').trim().toLowerCase();
   const profilChoisi = ROLES.find((r) => COMPTES_DEMO[r].email === email);
 
+  // Mode réel : le mot de passe des comptes de démo est défini côté serveur (DEMO_MOT_DE_PASSE),
+  // il n'est jamais dans le code du front ; seul l'e-mail est rempli.
+  const motDePasseConnu = !estReel('auth');
+
   const choisirProfil = (role: Role) => {
     setValue('email', COMPTES_DEMO[role].email);
-    setValue('motDePasse', MOT_DE_PASSE_DEMO);
+    setValue('motDePasse', motDePasseConnu ? MOT_DE_PASSE_DEMO : '');
     clearErrors();
     setErreur(null);
   };
@@ -124,6 +129,12 @@ export function ConnexionPage() {
               Vous êtes déconnecté.
             </p>
           )}
+          {sessionExpiree && !erreur && (
+            <p role="status" className="m-0 rounded-btn bg-surface-2 px-4 py-3 text-muted">
+              <strong className="text-ink">Session expirée.</strong> Reconnectez-vous pour
+              continuer.
+            </p>
+          )}
 
           <form
             noValidate
@@ -185,7 +196,9 @@ export function ConnexionPage() {
                 })}
               </div>
               <span className="text-[13px] text-muted">
-                Comptes de démonstration : choisir un profil remplit ses identifiants.
+                {motDePasseConnu
+                  ? 'Comptes de démonstration : choisir un profil remplit ses identifiants.'
+                  : 'Comptes de démonstration : choisir un profil remplit son adresse ; le mot de passe est celui de DEMO_MOT_DE_PASSE (README).'}
               </span>
             </fieldset>
 
