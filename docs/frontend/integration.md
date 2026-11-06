@@ -2,52 +2,121 @@
 
 Le front est développé en deux temps :
 
-1. **Interface seule** (#26 à #30, OUIJJANE Mohamed) : chaque page est conforme à la [maquette validée](maquette/) et lit des **données fictives**. Elles viennent de `src/features/<module>/api.ts`, sans aucun appel réseau.
-2. **Intégration** (#49 à #52) : chaque développeur remplace les fonctions de `api.ts` de son module par de vrais appels à son backend, **via la gateway**.
+1. **Interface seule** (#26 à #30, OUIJJANE Mohamed) : chaque page est conforme à la [maquette validée](maquette/) et lit des **données fictives**, sans aucun appel réseau.
+2. **Intégration** (#49 à #52) : chaque développeur branche les fonctions `api.ts` de son module sur son backend, **via la gateway**, module par module.
 
 Ce guide décrit l'étape 2.
 
-## Ce qui change et ce qui ne change pas
+## État du branchement
 
-| Fichier | À l'intégration |
+| Module | Responsable | Issue | Statut | Mode par défaut (`.env.development`, `.env.production`) |
+|---|---|---|---|---|
+| Chantiers | OUIJJANE Mohamed | #49 | **Branché** | `reel` |
+| Tâches & Avancement | IJJAALI Houssam | #50 | À brancher (après #6, #99, #11) | `fictif` |
+| Ouvriers | BENZINEB Ilyas | #51 | À brancher (après #13, #14) | `fictif` |
+| Matériaux | SALHI Hatim | #52 | À brancher (après #17, #18, #102) ; `src/api/soap.ts` à écrire | `fictif` |
+
+## Choisir le mode d'un module : `VITE_API_*`
+
+Chaque module lit ses données soit en **fictif** (données en mémoire), soit en **réel** (API via la gateway). On branche ainsi un module sans casser les pages des autres.
+
+| Variable | Valeurs | Rôle |
+|---|---|---|
+| `VITE_API_MODE` | `fictif` (défaut) ou `reel` | Mode des modules qui n'ont pas de variable propre |
+| `VITE_API_CHANTIERS`, `VITE_API_TACHES`, `VITE_API_OUVRIERS`, `VITE_API_MATERIAUX` | `fictif` ou `reel` | Mode d'un module ; l'emporte sur `VITE_API_MODE` |
+
+- Les valeurs sont dans `frontend/.env.development` (`npm run dev`) et `frontend/.env.production` (build et image Docker). Ces fichiers ne contiennent aucun secret et sont versionnés.
+- Pour un essai ponctuel sans modifier ces fichiers : `frontend/.env.development.local` (ignoré par Git), par exemple `VITE_API_TACHES=reel`.
+- Les tests Vitest restent en `fictif` par défaut ; un test du mode réel change la variable avec `vi.stubEnv('VITE_API_<MODULE>', 'reel')`.
+- Le mode est lu par `src/api/mode.ts` (`estReel('chantiers')`).
+
+## Guide de branchement (modèle : Chantiers, #49)
+
+Chaque module suit la même organisation que `src/features/chantiers/` :
+
+| Fichier | Rôle |
 |---|---|
-| `src/features/<module>/api.ts` | **À modifier** : chaque fonction appelle l'API réelle au lieu de lire la base fictive |
-| `src/features/<module>/types.ts` | Ne change pas : les types suivent déjà les contrats cibles |
-| `src/features/<module>/hooks.ts` | Ne change pas |
-| Pages et composants | Ne changent pas |
-| `src/api/errors.ts` | Ne change pas : toute erreur doit devenir un `ApiError` |
-| `src/api/donnees-fictives.ts`, `src/api/simulation.ts` | Supprimés quand les 4 modules sont branchés |
+| `api.fictif.ts` | L'ancien `api.ts` fictif, déplacé tel quel (`git mv src/features/<module>/api.ts src/features/<module>/api.fictif.ts`) |
+| `api.reel.ts` | **À écrire** : une fonction par endpoint, avec `creerClientHttp('<Module>')` (REST) ou le client SOAP |
+| `api.ts` | **À réécrire** : chaque fonction appelle `api.reel.ts` ou `api.fictif.ts` selon `estReel('<module>')`, avec les **mêmes signatures** |
+| `hooks.ts` | Seul changement : passer le `signal` de TanStack Query aux lectures, `queryFn: ({ signal }) => api.lister(filtre, { signal })` |
+| `types.ts`, pages, composants | Ne changent pas |
+| `api.reel.test.ts` | **À écrire** : tests Vitest avec MSW de chaque fonction (méthode, URL, corps, codes d'erreur) |
 
-Chaque fonction de `api.ts` porte en commentaire l'endpoint réel à appeler et les codes de retour attendus.
+Étapes :
+
+1. Comparer les réponses réelles (Swagger, `curl` via `http://localhost:8080`) avec `types.ts`. **Si l'API et le front ne correspondent pas, corriger le backend** (le contrat est dans `types.ts` et ce guide), pas les pages.
+2. `git mv` de `api.ts` vers `api.fictif.ts`, puis écrire `api.reel.ts` et le nouvel `api.ts` (voir `src/features/chantiers/`).
+3. Écrire `api.reel.test.ts` avec `demarrerServeurMsw()` (`src/test/msw.ts`) et `vi.stubEnv`.
+4. Passer le module en `reel` dans `.env.development` et `.env.production`, et mettre à jour le tableau « État du branchement ».
+5. `docker compose up --build`, puis le test manuel de la section du module (captures dans la PR).
+
+```ts
+// src/features/<module>/api.reel.ts
+import { creerClientHttp, type OptionsAppel } from '@/api/http';
+const http = creerClientHttp('Ouvriers');
+
+export function listerOuvriers(filtre: FiltreOuvriers = {}, { signal }: OptionsAppel = {}) {
+  return http.get<Ouvrier[]>('/api/ouvriers', { params: filtre, signal });
+}
+export function supprimerOuvrier(id: number) {
+  return http.supprimer(`/api/ouvriers/${id}`);
+}
+```
+
+## Client REST partagé : `src/api/http.ts`
+
+`creerClientHttp(module)` renvoie `get`, `post`, `put`, `patch` et `supprimer`. Le nom du module sert aux messages « Le module … est indisponible ».
+
+| Comportement | Détail |
+|---|---|
+| Adresse | Chemin relatif (`/api/...`) sur la même origine : la gateway en Docker, le proxy Vite en développement |
+| Paramètres | `params: { statut: 'EN_COURS', ouvrierId: undefined }` : les valeurs `undefined`, `null` et `''` sont ignorées |
+| Corps | Envoyé en JSON (`Content-Type: application/json`) ; une réponse 204 renvoie `undefined` |
+| `X-Request-Id` | Généré à chaque appel ; la gateway le garde, le transmet au service et l'écrit dans ses logs ; repris dans `ApiError.requestId` |
+| Délai | 10 s (`DELAI_MS`) ; au-delà : `503` « Le module … ne répond pas » |
+| Annulation | `signal` (TanStack Query) : l'appel est interrompu et l'erreur d'annulation est propagée telle quelle, sans devenir une `ApiError` |
+| Indisponibilité | Réseau coupé, délai dépassé, `502` ou `504` de la gateway → `503` « Le module … est indisponible » ; un `503` renvoyé par un service garde son message |
 
 ## Règles communes
 
 - **Chemins relatifs uniquement** : `/api/chantiers`, `/api/taches`, `/api/ouvriers`, `/ws`. Ne jamais appeler `localhost:8081` ni un nom Docker : en développement, Vite relaie `/api` et `/ws` vers la gateway (`http://localhost:8080`) ; en Docker, la gateway sert le front et les API sur la même origine.
-- **Signatures identiques** : une fonction garde ses paramètres et son type de retour, et renvoie une `Promise`.
-- **Erreurs** : toute réponse en erreur est convertie en `ApiError { status, message, champs?, requestId? }` et levée (`throw new ErreurApi(...)`). Le réseau coupé donne `status: 0`. `requestId` reprend l'en-tête `X-Request-Id` de la gateway.
-- **Client du module** : chaque développeur écrit le petit client dont il a besoin. Ce client reste dans `src/api/` pour être partagé : `http.ts` pour le REST, `soap.ts` pour le SOAP. Le premier qui l'écrit le rend réutilisable par les autres.
-- **Tests** : la conversion des erreurs du module est testée avec Vitest.
+- **Signatures identiques** : une fonction garde ses paramètres et son type de retour, et renvoie une `Promise`. Les lectures acceptent en plus un dernier paramètre facultatif `{ signal }`.
+- **Erreurs** : toute réponse en erreur est convertie en `ApiError { status, message, champs?, requestId? }` et levée (`ErreurApi`) par `http.ts`. Réseau coupé, délai dépassé, `502`, `503` et `504` donnent `status: 503`.
+- **Clients partagés** : `src/api/http.ts` pour le REST (écrit, à réutiliser tel quel) ; `src/api/soap.ts` pour le SOAP (à écrire dans #52, sur le même modèle).
+- **Tests** : chaque `api.reel.ts` est testé avec Vitest et MSW, sans backend.
 
-| Format d'erreur reçu | Conversion en `ApiError` |
+| Format d'erreur reçu | Conversion en `ApiError` (`versErreurApi`) |
 |---|---|
 | Chantiers (Spring) : `application/problem+json` `{ status, detail, erreurs? }` | `message = detail`, `champs = erreurs` |
-| Ouvriers (FastAPI) : `{ detail: "..." }` ou `{ detail: [{ loc, msg }] }` | chaîne → `message` ; tableau → `champs` (dernier élément de `loc`) |
-| Tâches (NestJS) : `{ statusCode, message, error }` | chaîne → `message` ; tableau → messages joints |
+| Ouvriers (FastAPI) : `{ detail: "..." }` ou `{ detail: [{ loc, msg }] }` | chaîne → `message` ; tableau → `champs` (dernier élément de `loc`), `message = "Données invalides"` |
+| Tâches (NestJS) : `{ statusCode, message, error }` | chaîne → `message` ; tableau → messages joints, et `champs` quand un message commence par un nom de champ (`titre should not be empty`) |
 | Matériaux (SOAP) : `soap:Fault` (`faultcode`, `faultstring`) | `Introuvable` → `404`, `Conflit` → `409`, `Client` → `422`, `Server` → `503`, `message = faultstring` (voir la section Matériaux) |
+| Corps vide ou illisible | Message par défaut selon le code (`404` « Ressource introuvable »…) |
 
-## Chantiers · OUIJJANE Mohamed · #49
+## Chantiers · OUIJJANE Mohamed · #49 · Branché
 
-Fichier : `src/features/chantiers/api.ts`
+Fichiers : `src/features/chantiers/api.ts` (choix du mode), `api.reel.ts` (API réelle), `api.fictif.ts` (données fictives), `api.reel.test.ts`.
 
-| Fonction | Endpoint réel | Codes | Issue backend |
+| Fonction | Endpoint réel | Codes | Remarque |
 |---|---|---|---|
-| `listerChantiers(filtre)` | `GET /api/chantiers?statut=` | 200 | |
+| `listerChantiers(filtre)` | `GET /api/chantiers?statut=` | 200, 400 (statut inconnu) | |
 | `getChantier(id)` | `GET /api/chantiers/{id}` | 200, 404 | |
-| `creerChantier(donnees)` | `POST /api/chantiers` | 201, 400 | #4 (statut PLANIFIE) |
-| `modifierChantier(id, donnees)` | `PUT /api/chantiers/{id}` | 200, 400, 404, 409 | |
+| `creerChantier(donnees)` | `POST /api/chantiers` | 201, 400 | Toujours créé au statut `PLANIFIE` (#4) ; erreurs par champ en français, celle de RG-01 sur `dateFinPrevue` |
+| `modifierChantier(id, donnees)` | `PUT /api/chantiers/{id}` | 200, 400, 404, 409 | 409 : chantier terminé, ou passage à `TERMINE` (utiliser la clôture) |
 | `cloturerChantier(id)` | `PATCH /api/chantiers/{id}/cloture` | 200, 404, 409 | |
-| `supprimerChantier(id)` | `DELETE /api/chantiers/{id}` | 204, 404, 409 | #5 (refus si des tâches existent) |
-| `getAvancement(id)` | `GET /api/chantiers/{id}/avancement` | 200 (`sourceDisponible`), 404 | |
+| `supprimerChantier(id)` | `DELETE /api/chantiers/{id}` | 204, 404 | Le refus 409 d'un chantier qui a des tâches arrive avec #5 |
+| `getAvancement(id)` | `GET /api/chantiers/{id}/avancement` | 200, 404 | L'API renvoie une décimale (66.7), arrondie dans `api.reel.ts`. Tâches injoignable : `nombreTaches: 0`, `avancementGlobal: null`, `sourceDisponible: false` |
+
+### Test manuel
+
+1. `docker compose up --build -d --wait`, puis http://localhost:8080 (profil Conducteur de travaux).
+2. Créer un chantier : il apparaît dans la liste au statut « Planifié ».
+3. Créer un chantier avec une date de fin avant la date de début : **400**, message sous « Date de fin prévue ».
+4. Modifier le chantier, passer le statut à « En cours » : la fiche est mise à jour.
+5. Clôturer le chantier, puis tenter de le modifier : **409** « Le chantier … est terminé et ne peut plus être modifié. »
+6. `docker compose stop taches-service` : la fiche reste affichée, l'avancement est « non disponible ».
+7. `docker compose stop chantiers-service` : encart « Module indisponible » (**503**) sur la liste.
 
 ## Tâches & Avancement · IJJAALI Houssam · #50
 
@@ -158,7 +227,7 @@ La consommation par chantier est calculée côté front à partir de `ListerMouv
 
 Le service répond toujours en HTTP 200 (succès) ou 500 (SOAP Fault). Le client SOAP (`src/api/soap.ts`, à écrire au branchement) lit l'enveloppe et lève une `ErreurApi` :
 
-1. **Pas de réponse** (réseau coupé) → `status: 0`. **HTTP 502 / 503 / 504** de la gateway (service arrêté) → `status: 503`.
+1. **Pas de réponse** (réseau coupé, délai de 10 s dépassé) ou **HTTP 502 / 503 / 504** de la gateway (service arrêté) → `status: 503`, comme dans `http.ts`.
 2. **Réponse avec `Body/Fault`** → lire `faultcode` et `faultstring` en ignorant les préfixes. `faultstring` peut porter un attribut `xml:lang="fr"` : avec fast-xml-parser, le texte est alors dans `#text`.
 3. **Code HTTP de l'`ApiError`** selon le nom local du `faultcode` :
 
@@ -253,6 +322,6 @@ Pour la démo avec les données fictives, `?panne=taches` (ou `?panne=taches,ouv
 
 ## Tester une intégration
 
-1. `docker compose up -d --build` (backend), puis dans `frontend/` : `npm run dev` (http://localhost:5173).
+1. `docker compose up -d --build` (backend), puis dans `frontend/` : `npm run dev` (http://localhost:5173). Le module testé doit être en `reel` (`.env.development` ou `.env.development.local`).
 2. Parcourir la page du module et chaque cas d'erreur de la maquette : 400 (champ), 404, 409, 422, et 503 (arrêter le module appelé avec `docker compose stop <service>`).
 3. Décrire ce test manuel dans la PR, avec les captures.

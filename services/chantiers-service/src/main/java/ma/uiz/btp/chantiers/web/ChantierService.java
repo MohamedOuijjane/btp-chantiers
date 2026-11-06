@@ -74,7 +74,7 @@ public class ChantierService {
         trouver(id);
         Optional<List<TachesClient.TacheResume>> taches = tachesClient.tachesDuChantier(id);
         if (taches.isEmpty()) {
-            return new ChantierDto.Avancement(id, null, null, false);
+            return new ChantierDto.Avancement(id, 0, null, false);
         }
         List<TachesClient.TacheResume> liste = taches.get();
         double moyenne = liste.stream().mapToInt(TachesClient.TacheResume::avancement).average().orElse(0);

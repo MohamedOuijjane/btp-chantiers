@@ -16,14 +16,14 @@ export const clesChantiers = {
 export function useChantiers(filtre: FiltreChantiers = {}) {
   return useQuery({
     queryKey: clesChantiers.liste(filtre),
-    queryFn: () => api.listerChantiers(filtre),
+    queryFn: ({ signal }) => api.listerChantiers(filtre, { signal }),
   });
 }
 
 export function useChantier(id: number, active = true) {
   return useQuery({
     queryKey: clesChantiers.detail(id),
-    queryFn: () => api.getChantier(id),
+    queryFn: ({ signal }) => api.getChantier(id, { signal }),
     enabled: active,
   });
 }
@@ -31,7 +31,7 @@ export function useChantier(id: number, active = true) {
 export function useAvancementChantier(id: number, active = true) {
   return useQuery({
     queryKey: clesChantiers.avancement(id),
-    queryFn: () => api.getAvancement(id),
+    queryFn: ({ signal }) => api.getAvancement(id, { signal }),
     enabled: active,
   });
 }
@@ -41,7 +41,7 @@ export function useAvancementsChantiers(ids: number[]) {
   return useQueries({
     queries: ids.map((id) => ({
       queryKey: clesChantiers.avancement(id),
-      queryFn: () => api.getAvancement(id),
+      queryFn: ({ signal }: { signal: AbortSignal }) => api.getAvancement(id, { signal }),
     })),
   });
 }
