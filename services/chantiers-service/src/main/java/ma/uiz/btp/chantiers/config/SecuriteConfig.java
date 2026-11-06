@@ -52,8 +52,7 @@ public class SecuriteConfig {
     SecurityFilterChain filtres(HttpSecurity http, AuthenticationEntryPoint nonAuthentifie)
             throws Exception {
         return http
-                // API sans état, jeton dans l'en-tête Authorization : pas de cookie, pas de CSRF.
-                .csrf(AbstractHttpConfigurer::disable)
+                // API sans état, jeton dans l'en-tête Authorization.
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
