@@ -49,7 +49,52 @@ class ChantierControllerTest {
     void refuseUnePeriodeIncoherente() throws Exception {
         String invalide = CHANTIER.replace("2027-06-30", "2026-01-01");
         mvc.perform(post("/api/chantiers").contentType(MediaType.APPLICATION_JSON).content(invalide))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("Données invalides"))
+                .andExpect(jsonPath("$.erreurs.dateFinPrevue")
+                        .value("La date de fin prévue doit être postérieure ou égale à la date de début"))
+                .andExpect(jsonPath("$.erreurs.periodeValide").doesNotExist());
+    }
+
+    @Test
+    void messagesDeValidationEnFrancaisParChamp() throws Exception {
+        String invalide = CHANTIER.replace("\"Résidence Al Amal\"", "\"\"").replace("2500000", "-1");
+        mvc.perform(post("/api/chantiers").contentType(MediaType.APPLICATION_JSON).content(invalide))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.erreurs.nom").value("Le nom est obligatoire"))
+                .andExpect(jsonPath("$.erreurs.budget").value("Le budget doit être positif ou nul"));
+    }
+
+    @Test
+    void jsonMalFormeRenvoieUnProblemDetail() throws Exception {
+        mvc.perform(post("/api/chantiers").contentType(MediaType.APPLICATION_JSON).content("{nom"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("JSON mal formé")));
+    }
+
+    @Test
+    void dateIllisibleSignaleeSurLeChamp() throws Exception {
+        String invalide = CHANTIER.replace("2026-11-01", "01/11/2026");
+        mvc.perform(post("/api/chantiers").contentType(MediaType.APPLICATION_JSON).content(invalide))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.erreurs.dateDebut").exists());
+    }
+
+    @Test
+    void statutDeFiltreInconnuRenvoie400() throws Exception {
+        mvc.perform(get("/api/chantiers").param("statut", "INCONNU"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("valeurs possibles")));
+    }
+
+    @Test
+    void identifiantNonNumeriqueRenvoie400() throws Exception {
+        mvc.perform(get("/api/chantiers/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("« id »")));
     }
 
     @Test
@@ -110,6 +155,9 @@ class ChantierControllerTest {
         String id = creer();
         mvc.perform(get("/api/chantiers/" + id + "/avancement"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombreTaches").value(0))
+                .andExpect(jsonPath("$.avancementGlobal").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.avancementGlobal").hasJsonPath())
                 .andExpect(jsonPath("$.sourceDisponible").value(false));
     }
 }
