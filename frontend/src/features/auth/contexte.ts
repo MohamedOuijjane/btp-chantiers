@@ -5,10 +5,12 @@ import type { Identifiants, Session, Utilisateur } from './types';
 
 export type ValeurAuth = {
   utilisateur: Utilisateur | null;
-  /** Jeton à envoyer dans l'en-tête Authorization (au branchement). */
+  /** Jeton envoyé dans l'en-tête Authorization par src/api/http.ts. */
   jeton: string | null;
   /** Vrai juste après un clic sur « Déconnexion » (pas de retour à la page quittée). */
   deconnecte: boolean;
+  /** Vrai quand une API a répondu 401 : la page de connexion affiche « Session expirée ». */
+  sessionExpiree: boolean;
   connecter: (identifiants: Identifiants) => Promise<Session>;
   deconnecter: () => Promise<void>;
 };

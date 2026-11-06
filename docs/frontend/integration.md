@@ -15,6 +15,7 @@ Ce guide décrit l'étape 2.
 | Tâches & Avancement | IJJAALI Houssam | #50 | À brancher (après #6, #99, #11) | `fictif` |
 | Ouvriers | BENZINEB Ilyas | #51 | À brancher (après #13, #14) | `fictif` |
 | Matériaux | SALHI Hatim | #52 | À brancher (après #17, #18, #102) ; `src/api/soap.ts` à écrire | `fictif` |
+| Authentification | OUIJJANE Mohamed | #109 | **Branchée** (JWT, voir la section Authentification) | `reel` |
 
 ## Choisir le mode d'un module : `VITE_API_*`
 
@@ -24,6 +25,7 @@ Chaque module lit ses données soit en **fictif** (données en mémoire), soit e
 |---|---|---|
 | `VITE_API_MODE` | `fictif` (défaut) ou `reel` | Mode des modules qui n'ont pas de variable propre |
 | `VITE_API_CHANTIERS`, `VITE_API_TACHES`, `VITE_API_OUVRIERS`, `VITE_API_MATERIAUX` | `fictif` ou `reel` | Mode d'un module ; l'emporte sur `VITE_API_MODE` |
+| `VITE_API_AUTH` | `fictif` ou `reel` | Connexion ; `reel` dès qu'un module est en `reel` (la gateway exige un jeton) |
 
 - Les valeurs sont dans `frontend/.env.development` (`npm run dev`) et `frontend/.env.production` (build et image Docker). Ces fichiers ne contiennent aucun secret et sont versionnés.
 - Pour un essai ponctuel sans modifier ces fichiers : `frontend/.env.development.local` (ignoré par Git), par exemple `VITE_API_TACHES=reel`.
@@ -74,6 +76,7 @@ export function supprimerOuvrier(id: number) {
 | Paramètres | `params: { statut: 'EN_COURS', ouvrierId: undefined }` : les valeurs `undefined`, `null` et `''` sont ignorées |
 | Corps | Envoyé en JSON (`Content-Type: application/json`) ; une réponse 204 renvoie `undefined` |
 | `X-Request-Id` | Généré à chaque appel ; la gateway le garde, le transmet au service et l'écrit dans ses logs ; repris dans `ApiError.requestId` |
+| Jeton | `Authorization: Bearer <jeton>` si une session existe ; un `401` reçu avec un jeton ramène à `/connexion` (« Session expirée ») |
 | Délai | 10 s (`DELAI_MS`) ; au-delà : `503` « Le module … ne répond pas » |
 | Annulation | `signal` (TanStack Query) : l'appel est interrompu et l'erreur d'annulation est propagée telle quelle, sans devenir une `ApiError` |
 | Indisponibilité | Réseau coupé, délai dépassé, `502` ou `504` de la gateway → `503` « Le module … est indisponible » ; un `503` renvoyé par un service garde son message |
@@ -278,23 +281,36 @@ throw new ErreurApi({
 4. Sortie qui fait passer un matériau sous son seuil : toast d'alerte, badge « En alerte », pastille de la barre latérale mise à jour.
 5. `docker compose stop materiaux-service` : encart « Stock indisponible » (503) ; `docker compose stop chantiers-service` puis un mouvement : alerte 503.
 
-## Authentification (#104)
+## Authentification · #109 · Branchée
 
-Aujourd'hui, la connexion est **fictive** : aucun service d'authentification n'existe et les comptes de démonstration sont dans `src/features/auth/api.ts`. Tout le code est isolé dans `src/features/auth/` pour pouvoir brancher un vrai service émettant un JWT sans toucher aux pages.
+La connexion est **réelle** ([ADR-0006](../adr/0006-authentification-jwt-gateway.md)) : Chantiers émet un JWT (HS256, 8 h) et la gateway le vérifie (`auth_request`) avant toute requête vers `/api/*` et `/ws`. Tâches, Ouvriers et Matériaux ne changent pas : ils reçoivent seulement les en-têtes `X-Utilisateur` (e-mail) et `X-Role`, écrits par la gateway.
 
-| Fichier | Rôle | Au branchement |
+| Route (via la gateway) | Jeton | Réponse |
 |---|---|---|
-| `api.ts` | `connecter`, `deconnecter`, comptes de démo | **À modifier** (voir ci-dessous) |
-| `types.ts` | `Role`, `Utilisateur`, `Session { utilisateur, jeton }` | Ne change pas si le service renvoie ce format |
-| `permissions.ts` | Sections visibles et actions autorisées par profil, page d'accueil | Ne change pas (affichage seulement) |
-| `session.ts` | Lecture / écriture de la session en `sessionStorage` (protégée par try/catch) | Ne change pas |
-| `contexte.ts`, `AuthProvider.tsx` | `useAuth()` (utilisateur, jeton, connecter, deconnecter), `useDroits()` (`peut`, `voit`) | Ne changent pas |
-| `components/RouteProtegee.tsx` | Redirige vers `/connexion` en gardant la page demandée | Ne change pas |
-| `components/MenuUtilisateur.tsx`, `AccesRefuse.tsx`, `pages/ConnexionPage.tsx` | Topbar (nom, profil, Déconnexion), page refusée, écran 1 de la maquette | Ne changent pas |
+| `POST /api/auth/login` `{ email, motDePasse }` | non | `200 { token, utilisateur }`, `400`, `401` (même message pour un e-mail inconnu), `429` (`Retry-After`) |
+| `GET /api/auth/moi` | oui | `200 Utilisateur`, `401` |
+| `GET /api/auth/verifier` | oui | `200` (en-têtes `X-Utilisateur`, `X-Role`) ou `401` ; appelé par la gateway |
+| `/api/chantiers`, `/api/taches`, `/api/ouvriers`, `/ws` | oui | `401` (`application/problem+json`) sans jeton valide ; `503` si Chantiers ne peut pas vérifier le jeton |
+| `/ws/materiaux.wsdl`, `/health`, le front (`/`) | non | |
+
+| Fichier du front | Rôle |
+|---|---|
+| `api.ts` | Choisit `api.reel.ts` ou `api.fictif.ts` selon `VITE_API_AUTH` ; réexporte `COMPTES_DEMO` (identités des comptes de démo) |
+| `api.reel.ts` | `connecter` : `POST /api/auth/login`, `{ token, utilisateur }` devient `Session { jeton, utilisateur }` ; `deconnecter` : rien côté serveur (le jeton expire) |
+| `api.fictif.ts` | Comptes en mémoire et `MOT_DE_PASSE_DEMO`, pour le mode fictif seulement |
+| `session.ts` | Session en `sessionStorage` ; `signalerSessionExpiree()` / `surSessionExpiree()` |
+| `AuthProvider.tsx`, `contexte.ts` | `useAuth()` : `utilisateur`, `jeton`, `deconnecte`, `sessionExpiree`, `connecter`, `deconnecter` |
+| `permissions.ts` | Sections et actions par profil : **affichage seulement**, le refus côté serveur (`403` selon `X-Role`) reste à faire module par module |
+
+**Jeton sur chaque appel.** `src/api/http.ts` lit la session (`lireSession()`) et ajoute `Authorization: Bearer <jeton>`. Le futur `src/api/soap.ts` (#52) doit faire de même, sinon `/ws` répond `401`.
+
+**Session expirée.** Une réponse `401` à une requête qui portait un jeton efface la session et prévient `AuthProvider` : retour à `/connexion` avec le message « Session expirée », puis, après reconnexion, retour à la page demandée. Un `401` sur `/api/auth/login` (mauvais mot de passe) reste une simple erreur du formulaire.
+
+**Mode fictif.** `VITE_API_AUTH=fictif` garde les comptes en mémoire (mot de passe `MOT_DE_PASSE_DEMO`), sans backend. À réserver au cas où **tous** les modules sont en `fictif` : la gateway refuse le jeton fictif (`401`) et la session expirerait aussitôt.
 
 ### Comptes de démonstration
 
-Mot de passe commun : `chantier2026`. Le choix d'un profil sur l'écran de connexion remplit les deux champs.
+Les quatre comptes sont créés dans le schéma `auth` par Flyway. Leur mot de passe commun vient de `DEMO_MOT_DE_PASSE` (`.env`, `chantier2026` dans `.env.example`) : il n'est écrit ni dans le code du backend ni dans celui du front. En mode réel, choisir un profil sur l'écran de connexion remplit l'adresse e-mail ; le mot de passe est à saisir.
 
 | Profil | E-mail | Menu | Actions | Page après connexion |
 |---|---|---|---|---|
@@ -305,14 +321,18 @@ Mot de passe commun : `chantier2026`. Le choix d'un profil sur l'écran de conne
 
 Une action non autorisée est **masquée** ; une page hors du profil (lien direct) affiche « Accès refusé ». Chaque route déclare sa section et, pour un formulaire, l'action requise (`handle` dans `src/app/routes.tsx`).
 
-### Brancher un vrai service
+### Test manuel
 
-1. **`api.ts`** : `connecter({ email, motDePasse })` appelle `POST /api/auth/login` et renvoie `{ jeton, utilisateur: { id, email, nom, initiales, role } }` ; un **401** devient `ErreurApi { status: 401, message }` (message unique, sans dire si c'est l'e-mail ou le mot de passe qui est faux). `deconnecter()` appelle `POST /api/auth/logout` (204). Supprimer ensuite `COMPTES_DEMO`, `MOT_DE_PASSE_DEMO` et `sessionDemo` (les tests utiliseront MSW et une session écrite avec `ecrireSession`).
-2. **Jeton sur chaque appel** : le client `src/api/http.ts` (et `soap.ts`) ajoute `Authorization: Bearer <jeton>`, lu avec `lireSession()` (le client n'est pas un composant React).
-3. **Session expirée** : sur un **401** d'une API métier, le client appelle `effacerSession()` puis renvoie vers `/connexion` (la garde de routes ramène ensuite à la page en cours).
-4. **Gateway** : ajouter `location /api/auth/` vers le service d'authentification. La signature du JWT est vérifiée soit par chaque module (Spring Security resource server, guard NestJS, dépendance FastAPI, intercepteur Spring-WS), soit à la gateway (`auth_request` de nginx) ; le rôle est porté par une claim `role` avec les valeurs de `Role`.
-5. **Droits côté serveur** : `permissions.ts` ne fait que de l'affichage. Chaque module doit refuser lui-même une action interdite au profil avec un **403**, affiché « Accès refusé » (`titreErreur`).
-6. **Stockage** : `sessionStorage` suffit pour la démonstration (la session se ferme avec l'onglet). Avec un vrai JWT, préférer un jeton d'accès court et un jeton de rafraîchissement en cookie `HttpOnly`, pour limiter l'impact d'une faille XSS.
+```bash
+# Sans jeton : 401 en JSON
+curl -i http://localhost:8080/api/chantiers
+# Connexion, puis appel avec le jeton : 200
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"samir.haddou@souss-batiment.demo","motDePasse":"chantier2026"}' | sed -E 's/.*"token":"([^"]+)".*/\1/')
+curl -i -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/chantiers
+```
+
+Dans le navigateur : se connecter, puis supprimer la clé `btp-session` dans le `sessionStorage` ou y modifier le jeton, et recharger une page : retour à `/connexion` avec « Session expirée ».
 
 ## Tableau de bord (#26)
 

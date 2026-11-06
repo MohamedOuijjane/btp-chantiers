@@ -6,6 +6,21 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+  # Ce fichier remplace celui de src/main : reprendre la configuration Flyway du schéma auth.
+  flyway:
+    schemas: auth
+    default-schema: auth
+    create-schemas: true
+auth:
+  datasource:
+    url: jdbc:h2:mem:authdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+  jwt:
+    # Secret réservé aux tests (base H2 en mémoire), sans valeur ailleurs.
+    secret: secret-de-test-uniquement-0123456789abcdef
+  demo:
+    mot-de-passe: mot-de-passe-de-test
 services:
   taches:
     url: http://localhost:1

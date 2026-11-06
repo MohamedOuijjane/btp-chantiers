@@ -1,70 +1,23 @@
 /**
- * API d'authentification : COMPTES FICTIFS, aucun appel réseau.
+ * API d'authentification, utilisée par AuthProvider. Selon VITE_API_AUTH (src/api/mode.ts) :
+ * - reel   : POST /api/auth/login (JWT émis par Chantiers, vérifié par la gateway, ADR-0006) ;
+ * - fictif : comptes de démonstration en mémoire, sans backend.
  *
- * Endpoints réels à brancher (cible, service d'authentification derrière la gateway,
- * voir docs/frontend/integration.md, section « Authentification ») :
- *   POST /api/auth/login   { email, motDePasse } → 200 { jeton (JWT), utilisateur } | 401
- *   POST /api/auth/logout  → 204
+ * Les identités des comptes de démonstration (e-mail, nom, profil) sont les mêmes dans les
+ * deux modes ; seul le mode fictif connaît un mot de passe.
  */
-import { ErreurApi } from '@/api/errors';
-import { attendre } from '@/api/simulation';
+import { estReel } from '@/api/mode';
 
-import type { Identifiants, Role, Session, Utilisateur } from './types';
+import * as fictif from './api.fictif';
+import * as reel from './api.reel';
+import type { Identifiants, Session } from './types';
 
-/** Mot de passe commun aux comptes de démonstration. */
-export const MOT_DE_PASSE_DEMO = 'chantier2026';
+export { COMPTES_DEMO, MOT_DE_PASSE_DEMO, sessionDemo } from './api.fictif';
 
-/** Un compte de démonstration par profil (personnes fictives de la maquette). */
-export const COMPTES_DEMO: Record<Role, Utilisateur> = {
-  DIRECTION: {
-    id: 1,
-    email: 'nadia.belkadi@souss-batiment.demo',
-    nom: 'Nadia Belkadi',
-    initiales: 'NB',
-    role: 'DIRECTION',
-  },
-  CONDUCTEUR: {
-    id: 2,
-    email: 'samir.haddou@souss-batiment.demo',
-    nom: 'Samir Haddou',
-    initiales: 'SH',
-    role: 'CONDUCTEUR',
-  },
-  CHEF_CHANTIER: {
-    id: 3,
-    email: 'karim.aitali@souss-batiment.demo',
-    nom: 'Karim Aït Ali',
-    initiales: 'KA',
-    role: 'CHEF_CHANTIER',
-  },
-  MAGASINIER: {
-    id: 4,
-    email: 'fatima.idrissi@souss-batiment.demo',
-    nom: 'Fatima Zahra Idrissi',
-    initiales: 'FI',
-    role: 'MAGASINIER',
-  },
-};
-
-/** Session d'un compte de démonstration (tests, captures). */
-export function sessionDemo(role: Role): Session {
-  return { utilisateur: COMPTES_DEMO[role], jeton: `fictif-${role.toLowerCase()}` };
+export function connecter(identifiants: Identifiants): Promise<Session> {
+  return estReel('auth') ? reel.connecter(identifiants) : fictif.connecter(identifiants);
 }
 
-/**
- * Réel (cible) : POST /api/auth/login → 200 { jeton, utilisateur } | 401.
- * Un message unique pour un e-mail inconnu ou un mauvais mot de passe (ne pas révéler les comptes).
- */
-export async function connecter({ email, motDePasse }: Identifiants): Promise<Session> {
-  await attendre();
-  const compte = Object.values(COMPTES_DEMO).find((c) => c.email === email.trim().toLowerCase());
-  if (!compte || motDePasse !== MOT_DE_PASSE_DEMO) {
-    throw new ErreurApi({ status: 401, message: 'Adresse e-mail ou mot de passe incorrect.' });
-  }
-  return sessionDemo(compte.role);
-}
-
-/** Réel (cible) : POST /api/auth/logout → 204 (invalide le jeton côté serveur). */
-export async function deconnecter(): Promise<void> {
-  await attendre(0);
+export function deconnecter(): Promise<void> {
+  return estReel('auth') ? reel.deconnecter() : fictif.deconnecter();
 }

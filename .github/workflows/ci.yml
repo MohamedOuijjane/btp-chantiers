@@ -176,4 +176,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # JWT_SECRET et DEMO_MOT_DE_PASSE sont obligatoires dans docker-compose.yml (ADR-0006).
+      - name: Variables d'environnement de démonstration
+        run: cp .env.example .env
       - run: docker compose build

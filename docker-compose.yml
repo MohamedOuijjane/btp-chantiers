@@ -18,6 +18,7 @@ services:
       TACHES_DB_PASSWORD: ${TACHES_DB_PASSWORD:-taches}
       OUVRIERS_DB_PASSWORD: ${OUVRIERS_DB_PASSWORD:-ouvriers}
       MATERIAUX_DB_PASSWORD: ${MATERIAUX_DB_PASSWORD:-materiaux}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth}
     ports: ["5432:5432"]   # accès avec DBeaver / pgAdmin en dev
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -65,6 +66,13 @@ services:
       DB_USER: chantiers_user
       DB_PASSWORD: ${CHANTIERS_DB_PASSWORD:-chantiers}
       TACHES_URL: http://taches-service:8082
+      # Authentification (ADR-0006) : comptes dans le schéma auth, avec leur propre utilisateur.
+      AUTH_DB_URL: jdbc:postgresql://postgres:5432/btp_db?currentSchema=auth
+      AUTH_DB_USER: auth_user
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth}
+      # Secrets sans valeur par défaut : à définir dans .env (cp .env.example .env).
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET manquant, copier .env.example en .env}
+      DEMO_MOT_DE_PASSE: ${DEMO_MOT_DE_PASSE:?DEMO_MOT_DE_PASSE manquant, copier .env.example en .env}
     depends_on:
       postgres: { condition: service_healthy }
     networks: [data, backend]

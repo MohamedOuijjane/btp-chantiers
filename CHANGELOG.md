@@ -10,8 +10,16 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Front-end : client REST partagé `src/api/http.ts` (gateway sur la même origine, `X-Request-Id`, délai de 10 s, annulation, conversion des erreurs Spring, NestJS et FastAPI en `ApiError`, indisponibilité ramenée à 503), testé avec MSW ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Front-end : choix du mode fictif ou réel par module (`VITE_API_MODE`, `VITE_API_CHANTIERS`…) pour brancher les modules un par un ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Front-end : pages Chantiers branchées sur l'API réelle ; guide de branchement des autres modules dans `docs/frontend/integration.md` ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
+- Authentification réelle par JWT ([ADR-0006](docs/adr/0006-authentification-jwt-gateway.md), [#109](https://github.com/MohamedOuijjane/btp-chantiers/issues/109)) :
+  - schéma `auth` dans `btp_db` (utilisateur `auth_user`), table `utilisateurs` (mot de passe BCrypt) créée par Flyway, 4 comptes de démonstration dont le mot de passe vient de `DEMO_MOT_DE_PASSE` ;
+  - Chantiers (Spring Security) : `POST /api/auth/login` (JWT HS256, 8 h), `GET /api/auth/moi`, `GET /api/auth/verifier` ; 401 au format RFC 9457, 429 après trop d'échecs ;
+  - gateway : `auth_request` sur `/api/*` et `/ws` (sauf la connexion, le WSDL et `/health`), en-têtes `X-Utilisateur` et `X-Role` transmis aux services, 401 et 503 en JSON ;
+  - front-end : connexion réelle (`VITE_API_AUTH`), jeton envoyé par `http.ts`, retour à `/connexion` avec « Session expirée » sur un 401 ;
+  - collection Postman : requête de connexion et variable `token` ; `scripts/demo.sh` se connecte avant le scénario.
 
 ### Modifié
+- **`.env` obligatoire** : `JWT_SECRET` et `DEMO_MOT_DE_PASSE` n'ont pas de valeur par défaut, `docker compose` refuse de démarrer sans eux (`cp .env.example .env`). Sur une base existante, rejouer `scripts/init-postgres.sh` (voir le README) ([#109](https://github.com/MohamedOuijjane/btp-chantiers/issues/109)).
+- `scripts/init-postgres.sh` rejouable sur une base existante ([#109](https://github.com/MohamedOuijjane/btp-chantiers/issues/109)).
 - Chantiers : toutes les erreurs au format RFC 9457 avec un message en français (validation par champ, paramètre invalide, JSON mal formé) ; l'erreur de RG-01 est rattachée au champ `dateFinPrevue` ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Chantiers : en mode dégradé, l'avancement renvoie `nombreTaches: 0` et `avancementGlobal: null` au lieu d'omettre ces champs ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Gateway : l'en-tête `X-Request-Id` envoyé par le front est conservé et transmis au service ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).

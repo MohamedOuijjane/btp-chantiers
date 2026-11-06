@@ -2,6 +2,8 @@ package ma.uiz.btp.chantiers.web;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import ma.uiz.btp.chantiers.auth.IdentifiantsInvalidesException;
+import ma.uiz.btp.chantiers.auth.TropDeTentativesException;
 import ma.uiz.btp.chantiers.domain.RegleMetierException;
 import ma.uiz.btp.chantiers.domain.RessourceIntrouvableException;
 import org.springframework.beans.TypeMismatchException;
@@ -44,6 +46,22 @@ public class GestionErreurs extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RegleMetierException.class)
     ProblemDetail regleMetier(RegleMetierException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /** Connexion refusée : même message pour un e-mail inconnu et un mauvais mot de passe. */
+    @ExceptionHandler(IdentifiantsInvalidesException.class)
+    ResponseEntity<ProblemDetail> identifiantsInvalides(IdentifiantsInvalidesException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(HttpHeaders.WWW_AUTHENTICATE, "Bearer")
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, e.getMessage()));
+    }
+
+    @ExceptionHandler(TropDeTentativesException.class)
+    ResponseEntity<ProblemDetail> tropDeTentatives(TropDeTentativesException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(e.getAttenteSecondes()))
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS,
+                        e.getMessage()));
     }
 
     @Override
@@ -93,7 +111,8 @@ public class GestionErreurs extends ResponseEntityExceptionHandler {
                     .collect(Collectors.joining(", "));
             detail.append(" (valeurs possibles : ").append(valeurs).append(')');
         }
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail.toString());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                detail.toString());
         return handleExceptionInternal(e, pd, headers, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -108,7 +127,8 @@ public class GestionErreurs extends ResponseEntityExceptionHandler {
 
     private ResponseEntity<Object> erreurs(Exception e, Map<String, String> champs,
                                            HttpHeaders headers, WebRequest request) {
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, DONNEES_INVALIDES);
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                DONNEES_INVALIDES);
         pd.setProperty("erreurs", champs);
         return handleExceptionInternal(e, pd, headers, HttpStatus.BAD_REQUEST, request);
     }

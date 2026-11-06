@@ -1,15 +1,197 @@
 {
   "info": {
     "name": "BTP Chantiers - Équipe 18",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Via la gateway (:8080), toutes les requêtes exigent un jeton (ADR-0006). Lancer d'abord « Authentification / Se connecter » : le jeton est enregistré dans la variable token et envoyé par toutes les autres requêtes (Authorization: Bearer {{token}}). Le mot de passe des comptes de démo est celui de DEMO_MOT_DE_PASSE (.env)."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
     {
       "key": "gateway",
       "value": "http://localhost:8080"
+    },
+    {
+      "key": "email",
+      "value": "samir.haddou@souss-batiment.demo"
+    },
+    {
+      "key": "motDePasse",
+      "value": "chantier2026",
+      "description": "Valeur de DEMO_MOT_DE_PASSE dans .env.example ; à adapter à votre .env"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "Rempli par « Se connecter »"
     }
   ],
   "item": [
+    {
+      "name": "Authentification (JWT)",
+      "item": [
+        {
+          "name": "Se connecter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et un jeton', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.token).to.be.a('string').and.not.empty;",
+                  "  pm.expect(r.utilisateur.role).to.be.oneOf(['DIRECTION', 'CONDUCTEUR', 'CHEF_CHANTIER', 'MAGASINIER']);",
+                  "  pm.collectionVariables.set('token', r.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/auth/login",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"motDePasse\": \"{{motDePasse}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Connexion refusée (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 au format RFC 9457', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().detail).to.eql('Adresse e-mail ou mot de passe incorrect.');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/auth/login",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"motDePasse\": \"mauvais\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Utilisateur connecté",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et l’utilisateur du jeton', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get('email'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/auth/moi",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "moi"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sans jeton (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 sans jeton', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            }
+          }
+        }
+      ]
+    },
     {
       "name": "Chantiers (REST)",
       "item": [
