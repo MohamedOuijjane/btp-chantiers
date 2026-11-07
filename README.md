@@ -151,8 +151,8 @@ Chaque service peut être lancé seul. Démarrer d'abord la base : `docker compo
 # Chantiers / Matériaux
 cd services/chantiers-service && mvn spring-boot:run
 
-# Tâches (applique ses migrations au démarrage ; DATABASE_URL par défaut : taches_user sur localhost:5432/btp_db)
-cd services/taches-service && npm install && npm run start:dev
+# Tâches (applique ses migrations au démarrage ; taches_user sur localhost:5432/btp_db)
+cd services/taches-service && npm install && DB_PASSWORD=<TACHES_DB_PASSWORD du .env> npm run start:dev
 
 # Ouvriers
 cd services/ouvriers-service && pip install -r requirements-dev.txt && uvicorn app.main:app --reload --port 8083

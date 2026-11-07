@@ -20,17 +20,29 @@ describe('HealthController', () => {
 });
 
 describe('optionsBase', () => {
-  it('base unique btp_db, schéma taches, migrations et jamais synchronize', () => {
+  it('par défaut : taches_user sur localhost:5432/btp_db, schéma taches, sans mot de passe dans le code', () => {
     const o = optionsBase({});
     expect(o).toEqual(
       expect.objectContaining({
         type: 'postgres',
-        url: 'postgres://taches_user:taches@localhost:5432/btp_db',
+        host: 'localhost',
+        port: 5432,
+        username: 'taches_user',
+        password: undefined,
+        database: 'btp_db',
         schema: 'taches',
         migrationsRun: true,
         synchronize: false,
       }),
     );
+  });
+
+  it('développement local : DB_HOST, DB_PORT, DB_USER, DB_PASSWORD et DB_NAME', () => {
+    const o = optionsBase({ DB_HOST: 'h', DB_PORT: '6543', DB_USER: 'u', DB_PASSWORD: 'secret', DB_NAME: 'b' });
+    expect(o).toEqual(
+      expect.objectContaining({ host: 'h', port: 6543, username: 'u', password: 'secret', database: 'b' }),
+    );
+    expect(o).not.toHaveProperty('url');
   });
 
   it('lit DATABASE_URL et DB_SCHEMA', () => {
