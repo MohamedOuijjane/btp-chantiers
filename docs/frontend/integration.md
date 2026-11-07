@@ -12,7 +12,7 @@ Ce guide décrit l'étape 2.
 | Module | Responsable | Issue | Statut | Mode par défaut (`.env.development`, `.env.production`) |
 |---|---|---|---|---|
 | Chantiers | OUIJJANE Mohamed | #49 | **Branché** | `reel` |
-| Tâches & Avancement | IJJAALI Houssam | #50 | À brancher (après #6, #99, #11) | `fictif` |
+| Tâches & Avancement | OUIJJANE Mohamed | #50 | À brancher (après #99, #11 ; #6 faite) | `fictif` |
 | Ouvriers | BENZINEB Ilyas | #51 | À brancher (après #13, #14) | `fictif` |
 | Matériaux | SALHI Hatim | #52 | À brancher (après #17, #18, #102) ; `src/api/soap.ts` à écrire | `fictif` |
 | Authentification | OUIJJANE Mohamed | #109 | **Branchée** (JWT, voir la section Authentification) | `reel` |
@@ -121,7 +121,7 @@ Fichiers : `src/features/chantiers/api.ts` (choix du mode), `api.reel.ts` (API r
 6. `docker compose stop taches-service` : la fiche reste affichée, l'avancement est « non disponible ».
 7. `docker compose stop chantiers-service` : encart « Module indisponible » (**503**) sur la liste.
 
-## Tâches & Avancement · IJJAALI Houssam · #50
+## Tâches & Avancement · OUIJJANE Mohamed · #50
 
 Fichier : `src/features/taches/api.ts`. Pages déjà construites avec les données fictives (#28) : liste `/taches`, fiche `/taches/:id`, création `/taches/nouvelle` et `/chantiers/:id/taches/nouvelle`, modification `/taches/:id/modifier`, onglet Tâches de la fiche chantier.
 
@@ -141,7 +141,7 @@ Fichier : `src/features/taches/api.ts`. Pages déjà construites avec les donné
 | `listerHistorique(limite)` | `GET /api/taches/historique?limite=` → derniers changements de statut, toutes tâches confondues (tableau de bord) | 200 | **à créer** (#99) |
 | `supprimerTache(id)` | `DELETE /api/taches/{id}` | 204, 404 | |
 
-Avant #6, l'API renvoie `_id` (chaîne) : ne pas adapter le front, attendre #6.
+Depuis #6, l'API renvoie un `id` entier et des dates `aaaa-mm-jj`, comme `types.ts` : aucune adaptation à faire.
 
 ### Endpoints à créer côté Tâches
 

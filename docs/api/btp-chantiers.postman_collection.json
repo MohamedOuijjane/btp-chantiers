@@ -32,6 +32,11 @@
       "key": "token",
       "value": "",
       "description": "Rempli par « Se connecter »"
+    },
+    {
+      "key": "tacheId",
+      "value": "1",
+      "description": "Rempli par « Tâches / Créer » (identifiant entier)"
     }
   ],
   "item": [
@@ -512,21 +517,38 @@
               "mode": "raw",
               "raw": "{\n  \"chantierId\": 1,\n  \"titre\": \"Coulage des fondations\",\n  \"dateDebut\": \"2026-11-02\",\n  \"dateFin\": \"2026-11-10\",\n  \"ouvrierIds\": [\n    1\n  ],\n  \"besoinsMateriaux\": [\n    {\n      \"materiauId\": 1,\n      \"quantite\": 40\n    }\n  ]\n}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 et un identifiant entier', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  const t = pm.response.json();",
+                  "  pm.expect(t.id).to.be.a('number');",
+                  "  pm.expect(t).to.not.have.property('_id');",
+                  "  pm.collectionVariables.set('tacheId', t.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Avancement",
           "request": {
             "method": "PATCH",
             "url": {
-              "raw": "{{gateway}}/api/taches/:id/avancement",
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/avancement",
               "host": [
                 "{{gateway}}"
               ],
               "path": [
                 "api",
                 "taches",
-                ":id",
+                "{{tacheId}}",
                 "avancement"
               ]
             },

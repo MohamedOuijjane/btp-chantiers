@@ -47,7 +47,7 @@ TACHE=$(curl -sf "${AUTH[@]}" -X POST "$GW/api/taches" -H 'Content-Type: applica
   "chantierId":'$CID',"titre":"Coulage des fondations","dateDebut":"2026-11-02","dateFin":"2026-11-10",
   "ouvrierIds":['$OID'],"besoinsMateriaux":[{"materiauId":'$MID',"quantite":40}]}')
 echo "$TACHE"
-TID=$(echo "$TACHE" | sed -E 's/.*"_id":"([a-f0-9]+)".*/\1/')
+TID=$(echo "$TACHE" | sed -E 's/^[{]"id":([0-9]+).*/\1/')
 
 title "5. Règle métier : demander plus de ciment que le stock est refusé (422)"
 curl -s "${AUTH[@]}" -X POST "$GW/api/taches" -H 'Content-Type: application/json' -d '{
