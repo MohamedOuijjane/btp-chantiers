@@ -161,6 +161,7 @@ Le corps d'erreur NestJS `{ statusCode, message, error }` devient un `ApiError` 
 | 400 | Validation (`dateFin` avant `dateDebut`, titre vide…) | Erreur par champ si possible (affichée sous le champ) |
 | 404 | Tâche, chantier, ouvrier ou matériau inconnu | « Tâche 12 introuvable » |
 | 409 | **Chantier clôturé** (création, modification, statut) | « Le chantier « … » est clôturé : ses tâches ne peuvent plus changer » |
+| 409 | **Chantier suspendu** (création, #12) | « Le chantier « … » est suspendu : aucune tâche ne peut y être ajoutée » |
 | 409 | **Ouvrier déjà occupé** sur la période (RG-04, #10) | « Rachid Bouzid est déjà affecté à « … » sur cette période » |
 | 409 | Transition de statut impossible, tâche bloquée | « Débloquez la tâche avant de changer son statut » |
 | 422 | Ouvrier indisponible, **stock insuffisant** (SOAP `VerifierStock`) | « Stock insuffisant pour Ciment CPJ 45 : 400 sacs demandés, 320 sacs en stock » |

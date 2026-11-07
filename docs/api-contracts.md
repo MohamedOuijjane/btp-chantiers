@@ -68,7 +68,7 @@ Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json
 |---|---|---|---|
 | GET | `/api/taches?chantierId=&ouvrierId=` | Lister / filtrer | 200 |
 | GET | `/api/taches/{id}` | Consulter | 200, 404 |
-| POST | `/api/taches` | Créer (vérifie chantier, ouvriers, stock) | 201, 400, 404, 422, 503 |
+| POST | `/api/taches` | Créer (vérifie chantier, ouvriers, stock) | 201, 400, 404, 409, 422, 503 |
 | PATCH | `/api/taches/{id}/avancement` | `{ "avancement": 60 }` | 200, 400, 404 |
 | PATCH | `/api/taches/{id}/ouvriers` | `{ "ouvrierIds": [1, 2] }` | 200, 422 |
 | DELETE | `/api/taches/{id}` | Supprimer | 204, 404 |
@@ -103,6 +103,8 @@ POST /api/taches
 - **Identifiant entier `id`** (plus de `_id` MongoDB depuis #6) ; dates au format `aaaa-mm-jj` ; `description` absente quand elle est vide.
 - Données dans le schéma `taches` de `btp_db` : tables `tache` et `besoin_materiau` (classe d'association), créées par les migrations TypeORM.
 - Un même `materiauId` ne peut apparaître qu'une fois dans `besoinsMateriaux` (`400`).
+
+Codes de refus à la création (RG-03, RG-04, RG-07) : chantier inconnu → `404` ; chantier `SUSPENDU` ou `TERMINE` → `409` (seuls `PLANIFIE` et `EN_COURS` acceptent une tâche) ; ouvrier indisponible ou stock insuffisant → `422` ; Chantiers, Ouvriers ou Matériaux injoignable → `503`.
 
 ## Ouvriers · REST · `:8083`
 

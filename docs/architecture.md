@@ -47,7 +47,7 @@ sequenceDiagram
     GW-->>CT: 201 Created
 ```
 
-Si une vérification échoue (chantier terminé, ouvrier indisponible, stock insuffisant), la tâche **n'est pas créée** et l'API renvoie `422` avec un message explicite.
+Si une vérification échoue, la tâche **n'est pas créée** et l'API renvoie un message explicite : `404` pour un chantier inconnu, `409` pour un chantier suspendu ou clôturé (RG-03), `422` pour un ouvrier indisponible ou un stock insuffisant, `503` si un module ne répond pas.
 
 ### 3.2 Avancement d'un chantier
 
@@ -72,7 +72,7 @@ sequenceDiagram
 |---|---|---|---|
 | RG-01 | `dateFinPrevue ≥ dateDebut` pour un chantier | Chantiers | 400 |
 | RG-02 | Un chantier `TERMINE` ne peut plus être modifié | Chantiers | 409 |
-| RG-03 | On ne crée pas de tâche sur un chantier inexistant ou terminé | Tâches | 404 / 422 |
+| RG-03 | On ne crée pas de tâche sur un chantier inexistant, suspendu ou terminé (seuls `PLANIFIE` et `EN_COURS` l'acceptent) | Tâches → Chantiers | 404 / 409 |
 | RG-04 | Un ouvrier indisponible ne peut pas être affecté | Tâches → Ouvriers | 422 |
 | RG-05 | Le statut d'une tâche découle de son avancement (0 % → A_FAIRE, 1–99 % → EN_COURS, 100 % → TERMINEE) | Tâches | n/a |
 | RG-06 | La CIN d'un ouvrier est unique et au format marocain | Ouvriers | 409 / 422 |
