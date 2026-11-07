@@ -29,17 +29,6 @@ services:
       retries: 10
     networks: [data]
 
-  # TEMPORAIRE : supprimé quand Tâches sera migré vers PostgreSQL (issue Houssam)
-  mongo:
-    image: mongo:7
-    <<: *restart
-    volumes: [mongo-data:/data/db]
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
-      retries: 10
-    networks: [data]
-
   # TEMPORAIRE : supprimé quand Matériaux sera migré vers PostgreSQL (issue SALHI Hatim)
   mysql:
     image: mysql:8.4
@@ -82,12 +71,13 @@ services:
     <<: *restart
     ports: ["8082:8082"]   # accès direct en dev
     environment:
-      MONGO_URL: mongodb://mongo:27017/taches_db
+      # Base unique btp_db, schéma taches (ADR-0005) ; tables créées par les migrations TypeORM.
+      DATABASE_URL: postgres://taches_user:${TACHES_DB_PASSWORD:-taches}@postgres:5432/btp_db
       CHANTIERS_URL: http://chantiers-service:8081
       OUVRIERS_URL: http://ouvriers-service:8083
       MATERIAUX_URL: http://materiaux-service:8084
     depends_on:
-      mongo: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     networks: [data, backend]
 
   ouvriers-service:
@@ -137,5 +127,4 @@ networks:
 
 volumes:
   postgres-data:
-  mongo-data:
   mysql-data:
