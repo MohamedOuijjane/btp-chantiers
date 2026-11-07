@@ -6,6 +6,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+### Documentation
+- Règle RG-03 : une tâche ne peut être créée que sur un chantier `PLANIFIE` ou `EN_COURS` ; un chantier `SUSPENDU` ou `TERMINE` donne `409` (au lieu de `422` pour un chantier terminé), mise en œuvre dans [#12](https://github.com/MohamedOuijjane/btp-chantiers/issues/12).
+
 ### Ajouté
 - Front-end : client REST partagé `src/api/http.ts` (gateway sur la même origine, `X-Request-Id`, délai de 10 s, annulation, conversion des erreurs Spring, NestJS et FastAPI en `ApiError`, indisponibilité ramenée à 503), testé avec MSW ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Front-end : choix du mode fictif ou réel par module (`VITE_API_MODE`, `VITE_API_CHANTIERS`…) pour brancher les modules un par un ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
