@@ -6,9 +6,6 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
-### Documentation
-- Règle RG-03 : une tâche ne peut être créée que sur un chantier `PLANIFIE` ou `EN_COURS` ; un chantier `SUSPENDU` ou `TERMINE` donne `409` (au lieu de `422` pour un chantier terminé), mise en œuvre dans [#12](https://github.com/MohamedOuijjane/btp-chantiers/issues/12).
-
 ### Ajouté
 - Front-end : client REST partagé `src/api/http.ts` (gateway sur la même origine, `X-Request-Id`, délai de 10 s, annulation, conversion des erreurs Spring, NestJS et FastAPI en `ApiError`, indisponibilité ramenée à 503), testé avec MSW ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Front-end : choix du mode fictif ou réel par module (`VITE_API_MODE`, `VITE_API_CHANTIERS`…) pour brancher les modules un par un ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
@@ -21,6 +18,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
   - collection Postman : requête de connexion et variable `token` ; `scripts/demo.sh` se connecte avant le scénario.
 
 ### Modifié
+- Règle RG-03 : une tâche ne peut être créée que sur un chantier `PLANIFIE` ou `EN_COURS` ; un chantier `SUSPENDU` ou `TERMINE` donne `409` (au lieu de `422` pour un chantier terminé), mise en œuvre dans [#12](https://github.com/MohamedOuijjane/btp-chantiers/issues/12).
 - **`.env` obligatoire** : `JWT_SECRET` et `DEMO_MOT_DE_PASSE` n'ont pas de valeur par défaut, `docker compose` refuse de démarrer sans eux (`cp .env.example .env`). Sur une base existante, rejouer `scripts/init-postgres.sh` (voir le README) ([#109](https://github.com/MohamedOuijjane/btp-chantiers/issues/109)).
 - `scripts/init-postgres.sh` rejouable sur une base existante ([#109](https://github.com/MohamedOuijjane/btp-chantiers/issues/109)).
 - Chantiers : toutes les erreurs au format RFC 9457 avec un message en français (validation par champ, paramètre invalide, JSON mal formé) ; l'erreur de RG-01 est rattachée au champ `dateFinPrevue` ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
