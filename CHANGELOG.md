@@ -27,6 +27,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Chantiers : en mode dégradé, l'avancement renvoie `nombreTaches: 0` et `avancementGlobal: null` au lieu d'omettre ces champs ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Gateway : l'en-tête `X-Request-Id` envoyé par le front est conservé et transmis au service ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 
+### Corrigé
+- Tâches : les SOAP Faults de Matériaux sont lues même quand la balise porte un attribut (`<faultstring xml:lang="en">`) ; un matériau inconnu donne `422` « Matériaux : Matériau … introuvable » au lieu d'un faux « stock insuffisant » ([#8](https://github.com/MohamedOuijjane/btp-chantiers/issues/8)).
+
 ## [0.1.2] - 2026-11-02
 
 ### Sécurité
