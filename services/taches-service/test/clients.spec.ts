@@ -113,4 +113,65 @@ describe('MateriauxSoapClient', () => {
     );
     await expect(client.verifierStock(9, 1)).rejects.toThrow('Matériaux : Matériau 9 introuvable');
   });
+
+  describe('SOAP Faults de Spring-WS (#8)', () => {
+    /** Réponse réelle de Matériaux (HTTP 500) à VerifierStock pour un matériau inconnu. */
+    const FAUTE_SPRING_WS =
+      '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Header/>' +
+      '<SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Client</faultcode>' +
+      '<faultstring xml:lang="en">Matériau 99999 introuvable</faultstring></SOAP-ENV:Fault>' +
+      '</SOAP-ENV:Body></SOAP-ENV:Envelope>';
+
+    it('matériau inexistant : 422 avec le message de la faute (balise avec xml:lang)', async () => {
+      fetchSimule.mockResolvedValue(reponse(500, FAUTE_SPRING_WS));
+      const erreur = await client.verifierStock(99999, 1).catch((e: unknown) => e);
+      expect(erreur).toBeInstanceOf(UnprocessableEntityException);
+      expect((erreur as Error).message).toBe('Matériaux : Matériau 99999 introuvable');
+      // Plus de faux « stock insuffisant … disponible undefined ».
+      expect((erreur as Error).message).not.toMatch(/Stock insuffisant|undefined/);
+    });
+
+    it('lire() accepte les attributs et le préfixe sur la balise', () => {
+      expect(MateriauxSoapClient.lire(FAUTE_SPRING_WS, 'faultstring')).toBe('Matériau 99999 introuvable');
+      expect(MateriauxSoapClient.lire(FAUTE_SPRING_WS, 'faultcode')).toBe('SOAP-ENV:Client');
+      expect(MateriauxSoapClient.lire('<ns2:stock unite="sac">40</ns2:stock>', 'stock')).toBe('40');
+    });
+
+    it('lire() ne confond pas une balise avec une autre qui commence pareil', () => {
+      const xml = '<ns2:stockActuel>12</ns2:stockActuel><ns2:stock>40</ns2:stock>';
+      expect(MateriauxSoapClient.lire(xml, 'stock')).toBe('40');
+      expect(MateriauxSoapClient.lire(xml, 'stockActuel')).toBe('12');
+    });
+
+    it('lire() gère les retours à la ligne, les entités XML et les sections CDATA', () => {
+      const indente = '<faultstring xml:lang="fr">\n    Référence &quot;CIM-1&quot; déjà utilisée &amp; refusée &#233;&#xE9;\n  </faultstring>';
+      expect(MateriauxSoapClient.lire(indente, 'faultstring')).toBe('Référence "CIM-1" déjà utilisée & refusée éé');
+      expect(MateriauxSoapClient.lire('<faultstring><![CDATA[a < b & c]]></faultstring>', 'faultstring')).toBe('a < b & c');
+    });
+
+    it('faute avec un code personnalisé (#102) et un préfixe de namespace : toujours 422', async () => {
+      fetchSimule.mockResolvedValue(
+        reponse(
+          500,
+          corps(
+            '<SOAP-ENV:Fault><faultcode xmlns:m="http://btp.uiz.ma/materiaux">m:Introuvable</faultcode>' +
+              '<faultstring xml:lang="fr">Matériau 9 introuvable</faultstring></SOAP-ENV:Fault>',
+          ),
+        ),
+      );
+      await expect(client.verifierStock(9, 1)).rejects.toThrow(
+        new UnprocessableEntityException('Matériaux : Matériau 9 introuvable'),
+      );
+    });
+
+    it('faute sans faultstring : 422 qui cite le faultcode', async () => {
+      fetchSimule.mockResolvedValue(reponse(500, corps('<soap:Fault><faultcode>soap:Server</faultcode></soap:Fault>')));
+      await expect(client.verifierStock(1, 1)).rejects.toThrow('Matériaux : erreur SOAP soap:Server');
+    });
+
+    it('estFaute() ne se déclenche pas sur une réponse normale', () => {
+      expect(MateriauxSoapClient.estFaute(FAUTE_SPRING_WS)).toBe(true);
+      expect(MateriauxSoapClient.estFaute(corps('<ns2:VerifierStockResponse/>'))).toBe(false);
+    });
+  });
 });
