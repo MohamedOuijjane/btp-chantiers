@@ -95,7 +95,7 @@ classDiagram
       StatutChantier statut
     }
     class Tache {
-      ObjectId id
+      int id
       Long chantierId
       String titre
       Date dateDebut

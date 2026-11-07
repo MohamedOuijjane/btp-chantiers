@@ -75,6 +75,20 @@ jobs:
     name: Tâches (NestJS)
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: services/taches-service } }
+    # PostgreSQL pour les tests d'intégration (migrations, requêtes) : test/postgres.spec.ts
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: btp_db
+          POSTGRES_USER: btp
+          POSTGRES_PASSWORD: btp
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U btp -d btp_db"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://btp:btp@localhost:5432/btp_db
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

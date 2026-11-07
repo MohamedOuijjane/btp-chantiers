@@ -66,7 +66,7 @@ flowchart LR
 
 Toute l'application partage **une seule base PostgreSQL** (`btp_db`). Chaque module possède son propre schéma et son propre utilisateur, sans aucun droit sur les schémas des autres : voir [ADR-0005](docs/adr/0005-base-de-donnees-unique.md).
 
-> Migration en cours vers la base unique : Tâches (MongoDB, #6) et Matériaux (MySQL, #17) ; front-end en cours de réalisation ([architecture](docs/frontend/architecture.md), #24).
+> Migration en cours vers la base unique : il reste Matériaux (MySQL, #17). Tâches est sur PostgreSQL (schéma `taches`, migrations TypeORM) depuis #6.
 
 **Authentification :** la connexion émet un JWT (Chantiers, `POST /api/auth/login`) que la gateway vérifie avant toute requête vers `/api/*` et `/ws`. Tâches, Ouvriers et Matériaux n'ont rien à vérifier : voir [ADR-0006](docs/adr/0006-authentification-jwt-gateway.md).
 
@@ -151,8 +151,8 @@ Chaque service peut être lancé seul. Démarrer d'abord la base : `docker compo
 # Chantiers / Matériaux
 cd services/chantiers-service && mvn spring-boot:run
 
-# Tâches
-cd services/taches-service && npm install && npm run start:dev
+# Tâches (applique ses migrations au démarrage ; taches_user sur localhost:5432/btp_db)
+cd services/taches-service && npm install && DB_PASSWORD=<TACHES_DB_PASSWORD du .env> npm run start:dev
 
 # Ouvriers
 cd services/ouvriers-service && pip install -r requirements-dev.txt && uvicorn app.main:app --reload --port 8083
@@ -170,7 +170,7 @@ make test        # tests de tous les services
 |---|---|---|---|
 | Chantiers | JUnit 5 · MockMvc : CRUD, validation, chantier terminé non modifiable, avancement et mode dégradé | JaCoCo | Checkstyle · SpotBugs |
 | Matériaux | Spring-WS Test : opérations SOAP, SOAP Fault sur stock insuffisant | JaCoCo | Checkstyle · SpotBugs |
-| Tâches | Jest : orchestration des 3 modules, règle avancement → statut, parsing SOAP | Jest | ESLint · tsc |
+| Tâches | Jest : orchestration des 3 modules, règle avancement → statut, routes HTTP, clients REST et SOAP ; intégration sur PostgreSQL (migrations, requêtes) avec `TEST_DATABASE_URL` | Jest | ESLint · tsc |
 | Ouvriers | pytest : CRUD, CIN unique et format, planning et mode dégradé | pytest-cov | ruff |
 
 À chaque push et pull request, la CI exécute les tests et l'analyse de chaque module, envoie les résultats à **SonarCloud** (quality gate), lance **CodeQL** (sécurité), vérifie le titre de la PR (Conventional Commits) et construit les images Docker. Un tag `vX.Y.Z` publie les images sur ghcr.io après un scan **Trivy** et crée la release.
