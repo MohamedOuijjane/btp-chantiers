@@ -1,67 +1,105 @@
 import {
-  applyDecorators, Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query,
-} from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { IdTachePipe } from './id-tache.pipe';
-import { AffectationDto, AvancementDto, CreerTacheDto } from './tache.dto';
-import { TachesService } from './taches.service';
+  applyDecorators,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from "@nestjs/common";
+import {
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
+import { IdTachePipe } from "./id-tache.pipe";
+import { AffectationDto, AvancementDto, CreerTacheDto } from "./tache.dto";
+import { TachesService } from "./taches.service";
 
 /** Documente le paramètre :id (entier) et les refus 400 / 404 communs aux routes d'une tâche. */
 const ParamIdTache = () =>
   applyDecorators(
-    ApiParam({ name: 'id', type: Number, description: 'Identifiant entier positif de la tâche' }),
-    ApiResponse({ status: 400, description: 'Identifiant invalide (entier positif attendu)' }),
-    ApiResponse({ status: 404, description: 'Tâche introuvable' }),
+    ApiParam({
+      name: "id",
+      type: Number,
+      description: "Identifiant entier positif de la tâche",
+    }),
+    ApiResponse({
+      status: 400,
+      description: "Identifiant invalide (entier positif attendu)",
+    }),
+    ApiResponse({ status: 404, description: "Tâche introuvable" }),
   );
 
-@ApiTags('Tâches')
-@Controller('api/taches')
+@ApiTags("Tâches")
+@Controller("api/taches")
 export class TachesController {
   constructor(private readonly service: TachesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister les tâches (filtres : chantierId, ouvrierId)' })
-  @ApiQuery({ name: 'chantierId', required: false, type: Number })
-  @ApiQuery({ name: 'ouvrierId', required: false, type: Number })
-  lister(@Query('chantierId') chantierId?: string, @Query('ouvrierId') ouvrierId?: string) {
+  @ApiOperation({
+    summary: "Lister les tâches (filtres : chantierId, ouvrierId)",
+  })
+  @ApiQuery({ name: "chantierId", required: false, type: Number })
+  @ApiQuery({ name: "ouvrierId", required: false, type: Number })
+  lister(
+    @Query("chantierId") chantierId?: string,
+    @Query("ouvrierId") ouvrierId?: string,
+  ) {
     return this.service.lister({
       chantierId: chantierId ? Number(chantierId) : undefined,
       ouvrierId: ouvrierId ? Number(ouvrierId) : undefined,
     });
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Consulter une tâche' })
+  @Get(":id")
+  @ApiOperation({ summary: "Consulter une tâche" })
   @ParamIdTache()
-  trouver(@Param('id', IdTachePipe) id: string) {
+  trouver(@Param("id", IdTachePipe) id: string) {
     return this.service.trouver(Number(id));
   }
 
   @Post()
-  @ApiOperation({ summary: 'Créer une tâche (vérifie chantier, ouvriers et stock)' })
+  @ApiOperation({
+    summary: "Créer une tâche (vérifie chantier, ouvriers et stock)",
+  })
   creer(@Body() dto: CreerTacheDto) {
     return this.service.creer(dto);
   }
 
-  @Patch(':id/avancement')
+  @Patch(":id/avancement")
   @ApiOperation({ summary: "Mettre à jour le pourcentage d'avancement" })
   @ParamIdTache()
-  avancement(@Param('id', IdTachePipe) id: string, @Body() dto: AvancementDto) {
+  avancement(@Param("id", IdTachePipe) id: string, @Body() dto: AvancementDto) {
     return this.service.mettreAJourAvancement(Number(id), dto.avancement);
   }
 
-  @Patch(':id/ouvriers')
-  @ApiOperation({ summary: 'Affecter des ouvriers à la tâche' })
+  @Patch(":id/ouvriers")
+  @ApiOperation({ summary: "Affecter des ouvriers à la tâche" })
   @ParamIdTache()
-  affecter(@Param('id', IdTachePipe) id: string, @Body() dto: AffectationDto) {
+  affecter(@Param("id", IdTachePipe) id: string, @Body() dto: AffectationDto) {
     return this.service.affecter(Number(id), dto);
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @HttpCode(204)
-  @ApiOperation({ summary: 'Supprimer une tâche' })
+  @ApiOperation({ summary: "Supprimer une tâche" })
   @ParamIdTache()
-  supprimer(@Param('id', IdTachePipe) id: string) {
+  supprimer(@Param("id", IdTachePipe) id: string) {
     return this.service.supprimer(Number(id));
+  }
+  @Get(":id/historique")
+  @ApiOperation({
+    summary:
+      "Historique des statuts d'une tâche (du plus récent au plus ancien)",
+  })
+  @ParamIdTache()
+  historique(@Param("id", IdTachePipe) id: string) {
+    return this.service.historique(Number(id));
   }
 }

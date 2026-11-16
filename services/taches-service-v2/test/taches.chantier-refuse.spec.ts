@@ -6,6 +6,7 @@ import { MateriauxSoapClient } from '../src/clients/materiaux.soap-client';
 import { OuvriersClient } from '../src/clients/ouvriers.client';
 import { Tache } from '../src/taches/tache.entity';
 import { TachesService } from '../src/taches/taches.service';
+import { HistoriqueService } from '../src/taches/historique.service';
 
 describe('TachesService.creer : chantier refusé (#12)', () => {
   let service: TachesService;
@@ -32,6 +33,7 @@ describe('TachesService.creer : chantier refusé (#12)', () => {
         { provide: ChantiersClient, useValue: chantiers },
         { provide: OuvriersClient, useValue: ouvriers },
         { provide: MateriauxSoapClient, useValue: materiaux },
+        { provide: HistoriqueService, useValue: { enregistrer: jest.fn() } },
       ],
     }).compile();
     service = mod.get(TachesService);

@@ -6,6 +6,7 @@ import { MateriauxSoapClient } from '../src/clients/materiaux.soap-client';
 import { OuvriersClient } from '../src/clients/ouvriers.client';
 import { StatutTache, Tache } from '../src/taches/tache.entity';
 import { statutPourAvancement, TachesService, versReponse } from '../src/taches/taches.service';
+import { HistoriqueService } from '../src/taches/historique.service';
 
 /** Tâche telle que chargée par TypeORM. */
 function tache(partiel: Partial<Tache> = {}): Tache {
@@ -43,6 +44,7 @@ describe('TachesService', () => {
   const chantiers = { verifierChantierActif: jest.fn() };
   const ouvriers = { verifierDisponibles: jest.fn() };
   const materiaux = { verifierStock: jest.fn() };
+  const journal = { enregistrer: jest.fn(), lister: jest.fn() };
 
   const dto = {
     chantierId: 1,
@@ -68,6 +70,7 @@ describe('TachesService', () => {
         { provide: ChantiersClient, useValue: chantiers },
         { provide: OuvriersClient, useValue: ouvriers },
         { provide: MateriauxSoapClient, useValue: materiaux },
+        { provide: HistoriqueService, useValue: journal },
       ],
     }).compile();
     service = mod.get(TachesService);

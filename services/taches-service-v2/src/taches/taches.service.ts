@@ -1,11 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ChantiersClient } from '../clients/chantiers.client';
-import { MateriauxSoapClient } from '../clients/materiaux.soap-client';
-import { OuvriersClient } from '../clients/ouvriers.client';
-import { AffectationDto, CreerTacheDto } from './tache.dto';
-import { StatutTache, Tache } from './tache.entity';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { ChantiersClient } from "../clients/chantiers.client";
+import { MateriauxSoapClient } from "../clients/materiaux.soap-client";
+import { OuvriersClient } from "../clients/ouvriers.client";
+import { AffectationDto, CreerTacheDto } from "./tache.dto";
+import { StatutTache, Tache } from "./tache.entity";
+import { EntreeHistorique, HistoriqueService } from "./historique.service";
 
 /** Tâche telle que renvoyée par l'API (identifiant entier, dates aaaa-mm-jj). */
 export type TacheReponse = {
@@ -51,16 +56,26 @@ export class TachesService {
     private readonly chantiers: ChantiersClient,
     private readonly ouvriers: OuvriersClient,
     private readonly materiaux: MateriauxSoapClient,
+    private readonly journal: HistoriqueService,
   ) {}
 
-  async lister(filtre: { chantierId?: number; ouvrierId?: number }): Promise<TacheReponse[]> {
+  async lister(filtre: {
+    chantierId?: number;
+    ouvrierId?: number;
+  }): Promise<TacheReponse[]> {
     const q = this.taches
-      .createQueryBuilder('t')
-      .leftJoinAndSelect('t.besoinsMateriaux', 'b')
-      .orderBy('t.dateDebut', 'ASC')
-      .addOrderBy('t.id', 'ASC');
-    if (filtre.chantierId) q.andWhere('t.chantierId = :chantierId', { chantierId: filtre.chantierId });
-    if (filtre.ouvrierId) q.andWhere(':ouvrierId = ANY(t.ouvrier_ids)', { ouvrierId: filtre.ouvrierId });
+      .createQueryBuilder("t")
+      .leftJoinAndSelect("t.besoinsMateriaux", "b")
+      .orderBy("t.dateDebut", "ASC")
+      .addOrderBy("t.id", "ASC");
+    if (filtre.chantierId)
+      q.andWhere("t.chantierId = :chantierId", {
+        chantierId: filtre.chantierId,
+      });
+    if (filtre.ouvrierId)
+      q.andWhere(":ouvrierId = ANY(t.ouvrier_ids)", {
+        ouvrierId: filtre.ouvrierId,
+      });
     return (await q.getMany()).map(versReponse);
   }
 
@@ -71,16 +86,24 @@ export class TachesService {
   /** Création : orchestre 3 modules (Chantiers REST, Ouvriers REST, Matériaux SOAP). */
   async creer(dto: CreerTacheDto): Promise<TacheReponse> {
     if (new Date(dto.dateFin) < new Date(dto.dateDebut)) {
-      throw new BadRequestException('dateFin doit être postérieure ou égale à dateDebut');
+      throw new BadRequestException(
+        "dateFin doit être postérieure ou égale à dateDebut",
+      );
     }
     const besoins = dto.besoinsMateriaux ?? [];
-    const doublon = besoins.find((b, i) => besoins.findIndex((x) => x.materiauId === b.materiauId) !== i);
+    const doublon = besoins.find(
+      (b, i) => besoins.findIndex((x) => x.materiauId === b.materiauId) !== i,
+    );
     if (doublon) {
-      throw new BadRequestException(`Le matériau ${doublon.materiauId} apparaît plusieurs fois dans besoinsMateriaux`);
+      throw new BadRequestException(
+        `Le matériau ${doublon.materiauId} apparaît plusieurs fois dans besoinsMateriaux`,
+      );
     }
     await this.chantiers.verifierChantierActif(dto.chantierId);
-    if (dto.ouvrierIds?.length) await this.ouvriers.verifierDisponibles(dto.ouvrierIds);
-    for (const b of besoins) await this.materiaux.verifierStock(b.materiauId, b.quantite);
+    if (dto.ouvrierIds?.length)
+      await this.ouvriers.verifierDisponibles(dto.ouvrierIds);
+    for (const b of besoins)
+      await this.materiaux.verifierStock(b.materiauId, b.quantite);
 
     const cree = await this.taches.save(
       this.taches.create({
@@ -92,18 +115,32 @@ export class TachesService {
         statut: StatutTache.A_FAIRE,
         avancement: 0,
         ouvrierIds: dto.ouvrierIds ?? [],
-        besoinsMateriaux: besoins.map((b) => ({ materiauId: b.materiauId, quantite: b.quantite })),
+        besoinsMateriaux: besoins.map((b) => ({
+          materiauId: b.materiauId,
+          quantite: b.quantite,
+        })),
       }),
     );
+    await this.journal.enregistrer(cree.id, StatutTache.A_FAIRE);
     return this.trouver(cree.id);
   }
 
   /** Une tâche bloquée garde son statut (RG5 ne s'applique qu'au déblocage, #11). */
   async mettreAJourAvancement(id: number, avancement: number): Promise<TacheReponse> {
     const tache = await this.charger(id);
+    const ancienStatut = tache.statut;
     tache.avancement = avancement;
     if (tache.statut !== StatutTache.BLOQUEE) tache.statut = statutPourAvancement(avancement);
-    return versReponse(await this.taches.save(tache));
+    const sauvee = await this.taches.save(tache);
+    // RG5 : un changement de statut dû à l'avancement est tracé dans l'historique.
+    if (sauvee.statut !== ancienStatut) await this.journal.enregistrer(id, sauvee.statut);
+    return versReponse(sauvee);
+  }
+
+  /** Historique des statuts, du plus récent au plus ancien (404 si la tâche n'existe pas). */
+  async historique(id: number): Promise<EntreeHistorique[]> {
+    await this.charger(id);
+    return this.journal.lister(id);
   }
 
   async affecter(id: number, dto: AffectationDto): Promise<TacheReponse> {
