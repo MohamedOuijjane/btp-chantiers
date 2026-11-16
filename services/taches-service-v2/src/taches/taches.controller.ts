@@ -10,6 +10,7 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
+
 import {
   ApiOperation,
   ApiParam,
@@ -18,7 +19,12 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import { IdTachePipe } from "./id-tache.pipe";
-import { AffectationDto, AvancementDto, CreerTacheDto } from "./tache.dto";
+import {
+  AffectationDto,
+  AvancementDto,
+  ChangerStatutDto,
+  CreerTacheDto,
+} from "./tache.dto";
 import { TachesService } from "./taches.service";
 
 /** Documente le paramètre :id (entier) et les refus 400 / 404 communs aux routes d'une tâche. */
@@ -77,6 +83,19 @@ export class TachesController {
   @ParamIdTache()
   avancement(@Param("id", IdTachePipe) id: string, @Body() dto: AvancementDto) {
     return this.service.mettreAJourAvancement(Number(id), dto.avancement);
+  }
+
+  @Patch(":id/statut")
+  @ApiOperation({
+    summary: "Changer le statut (A_FAIRE → EN_COURS → TERMINEE)",
+  })
+  @ParamIdTache()
+  @ApiResponse({
+    status: 409,
+    description: "Transition impossible, tâche bloquée ou chantier clôturé",
+  })
+  statut(@Param("id", IdTachePipe) id: string, @Body() dto: ChangerStatutDto) {
+    return this.service.changerStatut(Number(id), dto.statut);
   }
 
   @Patch(":id/ouvriers")

@@ -1,8 +1,9 @@
+import { StatutTache } from './tache.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayUnique, IsArray, IsDateString, IsInt, IsNotEmpty, IsNumber, IsOptional,
-  IsPositive, IsString, Max, Min, ValidateNested,
+  IsPositive, IsString, Max, Min, ValidateNested, IsIn
 } from 'class-validator';
 
 export class BesoinMateriauDto {
@@ -29,4 +30,10 @@ export class AvancementDto {
 
 export class AffectationDto {
   @ApiProperty({ type: [Number], example: [3] }) @IsArray() @ArrayUnique() @IsInt({ each: true }) ouvrierIds: number[];
+}
+
+export class ChangerStatutDto {
+  @ApiProperty({ enum: [StatutTache.EN_COURS, StatutTache.TERMINEE], example: StatutTache.EN_COURS })
+  @IsIn([StatutTache.EN_COURS, StatutTache.TERMINEE])
+  statut: StatutTache;
 }

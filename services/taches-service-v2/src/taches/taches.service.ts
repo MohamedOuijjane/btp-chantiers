@@ -11,6 +11,7 @@ import { OuvriersClient } from "../clients/ouvriers.client";
 import { AffectationDto, CreerTacheDto } from "./tache.dto";
 import { StatutTache, Tache } from "./tache.entity";
 import { EntreeHistorique, HistoriqueService } from "./historique.service";
+import { verifierTransition } from "./transitions";
 
 /** Tâche telle que renvoyée par l'API (identifiant entier, dates aaaa-mm-jj). */
 export type TacheReponse = {
@@ -126,14 +127,19 @@ export class TachesService {
   }
 
   /** Une tâche bloquée garde son statut (RG5 ne s'applique qu'au déblocage, #11). */
-  async mettreAJourAvancement(id: number, avancement: number): Promise<TacheReponse> {
+  async mettreAJourAvancement(
+    id: number,
+    avancement: number,
+  ): Promise<TacheReponse> {
     const tache = await this.charger(id);
     const ancienStatut = tache.statut;
     tache.avancement = avancement;
-    if (tache.statut !== StatutTache.BLOQUEE) tache.statut = statutPourAvancement(avancement);
+    if (tache.statut !== StatutTache.BLOQUEE)
+      tache.statut = statutPourAvancement(avancement);
     const sauvee = await this.taches.save(tache);
     // RG5 : un changement de statut dû à l'avancement est tracé dans l'historique.
-    if (sauvee.statut !== ancienStatut) await this.journal.enregistrer(id, sauvee.statut);
+    if (sauvee.statut !== ancienStatut)
+      await this.journal.enregistrer(id, sauvee.statut);
     return versReponse(sauvee);
   }
 
@@ -142,7 +148,17 @@ export class TachesService {
     await this.charger(id);
     return this.journal.lister(id);
   }
-
+  /** PATCH /statut (#99) : A_FAIRE → EN_COURS → TERMINEE ; TERMINEE force l'avancement à 100 (RG5). */
+  async changerStatut(id: number, cible: StatutTache): Promise<TacheReponse> {
+    const tache = await this.charger(id);
+    verifierTransition(tache.statut, cible);
+    await this.chantiers.verifierChantierModifiable(tache.chantierId);
+    tache.statut = cible;
+    if (cible === StatutTache.TERMINEE) tache.avancement = 100;
+    const sauvee = await this.taches.save(tache);
+    await this.journal.enregistrer(id, cible);
+    return versReponse(sauvee);
+  }
   async affecter(id: number, dto: AffectationDto): Promise<TacheReponse> {
     const tache = await this.charger(id);
     await this.ouvriers.verifierDisponibles(dto.ouvrierIds);
