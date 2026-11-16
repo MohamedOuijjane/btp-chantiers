@@ -1,4 +1,4 @@
-import { NotFoundException, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
+import { ConflictException, NotFoundException, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
 import { ChantiersClient } from '../src/clients/chantiers.client';
 import { appel } from '../src/clients/http';
 import { MateriauxSoapClient } from '../src/clients/materiaux.soap-client';
@@ -30,11 +30,11 @@ describe('appel (http.ts)', () => {
   });
 });
 
-describe('ChantiersClient', () => {
+describe('ChantiersClient (RG-03, #12)', () => {
   const client = new ChantiersClient();
 
-  it('chantier actif : accepté', async () => {
-    fetchSimule.mockResolvedValue(reponse(200, { id: 1, statut: 'EN_COURS' }));
+  it.each(['PLANIFIE', 'EN_COURS'])('chantier %s : accepté', async (statut) => {
+    fetchSimule.mockResolvedValue(reponse(200, { id: 1, statut, nom: 'Villa Agadir' }));
     await expect(client.verifierChantierActif(1)).resolves.toBeUndefined();
     expect(fetchSimule.mock.calls[0][0]).toMatch(/\/api\/chantiers\/1$/);
   });
@@ -44,9 +44,22 @@ describe('ChantiersClient', () => {
     await expect(client.verifierChantierActif(1)).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('chantier terminé : 422', async () => {
-    fetchSimule.mockResolvedValue(reponse(200, { id: 1, statut: 'TERMINE' }));
-    await expect(client.verifierChantierActif(1)).rejects.toBeInstanceOf(UnprocessableEntityException);
+  it('chantier SUSPENDU : 409 avec le nom du chantier', async () => {
+    fetchSimule.mockResolvedValue(reponse(200, { id: 1, statut: 'SUSPENDU', nom: 'Villa Agadir' }));
+    const erreur = await client.verifierChantierActif(1).catch((e: unknown) => e);
+    expect(erreur).toBeInstanceOf(ConflictException);
+    expect((erreur as Error).message).toBe(
+      'Le chantier « Villa Agadir » est suspendu : aucune tâche ne peut y être ajoutée',
+    );
+  });
+
+  it('chantier TERMINE : 409 (et non plus 422) avec le nom du chantier', async () => {
+    fetchSimule.mockResolvedValue(reponse(200, { id: 2, statut: 'TERMINE', nom: 'Pont Souss' }));
+    const erreur = await client.verifierChantierActif(2).catch((e: unknown) => e);
+    expect(erreur).toBeInstanceOf(ConflictException);
+    expect((erreur as Error).message).toBe(
+      'Le chantier « Pont Souss » est clôturé : aucune tâche ne peut y être ajoutée',
+    );
   });
 });
 
