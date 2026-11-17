@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -100,9 +101,13 @@ export class TachesService {
         `Le matériau ${doublon.materiauId} apparaît plusieurs fois dans besoinsMateriaux`,
       );
     }
+    const dateDebut = dto.dateDebut.slice(0, 10);
+    const dateFin = dto.dateFin.slice(0, 10);
     await this.chantiers.verifierChantierActif(dto.chantierId);
-    if (dto.ouvrierIds?.length)
+    if (dto.ouvrierIds?.length) {
       await this.ouvriers.verifierDisponibles(dto.ouvrierIds);
+      await this.verifierPlanning(dto.ouvrierIds, dateDebut, dateFin);
+    }
     for (const b of besoins)
       await this.materiaux.verifierStock(b.materiauId, b.quantite);
 
@@ -111,8 +116,8 @@ export class TachesService {
         chantierId: dto.chantierId,
         titre: dto.titre,
         description: dto.description ?? null,
-        dateDebut: dto.dateDebut.slice(0, 10),
-        dateFin: dto.dateFin.slice(0, 10),
+        dateDebut,
+        dateFin,
         statut: StatutTache.A_FAIRE,
         avancement: 0,
         ouvrierIds: dto.ouvrierIds ?? [],
@@ -162,8 +167,50 @@ export class TachesService {
   async affecter(id: number, dto: AffectationDto): Promise<TacheReponse> {
     const tache = await this.charger(id);
     await this.ouvriers.verifierDisponibles(dto.ouvrierIds);
+    // La tâche ne doit pas entrer en conflit avec elle-même : on l'exclut de la recherche.
+    await this.verifierPlanning(
+      dto.ouvrierIds,
+      tache.dateDebut,
+      tache.dateFin,
+      id,
+    );
     tache.ouvrierIds = dto.ouvrierIds;
     return versReponse(await this.taches.save(tache));
+  }
+
+  /**
+   * #10 : un ouvrier ne peut pas être sur deux tâches dont les périodes se chevauchent.
+   * Deux périodes se chevauchent si debut1 <= fin2 ET debut2 <= fin1 (bornes incluses :
+   * partager un jour est un conflit, le lendemain non). Les tâches TERMINEE sont ignorées.
+   * `exclureTacheId` écarte la tâche en cours de modification. Lève 409 au premier conflit.
+   */
+  private async verifierPlanning(
+    ouvrierIds: number[],
+    debut: string,
+    fin: string,
+    exclureTacheId?: number,
+  ): Promise<void> {
+    if (!ouvrierIds.length) return;
+    const q = this.taches
+      .createQueryBuilder("t")
+      .where("t.ouvrier_ids && CAST(:ouvrierIds AS integer[])", { ouvrierIds })
+      .andWhere("t.statut <> :termine", { termine: StatutTache.TERMINEE })
+      .andWhere("t.dateDebut <= :fin", { fin })
+      .andWhere("t.dateFin >= :debut", { debut })
+      .orderBy("t.dateDebut", "ASC")
+      .addOrderBy("t.id", "ASC");
+    if (exclureTacheId !== undefined)
+      q.andWhere("t.id <> :exclureTacheId", { exclureTacheId });
+
+    const conflit = await q.getOne();
+    if (!conflit) return;
+    // Premier ouvrier demandé qui est déjà sur la tâche en conflit.
+    const ouvrierId = ouvrierIds.find((o) =>
+      (conflit.ouvrierIds ?? []).includes(o),
+    );
+    throw new ConflictException(
+      `L'ouvrier ${ouvrierId} est déjà affecté à « ${conflit.titre} » (${conflit.dateDebut} → ${conflit.dateFin}) sur cette période`,
+    );
   }
 
   /** Les besoins en matériaux sont supprimés avec la tâche (ON DELETE CASCADE). */

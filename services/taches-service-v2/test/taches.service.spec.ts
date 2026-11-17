@@ -31,8 +31,10 @@ describe('TachesService', () => {
     leftJoinAndSelect: jest.fn(),
     orderBy: jest.fn(),
     addOrderBy: jest.fn(),
+    where: jest.fn(),
     andWhere: jest.fn(),
     getMany: jest.fn(),
+    getOne: jest.fn(), // planning (#10) : sans valeur = aucun conflit
   };
   const repo = {
     createQueryBuilder: jest.fn(),
@@ -57,7 +59,7 @@ describe('TachesService', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
-    for (const f of ['leftJoinAndSelect', 'orderBy', 'addOrderBy', 'andWhere'] as const) {
+    for (const f of ['leftJoinAndSelect', 'orderBy', 'addOrderBy', 'where', 'andWhere'] as const) {
       qb[f].mockReturnValue(qb);
     }
     repo.createQueryBuilder.mockReturnValue(qb);

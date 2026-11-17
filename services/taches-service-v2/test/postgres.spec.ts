@@ -1,4 +1,4 @@
-import { NotFoundException } from "@nestjs/common";
+import { ConflictException, NotFoundException } from "@nestjs/common";
 import { DataSource } from "typeorm";
 import { ChantiersClient } from "../src/clients/chantiers.client";
 import { MateriauxSoapClient } from "../src/clients/materiaux.soap-client";
@@ -196,6 +196,87 @@ decrire("Tâches sur PostgreSQL (migrations et requêtes)", () => {
     );
     expect(n).toBe(0);
   });
+  describe("conflit de planning d'un ouvrier (#10)", () => {
+    // Ouvriers 101 à 105 et décembre 2026 : aucun lien avec les tests précédents.
+    const tache = (ouvrierIds: number[], dateDebut: string, dateFin: string, titre = "Test") => ({
+      chantierId: 5,
+      titre,
+      dateDebut,
+      dateFin,
+      ouvrierIds,
+    });
+
+    beforeAll(async () => {
+      await service.creer(tache([101], "2026-12-10", "2026-12-15", "Planning base"));
+    });
+
+    it.each([
+      ["chevauchement partiel", "2026-12-14", "2026-12-20"],
+      ["période incluse dans l'autre", "2026-12-11", "2026-12-12"],
+      ["période qui englobe l'autre", "2026-12-01", "2026-12-31"],
+      ["dernier jour partagé (fin = début de l'autre)", "2026-12-15", "2026-12-18"],
+      ["premier jour partagé (début = fin de l'autre)", "2026-12-05", "2026-12-10"],
+      ["même période", "2026-12-10", "2026-12-15"],
+    ])("%s : 409 qui nomme l'ouvrier et la tâche, rien n'est enregistré", async (_nom, debut, fin) => {
+      const avant = (await service.lister({ ouvrierId: 101 })).length;
+      const erreur = await service.creer(tache([101], debut, fin)).catch((e: unknown) => e);
+      expect(erreur).toBeInstanceOf(ConflictException);
+      expect((erreur as Error).message).toBe(
+        "L'ouvrier 101 est déjà affecté à « Planning base » (2026-12-10 → 2026-12-15) sur cette période",
+      );
+      expect(await service.lister({ ouvrierId: 101 })).toHaveLength(avant);
+    });
+
+    it.each([
+      ["le lendemain (contigu)", "2026-12-16", "2026-12-18"],
+      ["la veille", "2026-12-05", "2026-12-09"],
+    ])("%s : pas de conflit", async (_nom, debut, fin) => {
+      const t = await service.creer(tache([101], debut, fin, "Sans conflit"));
+      expect(t.ouvrierIds).toEqual([101]);
+    });
+
+    it("un autre ouvrier sur la même période : pas de conflit", async () => {
+      await expect(service.creer(tache([102], "2026-12-10", "2026-12-15"))).resolves.toEqual(
+        expect.objectContaining({ ouvrierIds: [102] }),
+      );
+    });
+
+    it("plusieurs ouvriers : conflit si l'un d'eux est déjà pris", async () => {
+      await expect(service.creer(tache([102, 101], "2026-12-12", "2026-12-13"))).rejects.toThrow(
+        "L'ouvrier 101 est déjà affecté",
+      );
+    });
+
+    it("une tâche TERMINEE est ignorée", async () => {
+      const finie = await service.creer(tache([103], "2026-12-10", "2026-12-15", "Finie"));
+      await service.mettreAJourAvancement(finie.id, 100);
+      await expect(service.creer(tache([103], "2026-12-10", "2026-12-15"))).resolves.toBeDefined();
+    });
+
+    it("une tâche BLOQUEE compte comme occupée", async () => {
+      const bloquee = await service.creer(tache([106], "2026-12-10", "2026-12-15", "Bloquée"));
+      await base.query(`UPDATE ${SCHEMA}.tache SET statut = 'BLOQUEE' WHERE id = $1`, [bloquee.id]);
+      await expect(service.creer(tache([106], "2026-12-12", "2026-12-13"))).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+    });
+
+    it("affectation : conflit refusé, la tâche elle-même est exclue", async () => {
+      const a = await service.creer(tache([104], "2026-12-20", "2026-12-25", "Tâche A"));
+      const b = await service.creer(tache([], "2026-12-22", "2026-12-24", "Tâche B"));
+
+      await expect(service.affecter(b.id, { ouvrierIds: [104] })).rejects.toThrow(
+        "L'ouvrier 104 est déjà affecté à « Tâche A » (2026-12-20 → 2026-12-25) sur cette période",
+      );
+      expect((await service.trouver(b.id)).ouvrierIds).toEqual([]);
+
+      // Ré-affecter l'ouvrier déjà sur la tâche A : elle ne rentre pas en conflit avec elle-même.
+      expect((await service.affecter(a.id, { ouvrierIds: [104, 105] })).ouvrierIds).toEqual([104, 105]);
+      // Un autre ouvrier, libre, peut être mis sur la tâche B.
+      expect((await service.affecter(b.id, { ouvrierIds: [107] })).ouvrierIds).toEqual([107]);
+    });
+  });
+
   it("les migrations s’annulent proprement", async () => {
     await base.undoLastMigration(); // historique_statut
     await base.undoLastMigration(); // tache et besoin_materiau
