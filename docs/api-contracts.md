@@ -70,8 +70,10 @@ Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json
 | GET | `/api/taches/{id}` | Consulter | 200, 404 |
 | POST | `/api/taches` | Créer (vérifie chantier, ouvriers, stock) | 201, 400, 404, 409, 422, 503 |
 | PATCH | `/api/taches/{id}/avancement` | `{ "avancement": 60 }` | 200, 400, 404 |
-| PATCH | `/api/taches/{id}/ouvriers` | `{ "ouvrierIds": [1, 2] }` | 200, 422 |
+| PATCH | `/api/taches/{id}/ouvriers` | 200, 400, 404, 409, 422 |
 | DELETE | `/api/taches/{id}` | Supprimer | 204, 404 |
+
+- **Conflit de planning (#10)** : un ouvrier déjà affecté à une tâche non terminée dont la période chevauche celle de la tâche (bornes incluses : partager un jour est un conflit, le lendemain non) → `409` « L'ouvrier 3 est déjà affecté à « Dalle » (2026-11-05 → 2026-11-08) sur cette période ». Vérifié à la création et à l'affectation.
 
 ```json
 POST /api/taches
