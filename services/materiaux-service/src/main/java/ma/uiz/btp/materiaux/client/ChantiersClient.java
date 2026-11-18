@@ -9,6 +9,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.time.Duration;
 
@@ -42,7 +43,11 @@ public class ChantiersClient {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
                 throw new IntrouvableException("Chantier " + chantierId + " introuvable");
             }
-            throw e;
+            throw new ChantiersIndisponibleException(
+                    "Le service Chantiers a répondu avec le statut HTTP " + e.getStatusCode().value(), e);
+        } catch (RestClientException e) {
+            throw new ChantiersIndisponibleException(
+                    "Échec de l'appel au service Chantiers.", e);
         }
     }
 }
