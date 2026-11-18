@@ -1,5 +1,7 @@
 package ma.uiz.btp.materiaux.client;
 
+import ma.uiz.btp.materiaux.domain.ChantierTermineException;
+import ma.uiz.btp.materiaux.domain.ChantiersIndisponibleException;
 import ma.uiz.btp.materiaux.domain.IntrouvableException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -29,8 +31,12 @@ public class ChantiersClient {
         record ChantierResume(Long id, String statut) {}
         try {
             ChantierResume c = http.get().uri("/api/chantiers/{id}", chantierId).retrieve().body(ChantierResume.class);
-            if (c != null && "TERMINE".equals(c.statut())) {
-                throw new IntrouvableException("Le chantier " + chantierId + " est terminé");
+            if (c == null || c.statut() == null || c.statut().isBlank()) {
+                throw new ChantiersIndisponibleException(
+                        "Réponse invalide du service Chantiers pour le chantier " + chantierId);
+            }
+            if ("TERMINE".equals(c.statut())) {
+                throw new ChantierTermineException("Le chantier " + chantierId + " est terminé");
             }
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
