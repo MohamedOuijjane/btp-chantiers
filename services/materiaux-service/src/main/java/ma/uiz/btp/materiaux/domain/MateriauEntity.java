@@ -30,18 +30,29 @@ public class MateriauEntity {
         return stock <= seuilAlerte;
     }
 
+    public boolean aStockSuffisant(double quantite) {
+        verifierQuantite(quantite);
+        return stock >= quantite;
+    }
+
     /** Règle métier : une sortie ne peut pas rendre le stock négatif. */
     public void sortir(double quantite) {
-        if (quantite <= 0) throw new IllegalArgumentException("La quantité doit être positive");
+        verifierQuantite(quantite);
         if (quantite > stock) {
             throw new StockInsuffisantException(reference, stock, quantite);
         }
-        stock -= quantite;
+        setStock(stock - quantite);
     }
 
     public void entrer(double quantite) {
-        if (quantite <= 0) throw new IllegalArgumentException("La quantité doit être positive");
-        stock += quantite;
+        verifierQuantite(quantite);
+        setStock(stock + quantite);
+    }
+
+    private static void verifierQuantite(double quantite) {
+        if (!Double.isFinite(quantite) || quantite <= 0) {
+            throw new ValeurStockInvalideException("La quantité doit être un nombre fini strictement positif");
+        }
     }
 
     public Long getId() { return id; }
@@ -52,7 +63,17 @@ public class MateriauEntity {
     public String getUnite() { return unite; }
     public void setUnite(String unite) { this.unite = unite; }
     public double getStock() { return stock; }
-    public void setStock(double stock) { this.stock = stock; }
+    public void setStock(double stock) {
+        if (!Double.isFinite(stock) || stock < 0) {
+            throw new ValeurStockInvalideException("Le stock doit être un nombre fini positif ou nul");
+        }
+        this.stock = stock;
+    }
     public double getSeuilAlerte() { return seuilAlerte; }
-    public void setSeuilAlerte(double seuilAlerte) { this.seuilAlerte = seuilAlerte; }
+    public void setSeuilAlerte(double seuilAlerte) {
+        if (!Double.isFinite(seuilAlerte) || seuilAlerte < 0) {
+            throw new ValeurStockInvalideException("Le seuil d'alerte doit être un nombre fini positif ou nul");
+        }
+        this.seuilAlerte = seuilAlerte;
+    }
 }

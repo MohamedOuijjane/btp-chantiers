@@ -57,7 +57,7 @@ public class MateriauxEndpoint {
     public VerifierStockResponse verifierStock(@RequestPayload VerifierStockRequest req) {
         MateriauEntity m = service.trouver(req.getMateriauId());
         VerifierStockResponse resp = new VerifierStockResponse();
-        resp.setDisponible(m.getStock() >= req.getQuantite());
+        resp.setDisponible(m.aStockSuffisant(req.getQuantite()));
         resp.setStockActuel(m.getStock());
         return resp;
     }
