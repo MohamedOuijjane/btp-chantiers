@@ -133,6 +133,13 @@ Spécialités : `MACON`, `FERRAILLEUR`, `COFFREUR`, `ELECTRICIEN`, `PLOMBIER`, `
 | `VerifierStock` | `materiauId`, `quantite` | `disponible`, `stockActuel` |
 | `EnregistrerMouvement` | `materiauId`, `chantierId`, `type` (ENTREE/SORTIE), `quantite` | `mouvementId`, `stockApres`, `enAlerte` |
 
+Les erreurs sont renvoyées sous forme de SOAP 1.1 Fault. Ces codes sont des codes SOAP, pas des codes HTTP. Le client doit se baser sur `faultcode`, pas analyser le texte de `faultstring` :
+
+| `faultcode` | Situations |
+|---|---|
+| `Client` | Stock ou seuil non fini/négatif, quantité non finie/non positive, matériau introuvable, chantier introuvable (HTTP 404 de Chantiers), chantier terminé, stock insuffisant ou conflit de mise à jour concurrente. Pour un conflit, relire le stock avant de décider de réessayer le mouvement. |
+| `Server` | Chantiers renvoie une réponse vide/invalide, un statut HTTP autre que 404, ou l'appel échoue (timeout, erreur réseau). Réessayer seulement après avoir vérifié que la dépendance est disponible et que l'erreur est transitoire. |
+
 ```xml
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
                   xmlns:m="http://btp.uiz.ma/materiaux">

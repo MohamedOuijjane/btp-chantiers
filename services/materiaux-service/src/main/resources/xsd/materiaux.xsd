@@ -16,14 +16,26 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="StockNonNegatif">
+        <xs:restriction base="xs:double">
+            <xs:minInclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="QuantitePositive">
+        <xs:restriction base="xs:double">
+            <xs:minExclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <xs:complexType name="Materiau">
         <xs:sequence>
             <xs:element name="id" type="xs:long" minOccurs="0"/>
             <xs:element name="reference" type="xs:string"/>
             <xs:element name="nom" type="xs:string"/>
             <xs:element name="unite" type="xs:string"/>
-            <xs:element name="stock" type="xs:double"/>
-            <xs:element name="seuilAlerte" type="xs:double"/>
+            <xs:element name="stock" type="tns:StockNonNegatif"/>
+            <xs:element name="seuilAlerte" type="tns:StockNonNegatif"/>
             <xs:element name="enAlerte" type="xs:boolean" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
@@ -68,7 +80,7 @@
     <xs:element name="VerifierStockRequest">
         <xs:complexType><xs:sequence>
             <xs:element name="materiauId" type="xs:long"/>
-            <xs:element name="quantite" type="xs:double"/>
+            <xs:element name="quantite" type="tns:QuantitePositive"/>
         </xs:sequence></xs:complexType>
     </xs:element>
     <xs:element name="VerifierStockResponse">
@@ -84,7 +96,7 @@
             <xs:element name="materiauId" type="xs:long"/>
             <xs:element name="chantierId" type="xs:long"/>
             <xs:element name="type" type="tns:TypeMouvement"/>
-            <xs:element name="quantite" type="xs:double"/>
+            <xs:element name="quantite" type="tns:QuantitePositive"/>
         </xs:sequence></xs:complexType>
     </xs:element>
     <xs:element name="EnregistrerMouvementResponse">

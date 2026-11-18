@@ -29,22 +29,6 @@ services:
       retries: 10
     networks: [data]
 
-  # TEMPORAIRE : supprimé quand Matériaux sera migré vers PostgreSQL (issue SALHI Hatim)
-  mysql:
-    image: mysql:8.4
-    <<: *restart
-    environment:
-      MYSQL_DATABASE: materiaux_db
-      MYSQL_USER: ${MYSQL_USER:-btp}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-btp}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-    volumes: [mysql-data:/var/lib/mysql]
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      retries: 20
-    networks: [data]
-
   # ---------- Modules métier ----------
   chantiers-service:
     build: ./services/chantiers-service
@@ -96,12 +80,12 @@ services:
     <<: *restart
     ports: ["8084:8084"]   # accès direct en dev
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/materiaux_db
-      DB_USER: ${MYSQL_USER:-btp}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-btp}
+      DB_URL: jdbc:postgresql://postgres:5432/btp_db?currentSchema=materiaux
+      DB_USER: materiaux_user
+      DB_PASSWORD: ${MATERIAUX_DB_PASSWORD:-materiaux}
       CHANTIERS_URL: http://chantiers-service:8081
     depends_on:
-      mysql: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     networks: [data, backend]
 
   # ---------- Interface web ----------
@@ -127,4 +111,3 @@ networks:
 
 volumes:
   postgres-data:
-  mysql-data:
