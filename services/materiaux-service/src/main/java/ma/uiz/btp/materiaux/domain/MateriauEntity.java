@@ -10,6 +10,10 @@ public class MateriauEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private long version;
+
     @Column(nullable = false, unique = true, length = 50)
     private String reference;
 
