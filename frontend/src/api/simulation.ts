@@ -32,6 +32,17 @@ export function estEnPanne(module: ModuleBackend) {
   return enPanne.has(module);
 }
 
+/**
+ * Démo : `?panne=taches` (ou `?panne=taches,ouvriers`) dans l'URL de chargement simule l'arrêt
+ * de ces modules, pour montrer le mode dégradé (comme le bouton « Simuler panne » de la maquette).
+ */
+export function pannesDepuisUrl(recherche: string) {
+  const modules = new URLSearchParams(recherche).get('panne')?.split(',') ?? [];
+  for (const m of modules) {
+    if (m in NOMS) simulerPanne(m as ModuleBackend);
+  }
+}
+
 export function reinitialiserPannes() {
   enPanne.clear();
 }

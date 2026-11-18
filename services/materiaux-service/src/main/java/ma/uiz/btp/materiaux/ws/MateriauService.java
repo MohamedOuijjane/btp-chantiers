@@ -37,7 +37,7 @@ public class MateriauService {
 
     @Transactional(readOnly = true)
     public boolean stockSuffisant(long materiauId, double quantite) {
-        return trouver(materiauId).getStock() >= quantite;
+        return trouver(materiauId).aStockSuffisant(quantite);
     }
 
     public Mouvement enregistrerMouvement(long materiauId, long chantierId, Mouvement.Type type, double quantite) {

@@ -10,7 +10,7 @@
  *   GET    /api/ouvriers/{id}/planning
  */
 import { base, prochainId } from '@/api/donnees-fictives';
-import { conflit, introuvable, invalide } from '@/api/errors';
+import { ErreurApi, conflit, introuvable } from '@/api/errors';
 import { appelFictif, estEnPanne } from '@/api/simulation';
 
 import type {
@@ -23,6 +23,24 @@ import type {
 
 /** Format de CIN accepté par le backend (RG-06). */
 const FORMAT_CIN = /^[A-Z]{1,2}\d{3,8}$/;
+/** Téléphone marocain : 0 ou +212, puis 5, 6 ou 7, puis 8 chiffres. */
+const FORMAT_TELEPHONE = /^(\+212|0)[5-7]\d{8}$/;
+
+/** Validation comme Pydantic : 422 avec une erreur par champ (detail[].loc / msg côté FastAPI). */
+function valider(d: { nom?: string; prenom?: string; cin?: string; telephone?: string | null }) {
+  const champs: Record<string, string> = {};
+  if (d.nom !== undefined && !d.nom.trim()) champs.nom = 'Le nom est obligatoire';
+  if (d.prenom !== undefined && !d.prenom.trim()) champs.prenom = 'Le prénom est obligatoire';
+  if (d.cin !== undefined && !FORMAT_CIN.test(d.cin)) {
+    champs.cin = 'Format de CIN invalide (ex. JB123456)';
+  }
+  if (d.telephone && !FORMAT_TELEPHONE.test(d.telephone)) {
+    champs.telephone = 'Numéro marocain attendu (ex. 0612345678)';
+  }
+  if (Object.keys(champs).length) {
+    throw new ErreurApi({ status: 422, message: 'Données invalides', champs });
+  }
+}
 
 function trouver(id: number): Ouvrier {
   const ouvrier = base.ouvriers.find((o) => o.id === id);
@@ -50,15 +68,21 @@ export function getOuvrier(id: number) {
 export function creerOuvrier(donnees: OuvrierCreation) {
   return appelFictif('ouvriers', () => {
     const cin = donnees.cin.trim().toUpperCase();
-    if (!FORMAT_CIN.test(cin)) {
-      throw invalide('Données invalides', { cin: 'Format de CIN invalide (ex. JB123456)' });
-    }
+    const telephone = donnees.telephone?.replace(/\s/g, '') || null;
+    valider({ ...donnees, cin, telephone });
     if (base.ouvriers.some((o) => o.cin === cin)) {
-      throw conflit(`Un ouvrier avec la CIN ${cin} existe déjà`);
+      throw new ErreurApi({
+        status: 409,
+        message: `Un ouvrier avec la CIN ${cin} existe déjà`,
+        champs: { cin: `La CIN ${cin} est déjà utilisée par un autre ouvrier` },
+      });
     }
     const ouvrier: Ouvrier = {
       ...donnees,
+      nom: donnees.nom.trim(),
+      prenom: donnees.prenom.trim(),
       cin,
+      telephone,
       id: prochainId(base.ouvriers),
       disponible: donnees.disponible ?? true,
     };
@@ -67,9 +91,15 @@ export function creerOuvrier(donnees: OuvrierCreation) {
   });
 }
 
-/** Réel : PATCH /api/ouvriers/{id} → 200 Ouvrier | 404 | 422 */
+/** Réel : PATCH /api/ouvriers/{id} → 200 Ouvrier | 404 | 422 (validation) */
 export function modifierOuvrier(id: number, donnees: OuvrierModification) {
-  return appelFictif('ouvriers', () => Object.assign(trouver(id), donnees));
+  return appelFictif('ouvriers', () => {
+    const ouvrier = trouver(id);
+    const telephone =
+      donnees.telephone === undefined ? undefined : donnees.telephone?.replace(/\s/g, '') || null;
+    valider({ ...donnees, telephone });
+    return Object.assign(ouvrier, donnees, telephone === undefined ? {} : { telephone });
+  });
 }
 
 /** Réel : DELETE /api/ouvriers/{id} → 204 | 404 | 409 (tâches en cours, #15) */

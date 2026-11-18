@@ -5,7 +5,7 @@ import { useMateriaux } from '@/features/materiaux/hooks';
 import type { Mouvement } from '@/features/materiaux/types';
 import { formatDateCourte, formatNombre } from '@/lib/format';
 
-import { Encart, Td, Th } from './tableau';
+import { Encart, Td, Th } from '@/components/common/Tableau';
 
 type Props = { mouvements?: Mouvement[]; chargement: boolean; erreur: ApiError | null };
 
@@ -25,7 +25,7 @@ export function MouvementsChantier({ mouvements, chargement, erreur }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-card border border-line bg-surface">
+    <div className="relative overflow-x-auto rounded-card border border-line bg-surface">
       <table className="w-full min-w-[640px] border-collapse">
         <thead>
           <tr className="bg-surface-2 text-left text-xs uppercase tracking-[0.08em] text-muted">

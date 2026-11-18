@@ -5,9 +5,9 @@ spring:
   application:
     name: materiaux-service
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/materiaux_db}
-    username: ${DB_USER:btp}
-    password: ${DB_PASSWORD:btp}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/btp_db?currentSchema=materiaux}
+    username: ${DB_USER:materiaux_user}
+    password: ${DB_PASSWORD:materiaux}
   jpa:
     hibernate:
       ddl-auto: update

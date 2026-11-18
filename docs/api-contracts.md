@@ -4,6 +4,30 @@
 
 La documentation détaillée (schémas, exemples, essais en ligne) est générée automatiquement par chaque service : voir le [README](../README.md#documentation-interactive-des-api).
 
+## Authentification · REST · Chantiers `:8081`
+
+Via la gateway (`:8080`), **toutes les routes `/api/*` et `/ws` exigent un jeton** (`Authorization: Bearer <jeton>`), sauf `POST /api/auth/login`, le WSDL et `/health` ([ADR-0006](adr/0006-authentification-jwt-gateway.md)). Sans jeton valide : `401` (`application/problem+json`) ; si Chantiers ne peut pas vérifier le jeton : `503`. Les services reçoivent `X-Utilisateur` (e-mail) et `X-Role`, écrits par la gateway. Les appels entre services (réseau Docker interne) ne passent pas par la gateway et restent sans jeton.
+
+| Méthode | Endpoint | Description | Codes |
+|---|---|---|---|
+| POST | `/api/auth/login` | Connexion : JWT HS256 valable 8 h | 200, 400, 401, 429 |
+| GET | `/api/auth/moi` | Utilisateur du jeton | 200, 401 |
+| GET | `/api/auth/verifier` | Vérification par la gateway : en-têtes `X-Utilisateur`, `X-Utilisateur-Id`, `X-Role` | 200, 401 |
+
+```json
+POST /api/auth/login
+{ "email": "samir.haddou@souss-batiment.demo", "motDePasse": "…" }
+
+200 OK
+{ "token": "eyJhbGciOiJIUzI1NiJ9…",
+  "utilisateur": { "id": 2, "email": "samir.haddou@souss-batiment.demo", "nom": "Samir Haddou",
+                   "initiales": "SH", "role": "CONDUCTEUR" } }
+```
+
+- Rôles : `DIRECTION`, `CONDUCTEUR`, `CHEF_CHANTIER`, `MAGASINIER`. Claims du jeton : `sub` (e-mail), `uid`, `nom`, `initiales`, `role`, `iss` = `btp-chantiers`.
+- `401` : même message (« Adresse e-mail ou mot de passe incorrect. ») pour un e-mail inconnu et un mauvais mot de passe.
+- `429` : après 5 échecs pour un même e-mail, ou 20 pour une même adresse IP, en 15 minutes ; en-tête `Retry-After` (secondes).
+
 ## Chantiers · REST · `:8081`
 
 | Méthode | Endpoint | Description | Codes |
@@ -28,7 +52,15 @@ POST /api/chantiers
 }
 ```
 
-Les erreurs sont renvoyées au format RFC 9457 (`application/problem+json`).
+Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json`), avec un message en français dans `detail`. Les erreurs de validation (400) portent en plus `erreurs`, un message par champ (RG-01 sur `dateFinPrevue`). Un paramètre invalide (`?statut=INCONNU`, `/api/chantiers/abc`) ou un JSON mal formé donnent aussi un 400 au même format.
+
+```json
+400 Bad Request
+{ "status": 400, "detail": "Données invalides",
+  "erreurs": { "dateFinPrevue": "La date de fin prévue doit être postérieure ou égale à la date de début" } }
+```
+
+`GET /api/chantiers/{id}/avancement` renvoie toujours les 4 champs. Si Tâches est injoignable : `{ "chantierId": 1, "nombreTaches": 0, "avancementGlobal": null, "sourceDisponible": false }`.
 
 ## Tâches & Avancement · REST · `:8082`
 
@@ -36,7 +68,7 @@ Les erreurs sont renvoyées au format RFC 9457 (`application/problem+json`).
 |---|---|---|---|
 | GET | `/api/taches?chantierId=&ouvrierId=` | Lister / filtrer | 200 |
 | GET | `/api/taches/{id}` | Consulter | 200, 404 |
-| POST | `/api/taches` | Créer (vérifie chantier, ouvriers, stock) | 201, 400, 404, 422, 503 |
+| POST | `/api/taches` | Créer (vérifie chantier, ouvriers, stock) | 201, 400, 404, 409, 422, 503 |
 | PATCH | `/api/taches/{id}/avancement` | `{ "avancement": 60 }` | 200, 400, 404 |
 | PATCH | `/api/taches/{id}/ouvriers` | `{ "ouvrierIds": [1, 2] }` | 200, 422 |
 | DELETE | `/api/taches/{id}` | Supprimer | 204, 404 |
@@ -52,6 +84,27 @@ POST /api/taches
   "besoinsMateriaux": [{ "materiauId": 1, "quantite": 40 }]
 }
 ```
+
+```json
+201 Created
+{
+  "id": 12,
+  "chantierId": 1,
+  "titre": "Coulage des fondations",
+  "dateDebut": "2026-11-02",
+  "dateFin": "2026-11-10",
+  "statut": "A_FAIRE",
+  "avancement": 0,
+  "ouvrierIds": [1],
+  "besoinsMateriaux": [{ "materiauId": 1, "quantite": 40 }]
+}
+```
+
+- **Identifiant entier `id`** (plus de `_id` MongoDB depuis #6) ; dates au format `aaaa-mm-jj` ; `description` absente quand elle est vide.
+- Données dans le schéma `taches` de `btp_db` : tables `tache` et `besoin_materiau` (classe d'association), créées par les migrations TypeORM.
+- Un même `materiauId` ne peut apparaître qu'une fois dans `besoinsMateriaux` (`400`).
+
+Codes de refus à la création (RG-03, RG-04, RG-07) : chantier inconnu → `404` ; chantier `SUSPENDU` ou `TERMINE` → `409` (seuls `PLANIFIE` et `EN_COURS` acceptent une tâche) ; ouvrier indisponible ou stock insuffisant → `422` ; Chantiers, Ouvriers ou Matériaux injoignable → `503`.
 
 ## Ouvriers · REST · `:8083`
 
@@ -79,6 +132,13 @@ Spécialités : `MACON`, `FERRAILLEUR`, `COFFREUR`, `ELECTRICIEN`, `PLOMBIER`, `
 | `ListerMateriaux` | `enAlerteSeulement?` | `materiau*` |
 | `VerifierStock` | `materiauId`, `quantite` | `disponible`, `stockActuel` |
 | `EnregistrerMouvement` | `materiauId`, `chantierId`, `type` (ENTREE/SORTIE), `quantite` | `mouvementId`, `stockApres`, `enAlerte` |
+
+Les erreurs sont renvoyées sous forme de SOAP 1.1 Fault. Ces codes sont des codes SOAP, pas des codes HTTP. Le client doit se baser sur `faultcode`, pas analyser le texte de `faultstring` :
+
+| `faultcode` | Situations |
+|---|---|
+| `Client` | Stock ou seuil non fini/négatif, quantité non finie/non positive, matériau introuvable, chantier introuvable (HTTP 404 de Chantiers), chantier terminé, stock insuffisant ou conflit de mise à jour concurrente. Pour un conflit, relire le stock avant de décider de réessayer le mouvement. |
+| `Server` | Chantiers renvoie une réponse vide/invalide, un statut HTTP autre que 404, ou l'appel échoue (timeout, erreur réseau). Réessayer seulement après avoir vérifié que la dépendance est disponible et que l'erreur est transitoire. |
 
 ```xml
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"

@@ -12,7 +12,7 @@ L'objectif pédagogique principal est l'**interopérabilité** entre modules, in
 | Chantiers | Spring Boot 3 (Java 21) | PostgreSQL |
 | Tâches | NestJS 10 (TypeScript) | MongoDB |
 | Ouvriers | FastAPI (Python 3.12) | PostgreSQL |
-| Matériaux | Spring-WS (Java 21) | MySQL |
+| Matériaux | Spring-WS (Java 21) | PostgreSQL |
 
 MongoDB est retenu pour les tâches : documents imbriqués (besoins en matériaux, liste d'ouvriers) et schéma susceptible d'évoluer.
 

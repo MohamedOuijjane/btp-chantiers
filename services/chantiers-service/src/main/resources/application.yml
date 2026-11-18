@@ -14,6 +14,30 @@ spring:
     open-in-view: false
   jackson:
     default-property-inclusion: non_null
+  # Flyway ne gère que le schéma auth (connexion auth.datasource) ; les tables de chantiers
+  # restent créées par Hibernate.
+  flyway:
+    schemas: auth
+    default-schema: auth
+    create-schemas: false
+
+# Authentification (ADR-0006) : comptes dans le schéma auth, avec leur propre utilisateur.
+auth:
+  datasource:
+    url: ${AUTH_DB_URL:jdbc:postgresql://localhost:5432/btp_db?currentSchema=auth}
+    username: ${AUTH_DB_USER:auth_user}
+    password: ${AUTH_DB_PASSWORD:auth}
+  jwt:
+    # Obligatoire, au moins 32 caractères (voir .env.example). Aucune valeur par défaut.
+    secret: ${JWT_SECRET:}
+    duree: 8h
+  demo:
+    # Mot de passe des 4 comptes de démonstration ; vide = comptes de démo inutilisables.
+    mot-de-passe: ${DEMO_MOT_DE_PASSE:}
+  tentatives:
+    max-par-email: 5
+    max-par-adresse: 20
+    fenetre: 15m
 
 services:
   taches:

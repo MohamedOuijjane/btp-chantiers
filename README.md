@@ -66,7 +66,9 @@ flowchart LR
 
 Toute l'application partage **une seule base PostgreSQL** (`btp_db`). Chaque module possède son propre schéma et son propre utilisateur, sans aucun droit sur les schémas des autres : voir [ADR-0005](docs/adr/0005-base-de-donnees-unique.md).
 
-> Migration en cours vers la base unique : Tâches (MongoDB, #6) et Matériaux (MySQL, #17) ; front-end en cours de réalisation ([architecture](docs/frontend/architecture.md), #24).
+> Migration en cours vers la base unique : il reste Matériaux (MySQL, #17). Tâches est sur PostgreSQL (schéma `taches`, migrations TypeORM) depuis #6.
+
+**Authentification :** la connexion émet un JWT (Chantiers, `POST /api/auth/login`) que la gateway vérifie avant toute requête vers `/api/*` et `/ws`. Tâches, Ouvriers et Matériaux n'ont rien à vérifier : voir [ADR-0006](docs/adr/0006-authentification-jwt-gateway.md).
 
 Les choix d'architecture sont justifiés dans les [ADR](docs/adr/) et les échanges entre modules sont détaillés dans [docs/architecture.md](docs/architecture.md).
 
@@ -77,11 +79,32 @@ Les choix d'architecture sont justifiés dans les [ADR](docs/adr/) et les échan
 ```bash
 git clone https://github.com/MohamedOuijjane/btp-chantiers.git
 cd btp-chantiers
-cp .env.example .env               # optionnel
+cp .env.example .env               # obligatoire : secret JWT et mot de passe des comptes de démo
 docker compose up --build -d --wait   # ou : make up
 docker compose ps                  # tous les services doivent être "healthy"
 ./scripts/demo.sh                  # scénario de démonstration de bout en bout
 ```
+
+Sans `.env`, `docker compose` refuse de démarrer (`JWT_SECRET` et `DEMO_MOT_DE_PASSE` manquants). Hors démonstration, remplacer `JWT_SECRET` par un secret généré (`openssl rand -base64 48`).
+
+**Base déjà créée avant l'authentification** (volume `postgres-data` existant) : ajouter le schéma `auth` et son utilisateur, sans perte de données :
+
+```bash
+docker compose exec -T postgres sh /docker-entrypoint-initdb.d/init.sh
+```
+
+### Comptes de démonstration
+
+Mot de passe commun : celui de `DEMO_MOT_DE_PASSE` dans `.env` (`chantier2026` dans `.env.example`). Sur l'écran de connexion, choisir un profil remplit l'adresse e-mail.
+
+| Profil | E-mail | Accès |
+|---|---|---|
+| Direction | `nadia.belkadi@souss-batiment.demo` | Tout ; créer, modifier, clôturer un chantier |
+| Conducteur de travaux | `samir.haddou@souss-batiment.demo` | Tout, toutes les actions |
+| Chef de chantier | `karim.aitali@souss-batiment.demo` | Sans Matériaux ; tâches et ouvriers |
+| Magasinier | `fatima.idrissi@souss-batiment.demo` | Tableau de bord, Chantiers, Matériaux ; stock |
+
+Les personnes et la société Souss Bâtiment sont fictives. Après 5 échecs de connexion pour un même e-mail (ou 20 pour une même adresse IP) en 15 minutes, la connexion répond `429`.
 
 | Accès | URL |
 |---|---|
@@ -128,8 +151,8 @@ Chaque service peut être lancé seul. Démarrer d'abord la base : `docker compo
 # Chantiers / Matériaux
 cd services/chantiers-service && mvn spring-boot:run
 
-# Tâches
-cd services/taches-service && npm install && npm run start:dev
+# Tâches (applique ses migrations au démarrage ; taches_user sur localhost:5432/btp_db)
+cd services/taches-service && npm install && DB_PASSWORD=<TACHES_DB_PASSWORD du .env> npm run start:dev
 
 # Ouvriers
 cd services/ouvriers-service && pip install -r requirements-dev.txt && uvicorn app.main:app --reload --port 8083
@@ -147,7 +170,7 @@ make test        # tests de tous les services
 |---|---|---|---|
 | Chantiers | JUnit 5 · MockMvc : CRUD, validation, chantier terminé non modifiable, avancement et mode dégradé | JaCoCo | Checkstyle · SpotBugs |
 | Matériaux | Spring-WS Test : opérations SOAP, SOAP Fault sur stock insuffisant | JaCoCo | Checkstyle · SpotBugs |
-| Tâches | Jest : orchestration des 3 modules, règle avancement → statut, parsing SOAP | Jest | ESLint · tsc |
+| Tâches | Jest : orchestration des 3 modules, règle avancement → statut, routes HTTP, clients REST et SOAP ; intégration sur PostgreSQL (migrations, requêtes) avec `TEST_DATABASE_URL` | Jest | ESLint · tsc |
 | Ouvriers | pytest : CRUD, CIN unique et format, planning et mode dégradé | pytest-cov | ruff |
 
 À chaque push et pull request, la CI exécute les tests et l'analyse de chaque module, envoie les résultats à **SonarCloud** (quality gate), lance **CodeQL** (sécurité), vérifie le titre de la PR (Conventional Commits) et construit les images Docker. Un tag `vX.Y.Z` publie les images sur ghcr.io après un scan **Trivy** et crée la release.

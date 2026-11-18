@@ -68,7 +68,7 @@ def test_planning_degrade_si_taches_indisponible(client, monkeypatch):
 
 def test_planning_depuis_le_module_taches(client, monkeypatch):
     oid = client.post("/api/ouvriers", json=OUVRIER).json()["id"]
-    tache = {"_id": "t1", "chantierId": 1, "titre": "Fondations", "dateDebut": "2026-11-02",
+    tache = {"id": 1, "chantierId": 1, "titre": "Fondations", "dateDebut": "2026-11-02",
              "dateFin": "2026-11-10", "statut": "EN_COURS"}
     monkeypatch.setattr(taches_client, "taches_de_l_ouvrier", lambda _id: [tache])
     assert client.get(f"/api/ouvriers/{oid}/planning").json()["taches"][0]["titre"] == "Fondations"

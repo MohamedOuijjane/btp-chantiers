@@ -124,8 +124,8 @@ describe('Tâches (fictif)', () => {
     );
   });
 
-  it('renvoie 422 pour un chantier terminé', async () => {
-    await echoue(taches.creerTache({ ...nouvelleTache, chantierId: 5 }), 422, /terminé/);
+  it('renvoie 409 pour un chantier clôturé', async () => {
+    await echoue(taches.creerTache({ ...nouvelleTache, chantierId: 5 }), 409, /clôturé/);
   });
 
   it('renvoie 503 si Tâches ou un module appelé est en panne', async () => {
@@ -181,10 +181,10 @@ describe('Ouvriers (fictif)', () => {
     expect(await ouvriers.getPlanning(1)).toMatchObject({ taches: [], sourceDisponible: false });
   });
 
-  it('refuse une CIN déjà utilisée (409) ou mal formée (400)', async () => {
+  it('refuse une CIN déjà utilisée (409) ou mal formée (422)', async () => {
     const base = { nom: 'Idrissi', prenom: 'Ali', specialite: 'PEINTRE' as const, telephone: null };
     await echoue(ouvriers.creerOuvrier({ ...base, cin: 'JB123456' }), 409);
-    const e = await echoue(ouvriers.creerOuvrier({ ...base, cin: '12AB' }), 400);
+    const e = await echoue(ouvriers.creerOuvrier({ ...base, cin: '12AB' }), 422);
     expect(e.champs).toHaveProperty('cin');
   });
 });
@@ -206,11 +206,11 @@ describe('Matériaux (fictif)', () => {
     expect((await materiaux.getMateriau(3)).stock).toBe(2.4);
   });
 
-  it('refuse un mouvement vers un chantier terminé (422)', async () => {
+  it('refuse un mouvement vers un chantier clôturé (409)', async () => {
     await echoue(
       materiaux.enregistrerMouvement({ materiauId: 2, chantierId: 5, type: 'SORTIE', quantite: 1 }),
-      422,
-      /terminé/,
+      409,
+      /clôturé/,
     );
   });
 

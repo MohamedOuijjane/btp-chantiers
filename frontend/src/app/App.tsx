@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
+import { AuthProvider } from '@/features/auth/AuthProvider';
+
 import { futurRouteur, routes } from './routes';
 
 const router = createBrowserRouter(routes, { future: futurRouteur });
@@ -19,7 +21,9 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} future={{ v7_startTransition: true }} />
+      <AuthProvider>
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
+      </AuthProvider>
       <Toaster position="bottom-right" richColors closeButton />
     </QueryClientProvider>
   );

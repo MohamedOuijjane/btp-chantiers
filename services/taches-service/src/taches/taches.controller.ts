@@ -22,7 +22,7 @@ export class TachesController {
   @Get(':id')
   @ApiOperation({ summary: 'Consulter une tâche' })
   trouver(@Param('id') id: string) {
-    return this.service.trouver(id);
+    return this.service.trouver(Number(id));
   }
 
   @Post()
@@ -34,19 +34,19 @@ export class TachesController {
   @Patch(':id/avancement')
   @ApiOperation({ summary: "Mettre à jour le pourcentage d'avancement" })
   avancement(@Param('id') id: string, @Body() dto: AvancementDto) {
-    return this.service.mettreAJourAvancement(id, dto.avancement);
+    return this.service.mettreAJourAvancement(Number(id), dto.avancement);
   }
 
   @Patch(':id/ouvriers')
   @ApiOperation({ summary: 'Affecter des ouvriers à la tâche' })
   affecter(@Param('id') id: string, @Body() dto: AffectationDto) {
-    return this.service.affecter(id, dto);
+    return this.service.affecter(Number(id), dto);
   }
 
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({ summary: 'Supprimer une tâche' })
   supprimer(@Param('id') id: string) {
-    return this.service.supprimer(id);
+    return this.service.supprimer(Number(id));
   }
 }

@@ -1,5 +1,5 @@
 // Hooks TanStack Query du module Chantiers : les pages n'utilisent que ces hooks.
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { ApiError } from '@/api/errors';
 
@@ -16,19 +16,33 @@ export const clesChantiers = {
 export function useChantiers(filtre: FiltreChantiers = {}) {
   return useQuery({
     queryKey: clesChantiers.liste(filtre),
-    queryFn: () => api.listerChantiers(filtre),
+    queryFn: ({ signal }) => api.listerChantiers(filtre, { signal }),
   });
 }
 
-export function useChantier(id: number) {
-  return useQuery({ queryKey: clesChantiers.detail(id), queryFn: () => api.getChantier(id) });
+export function useChantier(id: number, active = true) {
+  return useQuery({
+    queryKey: clesChantiers.detail(id),
+    queryFn: ({ signal }) => api.getChantier(id, { signal }),
+    enabled: active,
+  });
 }
 
 export function useAvancementChantier(id: number, active = true) {
   return useQuery({
     queryKey: clesChantiers.avancement(id),
-    queryFn: () => api.getAvancement(id),
+    queryFn: ({ signal }) => api.getAvancement(id, { signal }),
     enabled: active,
+  });
+}
+
+/** Avancement de plusieurs chantiers (tableau de bord) : une requête par chantier, même cache que la fiche. */
+export function useAvancementsChantiers(ids: number[]) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: clesChantiers.avancement(id),
+      queryFn: ({ signal }: { signal: AbortSignal }) => api.getAvancement(id, { signal }),
+    })),
   });
 }
 

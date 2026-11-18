@@ -18,6 +18,7 @@ services:
       TACHES_DB_PASSWORD: ${TACHES_DB_PASSWORD:-taches}
       OUVRIERS_DB_PASSWORD: ${OUVRIERS_DB_PASSWORD:-ouvriers}
       MATERIAUX_DB_PASSWORD: ${MATERIAUX_DB_PASSWORD:-materiaux}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth}
     ports: ["5432:5432"]   # accès avec DBeaver / pgAdmin en dev
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -26,33 +27,6 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-btp} -d btp_db"]
       interval: 5s
       retries: 10
-    networks: [data]
-
-  # TEMPORAIRE : supprimé quand Tâches sera migré vers PostgreSQL (issue Houssam)
-  mongo:
-    image: mongo:7
-    <<: *restart
-    volumes: [mongo-data:/data/db]
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
-      retries: 10
-    networks: [data]
-
-  # TEMPORAIRE : supprimé quand Matériaux sera migré vers PostgreSQL (issue SALHI Hatim)
-  mysql:
-    image: mysql:8.4
-    <<: *restart
-    environment:
-      MYSQL_DATABASE: materiaux_db
-      MYSQL_USER: ${MYSQL_USER:-btp}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-btp}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-    volumes: [mysql-data:/var/lib/mysql]
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      retries: 20
     networks: [data]
 
   # ---------- Modules métier ----------
@@ -65,6 +39,13 @@ services:
       DB_USER: chantiers_user
       DB_PASSWORD: ${CHANTIERS_DB_PASSWORD:-chantiers}
       TACHES_URL: http://taches-service:8082
+      # Authentification (ADR-0006) : comptes dans le schéma auth, avec leur propre utilisateur.
+      AUTH_DB_URL: jdbc:postgresql://postgres:5432/btp_db?currentSchema=auth
+      AUTH_DB_USER: auth_user
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth}
+      # Secrets sans valeur par défaut : à définir dans .env (cp .env.example .env).
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET manquant, copier .env.example en .env}
+      DEMO_MOT_DE_PASSE: ${DEMO_MOT_DE_PASSE:?DEMO_MOT_DE_PASSE manquant, copier .env.example en .env}
     depends_on:
       postgres: { condition: service_healthy }
     networks: [data, backend]
@@ -74,12 +55,13 @@ services:
     <<: *restart
     ports: ["8082:8082"]   # accès direct en dev
     environment:
-      MONGO_URL: mongodb://mongo:27017/taches_db
+      # Base unique btp_db, schéma taches (ADR-0005) ; tables créées par les migrations TypeORM.
+      DATABASE_URL: postgres://taches_user:${TACHES_DB_PASSWORD:-taches}@postgres:5432/btp_db
       CHANTIERS_URL: http://chantiers-service:8081
       OUVRIERS_URL: http://ouvriers-service:8083
       MATERIAUX_URL: http://materiaux-service:8084
     depends_on:
-      mongo: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     networks: [data, backend]
 
   ouvriers-service:
@@ -98,12 +80,12 @@ services:
     <<: *restart
     ports: ["8084:8084"]   # accès direct en dev
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/materiaux_db
-      DB_USER: ${MYSQL_USER:-btp}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-btp}
+      DB_URL: jdbc:postgresql://postgres:5432/btp_db?currentSchema=materiaux
+      DB_USER: materiaux_user
+      DB_PASSWORD: ${MATERIAUX_DB_PASSWORD:-materiaux}
       CHANTIERS_URL: http://chantiers-service:8081
     depends_on:
-      mysql: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     networks: [data, backend]
 
   # ---------- Interface web ----------
@@ -129,5 +111,3 @@ networks:
 
 volumes:
   postgres-data:
-  mongo-data:
-  mysql-data:

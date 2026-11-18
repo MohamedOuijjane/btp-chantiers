@@ -8,6 +8,7 @@ import { StatutBadge } from '@/components/common/StatutBadge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useDroits } from '@/features/auth/contexte';
 import { useMouvements } from '@/features/materiaux/hooks';
 import { useTaches } from '@/features/taches/hooks';
 import { formatDate, formatMontant } from '@/lib/format';
@@ -30,6 +31,9 @@ export function ChantierFichePage() {
   const taches = useTaches({ chantierId: id });
   const mouvements = useMouvements({ chantierId: id });
   const [dialogue, setDialogue] = useState<'modifier' | 'cloturer' | null>(null);
+  const { peut } = useDroits();
+  const gereChantier = peut('chantiers.ecrire');
+  const planifie = peut('taches.ecrire');
 
   const c = chantier.data;
   useTitrePage(c?.nom);
@@ -80,23 +84,27 @@ export function ChantierFichePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         {retour}
         <div className="flex flex-wrap gap-2.5">
-          <Button
-            variant="outline"
-            className="bg-surface"
-            disabled={!c || termine}
-            onClick={() => setDialogue('modifier')}
-          >
-            Modifier
-          </Button>
-          <Button
-            variant="outline"
-            className="bg-surface"
-            disabled={!c || termine}
-            onClick={() => setDialogue('cloturer')}
-          >
-            Clôturer le chantier
-          </Button>
-          {c && !termine ? (
+          {gereChantier && (
+            <>
+              <Button
+                variant="outline"
+                className="bg-surface"
+                disabled={!c || termine}
+                onClick={() => setDialogue('modifier')}
+              >
+                Modifier
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-surface"
+                disabled={!c || termine}
+                onClick={() => setDialogue('cloturer')}
+              >
+                Clôturer le chantier
+              </Button>
+            </>
+          )}
+          {!planifie ? null : c && !termine ? (
             <Button asChild className="px-[18px] font-bold">
               <Link to={`/chantiers/${id}/taches/nouvelle`} className="no-underline">
                 <Plus size={18} aria-hidden="true" />
@@ -179,7 +187,7 @@ export function ChantierFichePage() {
             taches={taches.data}
             chargement={taches.isPending}
             erreur={taches.error}
-            lectureSeule={termine}
+            lectureSeule={termine || !planifie}
           />
         </TabsContent>
         <TabsContent value="materiaux">

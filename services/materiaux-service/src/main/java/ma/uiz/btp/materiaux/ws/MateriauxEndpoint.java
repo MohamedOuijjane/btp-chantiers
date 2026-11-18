@@ -1,9 +1,11 @@
 package ma.uiz.btp.materiaux.ws;
 
 import ma.uiz.btp.materiaux.config.WebServiceConfig;
+import ma.uiz.btp.materiaux.domain.ConflitStockException;
 import ma.uiz.btp.materiaux.domain.MateriauEntity;
 import ma.uiz.btp.materiaux.domain.Mouvement;
 import ma.uiz.btp.materiaux.ws.gen.*;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
 import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
@@ -57,7 +59,7 @@ public class MateriauxEndpoint {
     public VerifierStockResponse verifierStock(@RequestPayload VerifierStockRequest req) {
         MateriauEntity m = service.trouver(req.getMateriauId());
         VerifierStockResponse resp = new VerifierStockResponse();
-        resp.setDisponible(m.getStock() >= req.getQuantite());
+        resp.setDisponible(m.aStockSuffisant(req.getQuantite()));
         resp.setStockActuel(m.getStock());
         return resp;
     }
@@ -65,8 +67,15 @@ public class MateriauxEndpoint {
     @PayloadRoot(namespace = NS, localPart = "EnregistrerMouvementRequest")
     @ResponsePayload
     public EnregistrerMouvementResponse mouvement(@RequestPayload EnregistrerMouvementRequest req) {
-        Mouvement mv = service.enregistrerMouvement(
-                req.getMateriauId(), req.getChantierId(), Mouvement.Type.valueOf(req.getType().value()), req.getQuantite());
+        Mouvement mv;
+        try {
+            mv = service.enregistrerMouvement(
+                    req.getMateriauId(), req.getChantierId(),
+                    Mouvement.Type.valueOf(req.getType().value()), req.getQuantite());
+        } catch (OptimisticLockingFailureException e) {
+            throw new ConflitStockException(
+                    "Le stock a été modifié par une autre opération; relisez-le avant de réessayer.", e);
+        }
         EnregistrerMouvementResponse resp = new EnregistrerMouvementResponse();
         resp.setMouvementId(mv.getId());
         resp.setStockApres(mv.getMateriau().getStock());

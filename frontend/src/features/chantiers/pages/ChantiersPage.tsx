@@ -7,11 +7,12 @@ import { EtatVide } from '@/components/common/EtatVide';
 import { StatutBadge } from '@/components/common/StatutBadge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDroits } from '@/features/auth/contexte';
 import { formatDate, formatMontant } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { ChantierDialog } from '../components/ChantierDialog';
-import { Td, Th } from '../components/tableau';
+import { Td, Th } from '@/components/common/Tableau';
 import { useAvancementChantier, useChantiers } from '../hooks';
 import { FILTRES, refChantier, tonAvancement } from '../presentation';
 import type { Chantier, StatutChantier } from '../types';
@@ -23,6 +24,7 @@ export function ChantiersPage() {
   const [params, setParams] = useSearchParams();
   const [creation, setCreation] = useState(false);
   const { data: chantiers, isPending, error } = useChantiers();
+  const peutCreer = useDroits().peut('chantiers.ecrire');
 
   // Filtre (?statut=) et recherche de la topbar (?q=) sont portés par l'URL.
   const brut = params.get('statut');
@@ -81,10 +83,12 @@ export function ChantiersPage() {
             );
           })}
         </div>
-        <Button onClick={() => setCreation(true)} className="ml-auto px-[18px] font-bold">
-          <Plus size={18} aria-hidden="true" />
-          Nouveau chantier
-        </Button>
+        {peutCreer && (
+          <Button onClick={() => setCreation(true)} className="ml-auto px-[18px] font-bold">
+            <Plus size={18} aria-hidden="true" />
+            Nouveau chantier
+          </Button>
+        )}
       </div>
 
       {error ? (
@@ -99,6 +103,7 @@ export function ChantiersPage() {
               : 'Créez le premier chantier de l’entreprise.'
           }
           action={
+            peutCreer &&
             !chantiers?.length && (
               <Button onClick={() => setCreation(true)} className="font-bold">
                 Créer le premier chantier
@@ -107,7 +112,7 @@ export function ChantiersPage() {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-card border border-line bg-surface">
+        <div className="relative overflow-x-auto rounded-card border border-line bg-surface">
           <table className="w-full min-w-[900px] border-collapse">
             <thead>
               <tr className="bg-surface-2 text-left text-xs uppercase tracking-[0.08em] text-muted">

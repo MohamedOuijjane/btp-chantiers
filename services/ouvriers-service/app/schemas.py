@@ -30,7 +30,9 @@ class OuvrierReponse(OuvrierBase):
 
 
 class TachePlanning(BaseModel):
-    id: str = Field(alias="_id")
+    """Tâche lue dans le module Tâches (identifiant entier depuis la migration PostgreSQL, #6)."""
+
+    id: int
     chantierId: int
     titre: str
     dateDebut: str
