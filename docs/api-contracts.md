@@ -72,6 +72,11 @@ Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json
 | PATCH | `/api/taches/{id}/avancement` | `{ "avancement": 60 }` | 200, 400, 404 |
 | PATCH | `/api/taches/{id}/ouvriers` | 200, 400, 404, 409, 422 |
 | DELETE | `/api/taches/{id}` | Supprimer | 204, 404 |
+| PUT | `/api/taches/{id}` | Modifier (mêmes champs et mêmes vérifications que la création) | 200, 400, 404, 409, 422, 503 |
+| PATCH | `/api/taches/{id}/statut` | `{ "statut": "EN_COURS" }` ou `"TERMINEE"` | 200, 400, 404, 409 |
+| GET | `/api/taches/{id}/historique` | Historique des statuts, du plus récent au plus ancien | 200, 400, 404 |
+
+- **Statut (#99)** : seules les transitions `A_FAIRE → EN_COURS` et `EN_COURS → TERMINEE` sont permises ; `TERMINEE` force l'avancement à 100 %. Une tâche bloquée, une autre transition ou un chantier clôturé → `409`. Chaque changement de statut est enregistré (table `historique_statut`).
 
 - **Conflit de planning (#10)** : un ouvrier déjà affecté à une tâche non terminée dont la période chevauche celle de la tâche (bornes incluses : partager un jour est un conflit, le lendemain non) → `409` « L'ouvrier 3 est déjà affecté à « Dalle » (2026-11-05 → 2026-11-08) sur cette période ». Vérifié à la création et à l'affectation.
 

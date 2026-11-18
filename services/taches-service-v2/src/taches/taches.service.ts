@@ -10,7 +10,7 @@ import { ChantiersClient } from "../clients/chantiers.client";
 import { MateriauxSoapClient } from "../clients/materiaux.soap-client";
 import { OuvriersClient } from "../clients/ouvriers.client";
 import { AffectationDto, CreerTacheDto } from "./tache.dto";
-import { StatutTache, Tache } from "./tache.entity";
+import { StatutTache, Tache, BesoinMateriau } from "./tache.entity";
 import { EntreeHistorique, HistoriqueService } from "./historique.service";
 import { verifierTransition } from "./transitions";
 
@@ -87,22 +87,7 @@ export class TachesService {
 
   /** Création : orchestre 3 modules (Chantiers REST, Ouvriers REST, Matériaux SOAP). */
   async creer(dto: CreerTacheDto): Promise<TacheReponse> {
-    if (new Date(dto.dateFin) < new Date(dto.dateDebut)) {
-      throw new BadRequestException(
-        "dateFin doit être postérieure ou égale à dateDebut",
-      );
-    }
-    const besoins = dto.besoinsMateriaux ?? [];
-    const doublon = besoins.find(
-      (b, i) => besoins.findIndex((x) => x.materiauId === b.materiauId) !== i,
-    );
-    if (doublon) {
-      throw new BadRequestException(
-        `Le matériau ${doublon.materiauId} apparaît plusieurs fois dans besoinsMateriaux`,
-      );
-    }
-    const dateDebut = dto.dateDebut.slice(0, 10);
-    const dateFin = dto.dateFin.slice(0, 10);
+    const { besoins, dateDebut, dateFin } = this.verifierCorps(dto);
     await this.chantiers.verifierChantierActif(dto.chantierId);
     if (dto.ouvrierIds?.length) {
       await this.ouvriers.verifierDisponibles(dto.ouvrierIds);
@@ -178,6 +163,53 @@ export class TachesService {
     return versReponse(await this.taches.save(tache));
   }
 
+    /** Validations communes à la création et à la modification (400). */
+  private verifierCorps(dto: CreerTacheDto) {
+    if (new Date(dto.dateFin) < new Date(dto.dateDebut)) {
+      throw new BadRequestException("dateFin doit être postérieure ou égale à dateDebut");
+    }
+    const besoins = dto.besoinsMateriaux ?? [];
+    const doublon = besoins.find((b, i) => besoins.findIndex((x) => x.materiauId === b.materiauId) !== i);
+    if (doublon) {
+      throw new BadRequestException(`Le matériau ${doublon.materiauId} apparaît plusieurs fois dans besoinsMateriaux`);
+    }
+    return { besoins, dateDebut: dto.dateDebut.slice(0, 10), dateFin: dto.dateFin.slice(0, 10) };
+  }
+
+  /** PUT (#99) : mêmes vérifications que la création, la tâche modifiée est exclue du conflit de planning. */
+  async modifier(id: number, dto: CreerTacheDto): Promise<TacheReponse> {
+    const tache = await this.charger(id);
+    const { besoins, dateDebut, dateFin } = this.verifierCorps(dto);
+    // Les tâches d'un chantier clôturé ne changent plus ; un nouveau chantier doit accepter une tâche (RG-03).
+    await this.chantiers.verifierChantierModifiable(tache.chantierId);
+    if (dto.chantierId !== tache.chantierId) await this.chantiers.verifierChantierActif(dto.chantierId);
+    if (dto.ouvrierIds?.length) {
+      await this.ouvriers.verifierDisponibles(dto.ouvrierIds);
+      await this.verifierPlanning(dto.ouvrierIds, dateDebut, dateFin, id);
+    }
+    for (const b of besoins) await this.materiaux.verifierStock(b.materiauId, b.quantite);
+
+    // Une seule transaction : les besoins en matériaux sont remplacés en entier ou pas du tout.
+    await this.taches.manager.transaction(async (m) => {
+      await m.delete(BesoinMateriau, { tacheId: id });
+      await m.update(Tache, id, {
+        chantierId: dto.chantierId,
+        titre: dto.titre,
+        description: dto.description ?? null,
+        dateDebut,
+        dateFin,
+        ouvrierIds: dto.ouvrierIds ?? [],
+      });
+      if (besoins.length) {
+        await m.insert(
+          BesoinMateriau,
+          besoins.map((b) => ({ tacheId: id, materiauId: b.materiauId, quantite: b.quantite })),
+        );
+      }
+    });
+    return this.trouver(id);
+  }
+  
   /**
    * #10 : un ouvrier ne peut pas être sur deux tâches dont les périodes se chevauchent.
    * Deux périodes se chevauchent si debut1 <= fin2 ET debut2 <= fin1 (bornes incluses :

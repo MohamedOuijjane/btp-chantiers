@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  Put
 } from "@nestjs/common";
 
 import {
@@ -103,6 +104,16 @@ export class TachesController {
   @ParamIdTache()
   affecter(@Param("id", IdTachePipe) id: string, @Body() dto: AffectationDto) {
     return this.service.affecter(Number(id), dto);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Modifier une tâche (mêmes vérifications que la création)' })
+  @ParamIdTache()
+  @ApiResponse({ status: 409, description: 'Chantier clôturé ou ouvrier déjà occupé sur la période' })
+  @ApiResponse({ status: 422, description: 'Ouvrier indisponible ou stock insuffisant' })
+  @ApiResponse({ status: 503, description: 'Chantiers, Ouvriers ou Matériaux injoignable' })
+  modifier(@Param('id', IdTachePipe) id: string, @Body() dto: CreerTacheDto) {
+    return this.service.modifier(Number(id), dto);
   }
 
   @Delete(":id")
