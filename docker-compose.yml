@@ -96,12 +96,12 @@ services:
     <<: *restart
     ports: ["8084:8084"]   # accès direct en dev
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/materiaux_db
-      DB_USER: ${MYSQL_USER:-btp}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-btp}
+      DB_URL: jdbc:postgresql://postgres:5432/btp_db?currentSchema=materiaux
+      DB_USER: materiaux_user
+      DB_PASSWORD: ${MATERIAUX_DB_PASSWORD:-materiaux}
       CHANTIERS_URL: http://chantiers-service:8081
     depends_on:
-      mysql: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     networks: [data, backend]
 
   # ---------- Interface web ----------
