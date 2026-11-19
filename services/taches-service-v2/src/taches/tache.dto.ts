@@ -3,7 +3,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayUnique, IsArray, IsDateString, IsInt, IsNotEmpty, IsNumber, IsOptional,
-  IsPositive, IsString, Max, Min, ValidateNested, IsIn
+  IsPositive, IsString, Max, Min, ValidateNested, IsIn, IsBoolean, ValidateIf
 } from 'class-validator';
 
 export class BesoinMateriauDto {
@@ -36,4 +36,11 @@ export class ChangerStatutDto {
   @ApiProperty({ enum: [StatutTache.EN_COURS, StatutTache.TERMINEE], example: StatutTache.EN_COURS })
   @IsIn([StatutTache.EN_COURS, StatutTache.TERMINEE])
   statut: StatutTache;
+}
+
+export class BlocageDto {
+  @ApiProperty({ example: true }) @IsBoolean() bloquee: boolean;
+  @ApiPropertyOptional({ example: 'Livraison de béton en retard' })
+  @ValidateIf((o: BlocageDto) => o.bloquee === true) @IsString() @IsNotEmpty()
+  motif?: string;
 }

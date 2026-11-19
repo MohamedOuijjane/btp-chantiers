@@ -9,7 +9,7 @@ import { Repository } from "typeorm";
 import { ChantiersClient } from "../clients/chantiers.client";
 import { MateriauxSoapClient } from "../clients/materiaux.soap-client";
 import { OuvriersClient } from "../clients/ouvriers.client";
-import { AffectationDto, CreerTacheDto } from "./tache.dto";
+import { AffectationDto, CreerTacheDto, BlocageDto} from "./tache.dto";
 import { StatutTache, Tache, BesoinMateriau } from "./tache.entity";
 import { EntreeHistorique, HistoriqueService } from "./historique.service";
 import { verifierTransition } from "./transitions";
@@ -149,6 +149,26 @@ export class TachesService {
     await this.journal.enregistrer(id, cible);
     return versReponse(sauvee);
   }
+  /** Blocage / déblocage (#11). Au déblocage, le statut suit l'avancement (RG-05). */
+  async changerBlocage(id: number, dto: BlocageDto): Promise<TacheReponse> {
+    const tache = await this.charger(id);
+    if (dto.bloquee) {
+      if (tache.statut === StatutTache.TERMINEE)
+        throw new ConflictException("Une tâche terminée ne peut pas être bloquée");
+      if (tache.statut === StatutTache.BLOQUEE)
+        throw new ConflictException("La tâche est déjà bloquée");
+    } else if (tache.statut !== StatutTache.BLOQUEE) {
+      throw new ConflictException("La tâche n'est pas bloquée");
+    }
+    await this.chantiers.verifierChantierModifiable(tache.chantierId);
+    tache.statut = dto.bloquee
+      ? StatutTache.BLOQUEE
+      : statutPourAvancement(tache.avancement);
+    const sauvee = await this.taches.save(tache);
+    await this.journal.enregistrer(id, sauvee.statut, dto.bloquee ? dto.motif : undefined);
+    return versReponse(sauvee);
+  }
+
   async affecter(id: number, dto: AffectationDto): Promise<TacheReponse> {
     const tache = await this.charger(id);
     await this.ouvriers.verifierDisponibles(dto.ouvrierIds);

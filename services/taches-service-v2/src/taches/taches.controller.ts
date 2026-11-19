@@ -9,7 +9,7 @@ import {
   Patch,
   Post,
   Query,
-  Put
+  Put,
 } from "@nestjs/common";
 
 import {
@@ -25,6 +25,7 @@ import {
   AvancementDto,
   ChangerStatutDto,
   CreerTacheDto,
+  BlocageDto,
 } from "./tache.dto";
 import { TachesService } from "./taches.service";
 
@@ -86,6 +87,22 @@ export class TachesController {
     return this.service.mettreAJourAvancement(Number(id), dto.avancement);
   }
 
+  @Patch(":id/blocage")
+  @ApiOperation({ summary: "Bloquer ou débloquer une tâche" })
+  @ParamIdTache()
+  @ApiResponse({ status: 200, description: "Tâche mise à jour" })
+  @ApiResponse({
+    status: 409,
+    description:
+      "Tâche terminée, déjà bloquée, non bloquée ou chantier clôturé",
+  })
+  changerBlocage(
+    @Param("id", IdTachePipe) id: string,
+    @Body() dto: BlocageDto,
+  ) {
+    return this.service.changerBlocage(Number(id), dto);
+  }
+
   @Patch(":id/statut")
   @ApiOperation({
     summary: "Changer le statut (A_FAIRE → EN_COURS → TERMINEE)",
@@ -106,13 +123,24 @@ export class TachesController {
     return this.service.affecter(Number(id), dto);
   }
 
-  @Put(':id')
-  @ApiOperation({ summary: 'Modifier une tâche (mêmes vérifications que la création)' })
+  @Put(":id")
+  @ApiOperation({
+    summary: "Modifier une tâche (mêmes vérifications que la création)",
+  })
   @ParamIdTache()
-  @ApiResponse({ status: 409, description: 'Chantier clôturé ou ouvrier déjà occupé sur la période' })
-  @ApiResponse({ status: 422, description: 'Ouvrier indisponible ou stock insuffisant' })
-  @ApiResponse({ status: 503, description: 'Chantiers, Ouvriers ou Matériaux injoignable' })
-  modifier(@Param('id', IdTachePipe) id: string, @Body() dto: CreerTacheDto) {
+  @ApiResponse({
+    status: 409,
+    description: "Chantier clôturé ou ouvrier déjà occupé sur la période",
+  })
+  @ApiResponse({
+    status: 422,
+    description: "Ouvrier indisponible ou stock insuffisant",
+  })
+  @ApiResponse({
+    status: 503,
+    description: "Chantiers, Ouvriers ou Matériaux injoignable",
+  })
+  modifier(@Param("id", IdTachePipe) id: string, @Body() dto: CreerTacheDto) {
     return this.service.modifier(Number(id), dto);
   }
 
