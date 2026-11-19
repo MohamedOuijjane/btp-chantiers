@@ -5,7 +5,7 @@ chantiers:
 
 taches:
   - changed-files:
-      - any-glob-to-any-file: 'services/taches-service/**'
+      - any-glob-to-any-file: 'services/taches-service-v2/**'
 
 ouvriers:
   - changed-files:

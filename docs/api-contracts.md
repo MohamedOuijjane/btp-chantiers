@@ -67,11 +67,18 @@ Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json
 | Méthode | Endpoint | Description | Codes |
 |---|---|---|---|
 | GET | `/api/taches?chantierId=&ouvrierId=` | Lister / filtrer | 200 |
-| GET | `/api/taches/{id}` | Consulter | 200, 404 |
+| GET | `/api/taches/{id}` | Consulter | 200, 400, 404 |
 | POST | `/api/taches` | Créer (vérifie chantier, ouvriers, stock) | 201, 400, 404, 409, 422, 503 |
 | PATCH | `/api/taches/{id}/avancement` | `{ "avancement": 60 }` | 200, 400, 404 |
-| PATCH | `/api/taches/{id}/ouvriers` | `{ "ouvrierIds": [1, 2] }` | 200, 422 |
-| DELETE | `/api/taches/{id}` | Supprimer | 204, 404 |
+| PATCH | `/api/taches/{id}/ouvriers` | Remplacer les ouvriers affectés (vérifie disponibilité et planning) | 200, 400, 404, 409, 422 |
+| DELETE | `/api/taches/{id}` | Supprimer | 204, 400, 404 |
+| PUT | `/api/taches/{id}` | Modifier (mêmes champs et mêmes vérifications que la création) | 200, 400, 404, 409, 422, 503 |
+| PATCH | `/api/taches/{id}/statut` | `{ "statut": "EN_COURS" }` ou `"TERMINEE"` | 200, 400, 404, 409 |
+| GET | `/api/taches/{id}/historique` | Historique des statuts, du plus récent au plus ancien | 200, 400, 404 |
+
+- **Statut (#99)** : seules les transitions `A_FAIRE → EN_COURS` et `EN_COURS → TERMINEE` sont permises ; `TERMINEE` force l'avancement à 100 %. Une tâche bloquée, une autre transition ou un chantier clôturé → `409`. Chaque changement de statut est enregistré (table `historique_statut`).
+
+- **Conflit de planning (#10)** : un ouvrier ne peut pas être affecté à deux tâches dont les périodes se chevauchent (bornes incluses : partager un jour est un conflit, le lendemain non). Les tâches `TERMINEE` sont ignorées, les tâches `BLOQUEE` comptent. Conflit → `409` « L'ouvrier 3 est déjà affecté à « Dalle » (2026-11-05 → 2026-11-08) sur cette période ». Vérifié à la création (`POST`), à la modification (`PUT`) et à l'affectation (`PATCH /ouvriers`).
 
 ```json
 POST /api/taches
@@ -103,6 +110,7 @@ POST /api/taches
 - **Identifiant entier `id`** (plus de `_id` MongoDB depuis #6) ; dates au format `aaaa-mm-jj` ; `description` absente quand elle est vide.
 - Données dans le schéma `taches` de `btp_db` : tables `tache` et `besoin_materiau` (classe d'association), créées par les migrations TypeORM.
 - Un même `materiauId` ne peut apparaître qu'une fois dans `besoinsMateriaux` (`400`).
+
 
 Codes de refus à la création (RG-03, RG-04, RG-07) : chantier inconnu → `404` ; chantier `SUSPENDU` ou `TERMINE` → `409` (seuls `PLANIFIE` et `EN_COURS` acceptent une tâche) ; ouvrier indisponible ou stock insuffisant → `422` ; Chantiers, Ouvriers ou Matériaux injoignable → `503`.
 

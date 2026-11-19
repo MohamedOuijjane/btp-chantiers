@@ -74,7 +74,7 @@ jobs:
   taches:
     name: Tâches (NestJS)
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: services/taches-service } }
+    defaults: { run: { working-directory: services/taches-service-v2 } }
     # PostgreSQL pour les tests d'intégration (migrations, requêtes) : test/postgres.spec.ts
     services:
       postgres:
@@ -92,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '22', cache: npm, cache-dependency-path: services/taches-service/package-lock.json }
+        with: { node-version: '22', cache: npm, cache-dependency-path: services/taches-service-v2/package-lock.json }
       - run: npm ci
       - name: ESLint
         run: npm run lint
@@ -110,7 +110,7 @@ jobs:
         if: always()
         with:
           name: rapports-taches
-          path: services/taches-service/coverage/lcov.info
+          path: services/taches-service-v2/coverage/lcov.info
           if-no-files-found: warn
 
   ouvriers:
@@ -160,7 +160,7 @@ jobs:
         with: { name: rapports-materiaux, path: services/materiaux-service/target }
       - uses: actions/download-artifact@v4
         if: env.SONAR_TOKEN != ''
-        with: { name: rapports-taches, path: services/taches-service/coverage }
+        with: { name: rapports-taches, path: services/taches-service-v2/coverage }
       - uses: actions/download-artifact@v4
         if: env.SONAR_TOKEN != ''
         with: { name: rapports-ouvriers, path: services/ouvriers-service }
