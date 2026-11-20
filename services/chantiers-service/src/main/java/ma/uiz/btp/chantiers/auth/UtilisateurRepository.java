@@ -25,6 +25,7 @@ public class UtilisateurRepository {
 
     private final JdbcClient jdbc;
 
+    /** Utilise la connexion dédiée au schéma auth (utilisateur auth_user). */
     public UtilisateurRepository(@Qualifier("authJdbcClient") JdbcClient jdbc) {
         this.jdbc = jdbc;
     }
@@ -37,12 +38,14 @@ public class UtilisateurRepository {
                 .optional();
     }
 
+    /** Renvoie les comptes de démonstration, triés par identifiant. */
     public List<Utilisateur> comptesDemo() {
         return jdbc.sql("SELECT " + COLONNES + " WHERE demo = TRUE ORDER BY id")
                 .query(LIGNE)
                 .list();
     }
 
+    /** Remplace l'empreinte du mot de passe d'un compte. */
     public void changerMotDePasse(long id, String empreinte) {
         jdbc.sql("UPDATE auth.utilisateurs SET mot_de_passe = :mdp WHERE id = :id")
                 .param("mdp", empreinte)

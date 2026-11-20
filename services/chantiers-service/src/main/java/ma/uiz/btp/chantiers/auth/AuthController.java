@@ -46,10 +46,12 @@ public class AuthController {
 
     private final ServiceAuthentification service;
 
+    /** Crée le contrôleur avec le service d'authentification. */
     public AuthController(ServiceAuthentification service) {
         this.service = service;
     }
 
+    /** Vérifie les identifiants et renvoie le jeton et l'utilisateur connecté. */
     @PostMapping("/login")
     @Operation(summary = "Se connecter",
             description = "Renvoie un JWT HS256 valable 8 h. 401 si les identifiants sont faux "
@@ -61,6 +63,7 @@ public class AuthController {
         return new Connexion(c.jeton(), UtilisateurDto.de(c.utilisateur()));
     }
 
+    /** Renvoie l'utilisateur décrit par le jeton de la requête. */
     @GetMapping("/moi")
     @Operation(summary = "Utilisateur du jeton", security = @SecurityRequirement(name = "jwt"))
     public UtilisateurDto moi(@AuthenticationPrincipal Jwt jwt) {

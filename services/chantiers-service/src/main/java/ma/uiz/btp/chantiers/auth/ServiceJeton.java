@@ -22,6 +22,7 @@ public class ServiceJeton {
     private final Duration duree;
     private final Clock horloge;
 
+    /** Crée le service avec l'encodeur JWT, la durée de validité configurée et l'horloge. */
     public ServiceJeton(JwtEncoder encodeur, AuthProperties proprietes, Clock horloge) {
         this.encodeur = encodeur;
         this.duree = proprietes.jwt().duree();

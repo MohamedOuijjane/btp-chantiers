@@ -16,27 +16,32 @@ public final class ChantierDto {
 
     private ChantierDto() {}
 
-    /** Corps de POST et PUT. Les messages de validation s'affichent sous les champs du formulaire. */
+    /** Corps de POST et PUT. Messages de validation affichés sous les champs du formulaire. */
     @PeriodeValide
     public record Requete(
             @NotBlank(message = "Le nom est obligatoire")
             @Size(max = 150, message = "Le nom ne doit pas dépasser 150 caractères") String nom,
             @NotBlank(message = "L'adresse est obligatoire") String adresse,
             @NotBlank(message = "Le client est obligatoire")
-            @Size(max = 150, message = "Le client ne doit pas dépasser 150 caractères") String client,
+            @Size(max = 150, message = "Le client ne doit pas dépasser 150 caractères")
+            String client,
             @NotNull(message = "La date de début est obligatoire") LocalDate dateDebut,
             @NotNull(message = "La date de fin prévue est obligatoire") LocalDate dateFinPrevue,
             @NotNull(message = "Le budget est obligatoire")
             @PositiveOrZero(message = "Le budget doit être positif ou nul") BigDecimal budget,
-            @Schema(description = "Ignoré à la création (toujours PLANIFIE). En modification : PLANIFIE, EN_COURS ou SUSPENDU ; "
-                    + "TERMINE est refusé (409), utiliser PATCH /api/chantiers/{id}/cloture.")
+            @Schema(description = "Ignoré à la création (toujours PLANIFIE). En modification : "
+                    + "PLANIFIE, EN_COURS ou SUSPENDU ; TERMINE est refusé (409), utiliser "
+                    + "PATCH /api/chantiers/{id}/cloture.")
             StatutChantier statut) {
     }
 
+    /** Chantier renvoyé par l'API. */
     public record Reponse(
             Long id, String nom, String adresse, String client,
-            LocalDate dateDebut, LocalDate dateFinPrevue, BigDecimal budget, StatutChantier statut) {
+            LocalDate dateDebut, LocalDate dateFinPrevue, BigDecimal budget,
+            StatutChantier statut) {
 
+        /** Construit la réponse à partir de l'entité. */
         public static Reponse de(Chantier c) {
             return new Reponse(c.getId(), c.getNom(), c.getAdresse(), c.getClient(),
                     c.getDateDebut(), c.getDateFinPrevue(), c.getBudget(), c.getStatut());

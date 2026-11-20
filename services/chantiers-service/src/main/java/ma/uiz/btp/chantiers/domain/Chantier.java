@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
+/** Chantier de construction (table chantiers du schéma chantiers de btp_db). */
 @Entity
 @Table(name = "chantiers")
 public class Chantier {
@@ -56,10 +57,12 @@ public class Chantier {
     /** Règle métier : un chantier terminé ne peut plus être modifié. */
     public void verifierModifiable() {
         if (statut == StatutChantier.TERMINE) {
-            throw new RegleMetierException("Le chantier " + id + " est terminé et ne peut plus être modifié.");
+            throw new RegleMetierException(
+                    "Le chantier " + id + " est terminé et ne peut plus être modifié.");
         }
     }
 
+    /** Clôture le chantier (statut TERMINE) s'il n'est pas déjà terminé. */
     public void cloturer() {
         verifierModifiable();
         this.statut = StatutChantier.TERMINE;

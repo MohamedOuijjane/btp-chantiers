@@ -12,6 +12,7 @@ import ma.uiz.btp.chantiers.domain.StatutChantier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Règles de gestion des chantiers (RG1 à RG4) ; suppression vérifiée auprès de Tâches (#5). */
 @Service
 @Transactional
 public class ChantierService {
@@ -22,20 +23,24 @@ public class ChantierService {
     private final ChantierRepository repository;
     private final TachesClient tachesClient;
 
+    /** Crée le service avec le dépôt des chantiers et le client du module Tâches. */
     public ChantierService(ChantierRepository repository, TachesClient tachesClient) {
         this.repository = repository;
         this.tachesClient = tachesClient;
     }
 
+    /** Liste les chantiers, tous ou ceux d'un statut donné. */
     @Transactional(readOnly = true)
     public List<Chantier> lister(StatutChantier statut) {
         return statut == null ? repository.findAll() : repository.findByStatut(statut);
     }
 
+    /** Renvoie le chantier, ou lève RessourceIntrouvableException (404). */
     @Transactional(readOnly = true)
     public Chantier trouver(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RessourceIntrouvableException("Chantier " + id + " introuvable"));
+                .orElseThrow(() ->
+                        new RessourceIntrouvableException("Chantier " + id + " introuvable"));
     }
 
     /** RG4 : un nouveau chantier est toujours PLANIFIE, le statut envoyé est ignoré. */
@@ -46,12 +51,13 @@ public class ChantierService {
         return repository.save(c);
     }
 
+    /** Modifie un chantier qui n'est pas terminé ; le passage à TERMINE passe par la clôture. */
     public Chantier modifier(Long id, ChantierDto.Requete r) {
         Chantier c = trouver(id);
         c.verifierModifiable();
         if (r.statut() == StatutChantier.TERMINE) {
-            throw new RegleMetierException("Un chantier ne peut pas passer à TERMINE par modification : utiliser PATCH /api/chantiers/"
-                    + id + "/cloture.");
+            throw new RegleMetierException("Un chantier ne peut pas passer à TERMINE par "
+                    + "modification : utiliser PATCH /api/chantiers/" + id + "/cloture.");
         }
         verifierDonnees(r);
         appliquer(c, r);
@@ -61,6 +67,7 @@ public class ChantierService {
         return c;
     }
 
+    /** Clôture le chantier, qui devient non modifiable (RG-02). */
     public Chantier cloturer(Long id) {
         Chantier c = trouver(id);
         c.cloturer();
@@ -106,7 +113,8 @@ public class ChantierService {
             return new ChantierDto.Avancement(id, 0, null, false);
         }
         List<TachesClient.TacheResume> liste = taches.get();
-        double moyenne = liste.stream().mapToInt(TachesClient.TacheResume::avancement).average().orElse(0);
+        double moyenne = liste.stream()
+                .mapToInt(TachesClient.TacheResume::avancement).average().orElse(0);
         return new ChantierDto.Avancement(id, liste.size(), Math.round(moyenne * 10) / 10.0, true);
     }
 
