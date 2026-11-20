@@ -16,16 +16,22 @@ export const clesOuvriers = {
 export function useOuvriers(filtre: FiltreOuvriers = {}) {
   return useQuery({
     queryKey: clesOuvriers.liste(filtre),
-    queryFn: () => api.listerOuvriers(filtre),
+    queryFn: ({ signal }) => api.listerOuvriers(filtre, { signal }),
   });
 }
 
 export function useOuvrier(id: number) {
-  return useQuery({ queryKey: clesOuvriers.detail(id), queryFn: () => api.getOuvrier(id) });
+  return useQuery({
+    queryKey: clesOuvriers.detail(id),
+    queryFn: ({ signal }) => api.getOuvrier(id, { signal }),
+  });
 }
 
 export function usePlanning(id: number) {
-  return useQuery({ queryKey: clesOuvriers.planning(id), queryFn: () => api.getPlanning(id) });
+  return useQuery({
+    queryKey: clesOuvriers.planning(id),
+    queryFn: ({ signal }) => api.getPlanning(id, { signal }),
+  });
 }
 
 export function useCreerOuvrier() {
