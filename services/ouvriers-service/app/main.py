@@ -115,7 +115,8 @@ def supprimer(ouvrier_id: int, db: Session = Depends(get_db)):
     try:
         en_cours = taches_client.taches_non_terminees(ouvrier_id)
     except taches_client.TachesIndisponible as e:
-        log.warning("Suppression de l'ouvrier %s annulée, module Tâches indisponible : %s", ouvrier_id, e)
+        # L'identifiant vient de l'URL : il n'est pas journalisé (injection dans les logs).
+        log.warning("Suppression d'un ouvrier annulée, module Tâches indisponible : %s", e)
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Le module Tâches ne répond pas : impossible de vérifier les affectations de l'ouvrier, "
