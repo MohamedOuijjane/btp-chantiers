@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Classes générées à partir du contrat XSD : hors analyse SpotBugs -->
 <FindBugsFilter>
+    <!-- Classes générées à partir du contrat XSD : hors analyse SpotBugs -->
     <Match>
         <Package name="ma.uiz.btp.materiaux.ws.gen"/>
+    </Match>
+
+    <!--
+        Mouvement.materiau est une association JPA @ManyToOne : elle doit garder la référence
+        de l'entité MateriauEntity gérée par JPA (une copie défensive ne serait plus rattachée
+        au contexte de persistance et casserait la clé étrangère). Seul EI_EXPOSE_REP2 du
+        constructeur est exclu ; le getter n'expose plus l'entité (getStockApresMouvement,
+        isMateriauEnAlerte). Lien vérifié par MouvementPersistanceTest.
+    -->
+    <Match>
+        <Class name="ma.uiz.btp.materiaux.domain.Mouvement"/>
+        <Field name="materiau"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
 </FindBugsFilter>

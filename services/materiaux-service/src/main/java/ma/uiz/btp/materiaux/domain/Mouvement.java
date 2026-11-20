@@ -41,7 +41,17 @@ public class Mouvement {
     }
 
     public Long getId() { return id; }
-    public MateriauEntity getMateriau() { return materiau; }
+
+    /** Stock du matériau après ce mouvement (une valeur, pas l'entité : SpotBugs EI_EXPOSE_REP). */
+    public double getStockApresMouvement() {
+        return materiau.getStock();
+    }
+
+    /** Indique si le matériau est en alerte (stock au seuil ou en dessous) après ce mouvement. */
+    public boolean isMateriauEnAlerte() {
+        return materiau.isEnAlerte();
+    }
+
     public Long getChantierId() { return chantierId; }
     public Type getType() { return type; }
     public double getQuantite() { return quantite; }

@@ -78,8 +78,8 @@ public class MateriauxEndpoint {
         }
         EnregistrerMouvementResponse resp = new EnregistrerMouvementResponse();
         resp.setMouvementId(mv.getId());
-        resp.setStockApres(mv.getMateriau().getStock());
-        resp.setEnAlerte(mv.getMateriau().isEnAlerte());
+        resp.setStockApres(mv.getStockApresMouvement());
+        resp.setEnAlerte(mv.isMateriauEnAlerte());
         return resp;
     }
 
