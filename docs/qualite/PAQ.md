@@ -79,7 +79,7 @@ Les analyses Checkstyle et SpotBugs sont en **mode rapport** pendant le sprint S
 | **Intégration** | Une API avec sa base (H2, SQLite) et des modules voisins simulés | MockMvc, Spring-WS Test, TestClient FastAPI, MSW | À chaque commit (CI) |
 | **Contrat** | Les échanges respectent les contrats publiés | Validation XSD (Spring-WS), schémas OpenAPI exportés | À chaque modification d'un contrat |
 | **Bout en bout** | Le scénario de démo fonctionne sur la stack Docker complète | Playwright ([`frontend/e2e/`](../../frontend/e2e/README.md)), Newman (Postman) | `make e2e`, workflow **E2E** à chaque PR vers `develop` (informatif) ; Newman dans #16 |
-| **Performance** | Appels inter-services < 2 s sous charge modérée | k6 ou Apache Bench, timeouts | Sprint S3, avant la recette |
+| **Performance** | Parcours principaux via la gateway sous charge modérée : 90e percentile < 1 s, 0 % d'erreurs ; appels inter-services < 2 s | JMeter ([`tests/performance/`](../../tests/performance/README.md)), timeouts | `make perf` et workflow **Performance** (manuel), avant la recette |
 
 **Critères d'entrée en recette :** tous les tests automatisés verts, quality gate SonarCloud passée, `docker compose up --build` fonctionnel.
 **Critères de sortie de recette :** tous les scénarios de recette passés, aucune anomalie bloquante ou majeure ouverte.
@@ -163,6 +163,6 @@ Le registre est revu à chaque rétrospective.
 | Intégration continue | GitHub Actions (tests, analyse, build), Dependabot |
 | Qualité du code | SonarCloud, Checkstyle, SpotBugs, ESLint, ruff, JaCoCo, Jest, pytest-cov |
 | Sécurité | CodeQL, Trivy, Dependabot |
-| Tests | JUnit 5, MockMvc, Spring-WS Test, Jest, pytest, Vitest, MSW, Playwright, Postman / Newman |
+| Tests | JUnit 5, MockMvc, Spring-WS Test, Jest, pytest, Vitest, MSW, Playwright, Postman / Newman, JMeter (charge) |
 | Documentation | Markdown, Mermaid, Swagger / OpenAPI, WSDL, ADR |
 | Déploiement | Docker, Docker Compose, ghcr.io |
