@@ -164,6 +164,7 @@ La démarche qualité complète est décrite dans le [Plan d'Assurance Qualité]
 
 ```bash
 make test        # tests de tous les services
+make perf        # test de charge JMeter via la gateway (stack démarrée), rapport HTML
 ```
 
 | Module | Tests | Couverture | Analyse statique |
@@ -174,6 +175,8 @@ make test        # tests de tous les services
 | Ouvriers | pytest : CRUD, CIN unique et format, planning et mode dégradé | pytest-cov | ruff |
 
 À chaque push et pull request, la CI exécute les tests et l'analyse de chaque module, envoie les résultats à **SonarCloud** (quality gate), lance **CodeQL** (sécurité), vérifie le titre de la PR (Conventional Commits) et construit les images Docker. Un tag `vX.Y.Z` publie les images sur ghcr.io après un scan **Trivy** et crée la release.
+
+Test de charge : [JMeter](tests/performance/README.md) (`make perf`, ou workflow **Performance** lancé à la main) ; 20 utilisateurs pendant 60 s, 90e percentile sous 1 s.
 
 ## Méthode agile
 
