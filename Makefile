@@ -1,4 +1,4 @@
-.PHONY: up down logs test test-taches test-ouvriers test-java ps perf
+.PHONY: up down logs test test-taches test-ouvriers test-java ps perf zap
 
 up:            ## Lance toute l'application
 	docker compose up --build -d
@@ -29,3 +29,7 @@ UTILISATEURS ?= 20
 DUREE ?= 60
 perf:          ## Test de charge JMeter, rapport HTML dans tests/performance/resultats/
 	UTILISATEURS=$(UTILISATEURS) DUREE=$(DUREE) tests/performance/lancer-jmeter.sh
+
+# Scan de sécurité OWASP ZAP (baseline, passif) de la gateway et du front (stack démarrée)
+zap:           ## Scan ZAP, rapport HTML dans tests/securite/rapports/
+	tests/securite/lancer-zap.sh

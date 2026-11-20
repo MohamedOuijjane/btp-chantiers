@@ -19,6 +19,7 @@ __pycache__/
 .env
 # Couverture et analyse
 tests/performance/resultats/
+tests/securite/rapports/
 .coverage
 coverage.xml
 .ruff_cache/
