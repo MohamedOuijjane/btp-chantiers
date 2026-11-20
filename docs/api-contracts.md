@@ -124,7 +124,7 @@ Codes de refus à la création (RG-03, RG-04, RG-07) : chantier inconnu → `404
 | GET | `/api/ouvriers/{id}` | Consulter | 200, 404 |
 | POST | `/api/ouvriers` | Créer | 201, 409, 422 |
 | PATCH | `/api/ouvriers/{id}` | Modification partielle (dont `disponible`) | 200, 404, 422 |
-| DELETE | `/api/ouvriers/{id}` | Supprimer | 204, 404 |
+| DELETE | `/api/ouvriers/{id}` | Supprimer (vérifie ses tâches dans Tâches) | 204, 404, 409, 503 |
 | GET | `/api/ouvriers/{id}/planning` | Tâches de l'ouvrier (depuis Tâches) | 200, 404 |
 
 CIN déjà utilisée (RG-06) : `409`, avec l'erreur rattachée au champ `cin` (même format que les `422`, affichée sous le champ par le front) :
@@ -132,6 +132,8 @@ CIN déjà utilisée (RG-06) : `409`, avec l'erreur rattachée au champ `cin` (m
 ```json
 { "detail": [ { "loc": ["body", "cin"], "msg": "La CIN JB123456 est déjà utilisée par un autre ouvrier", "type": "cin_deja_utilisee" } ] }
 ```
+
+Suppression : Ouvriers interroge `GET /api/taches?ouvrierId={id}`. Au moins une tâche non `TERMINEE` (`A_FAIRE`, `EN_COURS`, `BLOQUEE`) → `409` avec un message qui cite les tâches. Aucune tâche, ou `404` de Tâches → `204`. Tâches sans réponse ou en erreur → `503` et l'ouvrier n'est pas supprimé.
 
 Planning : `{ "ouvrier": {...}, "taches": [...], "sourceDisponible": true }`. Si Tâches est injoignable, réponse `200` dégradée avec `"taches": []` et `"sourceDisponible": false` (même champ que l'avancement de Chantiers, ADR-0004).
 

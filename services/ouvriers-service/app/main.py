@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
@@ -9,6 +10,8 @@ from app import taches_client
 from app.database import Base, engine, get_db
 from app.models import Ouvrier, Specialite
 from app.schemas import ErreurChamps, OuvrierCreation, OuvrierModification, OuvrierReponse, Planning
+
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -96,9 +99,37 @@ def modifier(ouvrier_id: int, data: OuvrierModification, db: Session = Depends(g
     return ouvrier
 
 
-@app.delete("/api/ouvriers/{ouvrier_id}", status_code=204, tags=["Ouvriers"])
+@app.delete(
+    "/api/ouvriers/{ouvrier_id}",
+    status_code=204,
+    tags=["Ouvriers"],
+    responses={
+        404: {"description": "Ouvrier introuvable"},
+        409: {"description": "Ouvrier affecté à au moins une tâche non terminée (A_FAIRE, EN_COURS ou BLOQUEE)"},
+        503: {"description": "Module Tâches injoignable : suppression annulée"},
+    },
+)
 def supprimer(ouvrier_id: int, db: Session = Depends(get_db)):
-    db.delete(_trouver(db, ouvrier_id))
+    """Supprime l'ouvrier s'il n'a aucune tâche non terminée dans le module Tâches (#15)."""
+    ouvrier = _trouver(db, ouvrier_id)
+    try:
+        en_cours = taches_client.taches_non_terminees(ouvrier_id)
+    except taches_client.TachesIndisponible as e:
+        log.warning("Suppression de l'ouvrier %s annulée, module Tâches indisponible : %s", ouvrier_id, e)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Le module Tâches ne répond pas : impossible de vérifier les affectations de l'ouvrier, "
+            "suppression annulée. Réessayez plus tard.",
+        ) from None
+    if en_cours:
+        titres = ", ".join(f"« {t.get('titre', 'sans titre')} »" for t in en_cours)
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Suppression impossible : {ouvrier.prenom} {ouvrier.nom} est affecté à "
+            f"{len(en_cours)} tâche(s) non terminée(s) : {titres}. "
+            "Retirez-le de ces tâches ou terminez-les avant de le supprimer.",
+        )
+    db.delete(ouvrier)
     db.commit()
 
 
