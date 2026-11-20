@@ -15,7 +15,7 @@ ps:
 test: test-taches test-ouvriers test-java
 
 test-taches:
-	cd services/taches-service && npm ci && npm test
+	cd services/taches-service-v2 && npm ci && npm test
 
 test-ouvriers:
 	cd services/ouvriers-service && pip install -r requirements-dev.txt && pytest -q
