@@ -16,6 +16,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
   - gateway : `auth_request` sur `/api/*` et `/ws` (sauf la connexion, le WSDL et `/health`), en-têtes `X-Utilisateur` et `X-Role` transmis aux services, 401 et 503 en JSON ;
   - front-end : connexion réelle (`VITE_API_AUTH`), jeton envoyé par `http.ts`, retour à `/connexion` avec « Session expirée » sur un 401 ;
   - collection Postman : requête de connexion et variable `token` ; `scripts/demo.sh` se connecte avant le scénario.
+- Front-end : page Ouvriers branchée sur l'API réelle via la gateway (liste, fiche, création, modification, suppression, planning ; `VITE_API_OUVRIERS=reel`). CIN en double affichée sous le champ, suppression refusée (409) et Tâches injoignable (503) dans le dialogue, message distinct pour une équipe vide. « Affecter à une tâche » et « Retirer » restent masqués tant que Tâches est en données fictives ([#51](https://github.com/MohamedOuijjane/btp-chantiers/issues/51)).
 
 ### Modifié
 - Tâches : passage de MongoDB à PostgreSQL (schéma `taches` de `btp_db`, utilisateur `taches_user`) avec TypeORM ; tables `tache` et `besoin_materiau` créées par une migration appliquée au démarrage (jamais `synchronize`) ; **identifiants entiers `id` à la place de `_id`** et dates `aaaa-mm-jj` ; le healthcheck vérifie la base ; service `mongo` retiré de `docker-compose.yml` ([#6](https://github.com/MohamedOuijjane/btp-chantiers/issues/6)).
@@ -27,6 +28,11 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Chantiers : toutes les erreurs au format RFC 9457 avec un message en français (validation par champ, paramètre invalide, JSON mal formé) ; l'erreur de RG-01 est rattachée au champ `dateFinPrevue` ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Chantiers : en mode dégradé, l'avancement renvoie `nombreTaches: 0` et `avancementGlobal: null` au lieu d'omettre ces champs ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Gateway : l'en-tête `X-Request-Id` envoyé par le front est conservé et transmis au service ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
+- Ouvriers : corrections de la PR [#128](https://github.com/MohamedOuijjane/btp-chantiers/pull/128) :
+  - suppression d'un ouvrier : `409` s'il a une tâche `A_FAIRE`, `EN_COURS` ou `BLOQUEE` (tâches citées dans le message), `503` si Tâches ne répond pas, rien n'est alors supprimé ([#15](https://github.com/MohamedOuijjane/btp-chantiers/issues/15)) ;
+  - planning : `sourceDisponible` en camelCase au lieu de `source_disponible` ([#14](https://github.com/MohamedOuijjane/btp-chantiers/issues/14)) ;
+  - `409` d'une CIN en double rattaché au champ `cin` (`detail: [{loc, msg, type}]`), sans détail SQL ([#114](https://github.com/MohamedOuijjane/btp-chantiers/issues/114)) ;
+  - base par défaut `btp_db` avec `ouvriers_user` ; `DATABASE_URL` reste prioritaire, le mot de passe vient de `OUVRIERS_DB_PASSWORD` ([#13](https://github.com/MohamedOuijjane/btp-chantiers/issues/13)).
 
 ### Corrigé
 - Tâches : les SOAP Faults de Matériaux sont lues même quand la balise porte un attribut (`<faultstring xml:lang="en">`) ; un matériau inconnu donne `422` « Matériaux : Matériau … introuvable » au lieu d'un faux « stock insuffisant » ([#8](https://github.com/MohamedOuijjane/btp-chantiers/issues/8)).
