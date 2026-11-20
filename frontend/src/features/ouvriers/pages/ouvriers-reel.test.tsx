@@ -103,6 +103,11 @@ describe('Liste des ouvriers (API réelle)', () => {
         'La CIN AB1234 est déjà utilisée par un autre ouvrier',
       ),
     );
+    // Le toast reprend le message de la CIN, pas un « Données invalides » générique.
+    expect(
+      await screen.findAllByText('La CIN AB1234 est déjà utilisée par un autre ouvrier'),
+    ).toHaveLength(2);
+    expect(screen.queryByText('Données invalides')).not.toBeInTheDocument();
   });
 });
 

@@ -3,6 +3,7 @@
  * gateway. Les erreurs FastAPI ({ detail } ou { detail: [{ loc, msg }] }) sont converties en
  * ErreurApi par src/api/http.ts : le 409 de CIN en double arrive dans champs.cin.
  */
+import { ErreurApi } from '@/api/errors';
 import { creerClientHttp, type OptionsAppel } from '@/api/http';
 
 import type {
@@ -29,8 +30,18 @@ export function getOuvrier(id: number, { signal }: OptionsAppel = {}) {
 }
 
 /** POST /api/ouvriers → 201 Ouvrier (disponible) | 409 (CIN déjà utilisée, sous le champ cin) | 422 */
-export function creerOuvrier(donnees: OuvrierCreation) {
-  return http.post<Ouvrier>('/api/ouvriers', donnees);
+export async function creerOuvrier(donnees: OuvrierCreation) {
+  try {
+    return await http.post<Ouvrier>('/api/ouvriers', donnees);
+  } catch (e) {
+    // Le 409 arrive au format des 422 (detail: [{ loc, msg }]) : http.ts le titre « Données
+    // invalides ». Le toast reprend plutôt le message du champ (« La CIN … est déjà utilisée »).
+    if (e instanceof ErreurApi && e.status === 409 && e.champs?.cin) {
+      const { status, champs, requestId } = e;
+      throw new ErreurApi({ status, message: e.champs.cin, champs, requestId });
+    }
+    throw e;
+  }
 }
 
 /** PATCH /api/ouvriers/{id} → 200 Ouvrier | 404 | 422 */

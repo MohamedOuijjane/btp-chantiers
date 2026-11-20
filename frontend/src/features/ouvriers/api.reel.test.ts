@@ -114,9 +114,26 @@ describe('Ouvriers en mode réel (VITE_API_OUVRIERS=reel)', () => {
       ),
     );
 
-    await expect(api.creerOuvrier(CREATION)).rejects.toMatchObject({
+    const e = await api.creerOuvrier(CREATION).catch((x: unknown) => x);
+    expect(e).toBeInstanceOf(ErreurApi);
+    expect(e).toMatchObject({
       status: 409,
+      // Message repris du champ (et non « Données invalides ») pour le toast.
+      message: 'La CIN JB123456 est déjà utilisée par un autre ouvrier',
       champs: { cin: 'La CIN JB123456 est déjà utilisée par un autre ouvrier' },
+    });
+    expect((e as ErreurApi).requestId).toEqual(expect.any(String));
+  });
+
+  it('422 de validation : le message général reste « Données invalides »', async () => {
+    serveur.use(
+      msw.post('*/api/ouvriers', () =>
+        detail([{ loc: ['body', 'cin'], msg: 'Format de CIN invalide', type: 'x' }], 422),
+      ),
+    );
+    await expect(api.creerOuvrier(CREATION)).rejects.toMatchObject({
+      status: 422,
+      message: 'Données invalides',
     });
   });
 
