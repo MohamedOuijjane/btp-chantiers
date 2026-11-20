@@ -209,3 +209,34 @@ describe('Fiche chantier', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('Suppression d’un chantier (#5)', () => {
+  async function supprimer(id: number) {
+    afficherApp(`/chantiers/${id}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Supprimer' }));
+    const d = screen.getByRole('dialog', { name: 'Supprimer le chantier ?' });
+    await userEvent.click(within(d).getByRole('button', { name: 'Supprimer' }));
+    return d;
+  }
+
+  it('refuse (409) un chantier qui a des tâches et les cite dans le dialogue', async () => {
+    const alerte = await within(await supprimer(1)).findByRole('alert');
+    expect(alerte).toHaveTextContent('Conflit');
+    expect(alerte).toHaveTextContent(/le chantier « Résidence Al Amal » a \d+ tâche\(s\)/);
+  });
+
+  it('supprime un chantier sans tâche et revient à la liste', async () => {
+    await supprimer(3);
+    expect(
+      await screen.findByText('Le chantier « Villa Benali » a été supprimé.'),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Résidence Al Amal' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Villa Benali' })).not.toBeInTheDocument();
+  });
+
+  it('n’affiche pas « Supprimer » sans le droit chantiers.ecrire (chef de chantier)', async () => {
+    afficherApp('/chantiers/3', { role: 'CHEF_CHANTIER' });
+    await screen.findByRole('heading', { level: 2, name: 'Villa Benali' });
+    expect(screen.queryByRole('button', { name: 'Supprimer' })).not.toBeInTheDocument();
+  });
+});

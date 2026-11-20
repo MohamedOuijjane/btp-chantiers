@@ -39,7 +39,10 @@ export function cloturerChantier(id: number) {
   return http.patch<Chantier>(`/api/chantiers/${id}/cloture`);
 }
 
-/** DELETE /api/chantiers/{id} → 204 | 404 (| 409 si le chantier a des tâches, après #5) */
+/**
+ * DELETE /api/chantiers/{id} → 204 | 404 | 409 (le chantier a des tâches, terminées comprises,
+ * citées dans le message, #5) | 503 (Tâches injoignable : rien n'est supprimé).
+ */
 export async function supprimerChantier(id: number): Promise<void> {
   await http.supprimer(`/api/chantiers/${id}`);
 }
