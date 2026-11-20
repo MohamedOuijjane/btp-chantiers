@@ -1,11 +1,14 @@
 package ma.uiz.btp.materiaux.ws;
 
+import java.util.List;
 import ma.uiz.btp.materiaux.client.ChantiersClient;
-import ma.uiz.btp.materiaux.domain.*;
+import ma.uiz.btp.materiaux.domain.IntrouvableException;
+import ma.uiz.btp.materiaux.domain.MateriauEntity;
+import ma.uiz.btp.materiaux.domain.MateriauRepository;
+import ma.uiz.btp.materiaux.domain.Mouvement;
+import ma.uiz.btp.materiaux.domain.MouvementRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @Transactional

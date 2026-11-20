@@ -1,6 +1,12 @@
 package ma.uiz.btp.materiaux.domain;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "materiaux")
@@ -59,21 +65,47 @@ public class MateriauEntity {
         }
     }
 
-    public Long getId() { return id; }
-    public String getReference() { return reference; }
-    public void setReference(String reference) { this.reference = reference; }
-    public String getNom() { return nom; }
-    public void setNom(String nom) { this.nom = nom; }
-    public String getUnite() { return unite; }
-    public void setUnite(String unite) { this.unite = unite; }
-    public double getStock() { return stock; }
+    public Long getId() {
+        return id;
+    }
+
+    public String getReference() {
+        return reference;
+    }
+
+    public void setReference(String reference) {
+        this.reference = reference;
+    }
+
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
+
+    public String getUnite() {
+        return unite;
+    }
+
+    public void setUnite(String unite) {
+        this.unite = unite;
+    }
+
+    public double getStock() {
+        return stock;
+    }
     public void setStock(double stock) {
         if (!Double.isFinite(stock) || stock < 0) {
             throw new ValeurStockInvalideException("Le stock doit être un nombre fini positif ou nul");
         }
         this.stock = stock;
     }
-    public double getSeuilAlerte() { return seuilAlerte; }
+
+    public double getSeuilAlerte() {
+        return seuilAlerte;
+    }
     public void setSeuilAlerte(double seuilAlerte) {
         if (!Double.isFinite(seuilAlerte) || seuilAlerte < 0) {
             throw new ValeurStockInvalideException("Le seuil d'alerte doit être un nombre fini positif ou nul");

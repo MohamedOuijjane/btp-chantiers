@@ -1,5 +1,6 @@
 package ma.uiz.btp.materiaux.client;
 
+import java.time.Duration;
 import ma.uiz.btp.materiaux.domain.ChantierTermineException;
 import ma.uiz.btp.materiaux.domain.ChantiersIndisponibleException;
 import ma.uiz.btp.materiaux.domain.IntrouvableException;
@@ -10,8 +11,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-
-import java.time.Duration;
 
 /** Le module Matériaux (SOAP) consomme l'API REST du module Chantiers. */
 @Component

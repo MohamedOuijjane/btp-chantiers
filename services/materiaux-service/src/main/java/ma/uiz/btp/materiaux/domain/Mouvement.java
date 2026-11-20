@@ -1,7 +1,14 @@
 package ma.uiz.btp.materiaux.domain;
 
-import jakarta.persistence.*;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.time.Instant;
 
 /** Historique des entrées/sorties de stock, toujours rattachées à un chantier. */
@@ -40,7 +47,9 @@ public class Mouvement {
         this.quantite = quantite;
     }
 
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
     /** Stock du matériau après ce mouvement (une valeur, pas l'entité : SpotBugs EI_EXPOSE_REP). */
     public double getStockApresMouvement() {
@@ -52,8 +61,19 @@ public class Mouvement {
         return materiau.isEnAlerte();
     }
 
-    public Long getChantierId() { return chantierId; }
-    public Type getType() { return type; }
-    public double getQuantite() { return quantite; }
-    public Instant getDate() { return date; }
+    public Long getChantierId() {
+        return chantierId;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public double getQuantite() {
+        return quantite;
+    }
+
+    public Instant getDate() {
+        return date;
+    }
 }
