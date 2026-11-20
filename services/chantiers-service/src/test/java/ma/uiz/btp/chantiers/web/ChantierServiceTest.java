@@ -24,6 +24,7 @@ import ma.uiz.btp.chantiers.domain.Chantier;
 import ma.uiz.btp.chantiers.domain.ChantierRepository;
 import ma.uiz.btp.chantiers.domain.RegleMetierException;
 import ma.uiz.btp.chantiers.domain.RessourceIntrouvableException;
+import ma.uiz.btp.chantiers.domain.ServiceIndisponibleException;
 import ma.uiz.btp.chantiers.domain.StatutChantier;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -332,21 +333,23 @@ class ChantierServiceTest {
         }
 
         @Test
-        @DisplayName("UT-CHA-17 : supprime un chantier existant")
+        @DisplayName("UT-CHA-17 : supprime un chantier existant qui n'a aucune tâche")
         void supprimeUnChantierExistant() {
             // Arrange
             Chantier existant = chantierExistant(StatutChantier.PLANIFIE);
             when(repository.findById(1L)).thenReturn(Optional.of(existant));
+            when(tachesClient.tachesAvantSuppression(1L)).thenReturn(List.of());
 
             // Act
             service.supprimer(1L);
 
             // Assert
+            verify(tachesClient).tachesAvantSuppression(1L);
             verify(repository).delete(existant);
         }
 
         @Test
-        @DisplayName("UT-CHA-18 : ne supprime rien si le chantier est introuvable")
+        @DisplayName("UT-CHA-18 : ne supprime rien si le chantier est introuvable, sans interroger Tâches")
         void neSupprimeRienSiLeChantierEstIntrouvable() {
             // Arrange
             when(repository.findById(99L)).thenReturn(Optional.empty());
@@ -355,6 +358,91 @@ class ChantierServiceTest {
             assertThrows(RessourceIntrouvableException.class, () -> service.supprimer(99L));
 
             // Assert
+            verify(repository, never()).delete(any());
+            verifyNoInteractions(tachesClient);
+        }
+
+        @Test
+        @DisplayName("UT-CHA-19 : refuse (409) la suppression d'un chantier qui a une tâche en cours")
+        void refuseLaSuppressionDUnChantierQuiAUneTache() {
+            // Arrange
+            when(repository.findById(1L)).thenReturn(Optional.of(chantierExistant(StatutChantier.EN_COURS)));
+            when(tachesClient.tachesAvantSuppression(1L))
+                    .thenReturn(List.of(new TacheResume("7", "Fondations", "EN_COURS", 40)));
+
+            // Act
+            RegleMetierException e = assertThrows(RegleMetierException.class, () -> service.supprimer(1L));
+
+            // Assert
+            assertEquals("Suppression impossible : le chantier « Groupe scolaire Anza » a 1 tâche(s) : "
+                    + "« Fondations ». Supprimez ses tâches dans le module Tâches avant de supprimer le chantier.",
+                    e.getMessage());
+            verify(repository, never()).delete(any());
+        }
+
+        @Test
+        @DisplayName("UT-CHA-20 : des tâches toutes terminées bloquent aussi la suppression (#5)")
+        void desTachesTermineesBloquentAussiLaSuppression() {
+            // Arrange
+            when(repository.findById(1L)).thenReturn(Optional.of(chantierExistant(StatutChantier.TERMINE)));
+            when(tachesClient.tachesAvantSuppression(1L)).thenReturn(List.of(
+                    new TacheResume("1", "Fondations", "TERMINEE", 100),
+                    new TacheResume("2", "Gros œuvre", "TERMINEE", 100)));
+
+            // Act
+            RegleMetierException e = assertThrows(RegleMetierException.class, () -> service.supprimer(1L));
+
+            // Assert
+            assertTrue(e.getMessage().contains("2 tâche(s) : « Fondations », « Gros œuvre »"));
+            verify(repository, never()).delete(any());
+        }
+
+        @Test
+        @DisplayName("UT-CHA-21 : le message cite 5 tâches au plus et compte les suivantes")
+        void leMessageCiteCinqTachesAuPlus() {
+            // Arrange
+            when(repository.findById(1L)).thenReturn(Optional.of(chantierExistant(StatutChantier.EN_COURS)));
+            List<TacheResume> sept = java.util.stream.IntStream.rangeClosed(1, 7)
+                    .mapToObj(i -> new TacheResume(String.valueOf(i), "T" + i, "A_FAIRE", 0))
+                    .toList();
+            when(tachesClient.tachesAvantSuppression(1L)).thenReturn(sept);
+
+            // Act
+            RegleMetierException e = assertThrows(RegleMetierException.class, () -> service.supprimer(1L));
+
+            // Assert
+            assertTrue(e.getMessage().contains("7 tâche(s) : « T1 », « T2 », « T3 », « T4 », « T5 » et 2 autre(s)."));
+            assertFalse(e.getMessage().contains("T6"));
+        }
+
+        @Test
+        @DisplayName("UT-CHA-22 : exactement 5 tâches, toutes citées sans « autre(s) »")
+        void exactementCinqTachesToutesCitees() {
+            // Arrange
+            when(repository.findById(1L)).thenReturn(Optional.of(chantierExistant(StatutChantier.EN_COURS)));
+            List<TacheResume> cinq = java.util.stream.IntStream.rangeClosed(1, 5)
+                    .mapToObj(i -> new TacheResume(String.valueOf(i), "T" + i, "A_FAIRE", 0))
+                    .toList();
+            when(tachesClient.tachesAvantSuppression(1L)).thenReturn(cinq);
+
+            // Act
+            RegleMetierException e = assertThrows(RegleMetierException.class, () -> service.supprimer(1L));
+
+            // Assert
+            assertTrue(e.getMessage().contains("« T5 »."));
+            assertFalse(e.getMessage().contains("autre(s)"));
+        }
+
+        @Test
+        @DisplayName("UT-CHA-23 : Tâches indisponible (503) : rien n'est supprimé")
+        void tachesIndisponibleRienNEstSupprime() {
+            // Arrange
+            when(repository.findById(1L)).thenReturn(Optional.of(chantierExistant(StatutChantier.PLANIFIE)));
+            when(tachesClient.tachesAvantSuppression(1L))
+                    .thenThrow(new ServiceIndisponibleException("Le module Tâches ne répond pas"));
+
+            // Act + Assert
+            assertThrows(ServiceIndisponibleException.class, () -> service.supprimer(1L));
             verify(repository, never()).delete(any());
         }
     }

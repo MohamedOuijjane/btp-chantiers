@@ -7,10 +7,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class ChantierService {
+
+    /** Titres de tâches cités dans le refus de suppression ; les suivantes sont comptées. */
+    static final int TITRES_CITES = 5;
 
     private final ChantierRepository repository;
     private final TachesClient tachesClient;
@@ -60,8 +64,30 @@ public class ChantierService {
         return c;
     }
 
+    /**
+     * #5 : un chantier qui a des tâches (quel que soit leur statut, terminées comprises) ne peut
+     * pas être supprimé, sinon ses tâches deviendraient orphelines dans le module Tâches (409).
+     * Si Tâches ne peut pas être interrogé, rien n'est supprimé (503).
+     */
     public void supprimer(Long id) {
-        repository.delete(trouver(id));
+        Chantier chantier = trouver(id);
+        List<TachesClient.TacheResume> taches = tachesClient.tachesAvantSuppression(id);
+        if (!taches.isEmpty()) {
+            throw new RegleMetierException(messageRefusSuppression(chantier, taches));
+        }
+        repository.delete(chantier);
+    }
+
+    static String messageRefusSuppression(Chantier chantier,
+                                          List<TachesClient.TacheResume> taches) {
+        String titres = taches.stream().limit(TITRES_CITES)
+                .map(t -> "« " + t.titre() + " »")
+                .collect(Collectors.joining(", "));
+        int autres = taches.size() - TITRES_CITES;
+        return "Suppression impossible : le chantier « " + chantier.getNom() + " » a "
+                + taches.size() + " tâche(s) : " + titres
+                + (autres > 0 ? " et " + autres + " autre(s)" : "")
+                + ". Supprimez ses tâches dans le module Tâches avant de supprimer le chantier.";
     }
 
     /**

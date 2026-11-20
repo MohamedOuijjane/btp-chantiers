@@ -6,6 +6,7 @@ import ma.uiz.btp.chantiers.auth.IdentifiantsInvalidesException;
 import ma.uiz.btp.chantiers.auth.TropDeTentativesException;
 import ma.uiz.btp.chantiers.domain.RegleMetierException;
 import ma.uiz.btp.chantiers.domain.RessourceIntrouvableException;
+import ma.uiz.btp.chantiers.domain.ServiceIndisponibleException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -46,6 +47,12 @@ public class GestionErreurs extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RegleMetierException.class)
     ProblemDetail regleMetier(RegleMetierException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /** Module appelé injoignable : message fonctionnel, la cause technique reste dans les logs. */
+    @ExceptionHandler(ServiceIndisponibleException.class)
+    ProblemDetail serviceIndisponible(ServiceIndisponibleException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
     }
 
     /** Connexion refusée : même message pour un e-mail inconnu et un mauvais mot de passe. */

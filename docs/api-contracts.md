@@ -37,7 +37,7 @@ POST /api/auth/login
 | POST | `/api/chantiers` | Créer | 201, 400 |
 | PUT | `/api/chantiers/{id}` | Modifier | 200, 400, 404, 409 |
 | PATCH | `/api/chantiers/{id}/cloture` | Clôturer | 200, 409 |
-| DELETE | `/api/chantiers/{id}` | Supprimer | 204, 404 |
+| DELETE | `/api/chantiers/{id}` | Supprimer (refusé s'il a des tâches) | 204, 404, 409, 503 |
 | GET | `/api/chantiers/{id}/avancement` | Avancement agrégé depuis Tâches | 200, 404 |
 
 ```json
@@ -50,6 +50,16 @@ POST /api/chantiers
   "dateFinPrevue": "2027-06-30",
   "budget": 2500000
 }
+```
+
+Suppression (#5) : Chantiers interroge `GET /api/taches?chantierId={id}`. **Toute tâche du chantier, terminée comprise**, bloque la suppression → `409`, avec les tâches citées (5 au plus, les suivantes sont comptées). Aucune tâche, ou `404` de Tâches → `204`. Tâches sans réponse, en erreur ou illisible → `503` et rien n'est supprimé.
+
+```json
+409 Conflict
+{ "status": 409, "detail": "Suppression impossible : le chantier « Résidence Al Amal » a 2 tâche(s) : « Fondations », « Gros œuvre ». Supprimez ses tâches dans le module Tâches avant de supprimer le chantier." }
+
+503 Service Unavailable
+{ "status": 503, "detail": "Le module Tâches ne répond pas : impossible de vérifier les tâches du chantier, suppression annulée. Réessayez plus tard." }
 ```
 
 Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json`), avec un message en français dans `detail`. Les erreurs de validation (400) portent en plus `erreurs`, un message par champ (RG-01 sur `dateFinPrevue`). Un paramètre invalide (`?statut=INCONNU`, `/api/chantiers/abc`) ou un JSON mal formé donnent aussi un 400 au même format.
