@@ -78,6 +78,9 @@ export function useSupprimerChantier() {
   const qc = useQueryClient();
   return useMutation<void, ApiError, number>({
     mutationFn: api.supprimerChantier,
-    onSuccess: () => qc.invalidateQueries({ queryKey: clesChantiers.tous }),
+    // Marquées périmées sans recharger les requêtes affichées : la fiche du chantier supprimé
+    // répondrait 404 et démonterait le dialogue avant son retour à la liste (même cas que #129).
+    // La liste se recharge en arrivant sur /chantiers.
+    onSuccess: () => qc.invalidateQueries({ queryKey: clesChantiers.tous, refetchType: 'none' }),
   });
 }

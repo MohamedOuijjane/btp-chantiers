@@ -1,6 +1,8 @@
 package ma.uiz.btp.chantiers.web;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import ma.uiz.btp.chantiers.domain.StatutChantier;
@@ -56,7 +58,18 @@ public class ChantierController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Supprimer un chantier")
+    @Operation(summary = "Supprimer un chantier (refusé s'il a des tâches)",
+            description = "Interroge le module Tâches (GET /api/taches?chantierId=). Toute "
+                    + "tâche du chantier, terminée comprise, bloque la suppression (409, tâches "
+                    + "citées). Un 404 de Tâches vaut « aucune tâche ». Si Tâches ne répond pas, "
+                    + "rien n'est supprimé (503).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Chantier supprimé"),
+            @ApiResponse(responseCode = "404", description = "Chantier introuvable"),
+            @ApiResponse(responseCode = "409", description = "Le chantier a des tâches"),
+            @ApiResponse(responseCode = "503",
+                    description = "Module Tâches injoignable : suppression annulée")
+    })
     public ResponseEntity<Void> supprimer(@PathVariable Long id) {
         service.supprimer(id);
         return ResponseEntity.noContent().build();

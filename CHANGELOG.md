@@ -36,6 +36,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ### Corrigé
 - Tâches : les SOAP Faults de Matériaux sont lues même quand la balise porte un attribut (`<faultstring xml:lang="en">`) ; un matériau inconnu donne `422` « Matériaux : Matériau … introuvable » au lieu d'un faux « stock insuffisant » ([#8](https://github.com/MohamedOuijjane/btp-chantiers/issues/8)).
+- Chantiers : la suppression d'un chantier interroge Tâches ; `409` s'il a au moins une tâche, terminées comprises (tâches citées dans le message), `503` si Tâches ne répond pas, rien n'est alors supprimé. Front : bouton « Supprimer » et dialogue sur la fiche chantier (droit `chantiers.ecrire`), retour à la liste après la suppression. Collection Postman : suppression refusée puis acceptée ([#5](https://github.com/MohamedOuijjane/btp-chantiers/issues/5)).
 
 ## [0.1.2] - 2026-11-02
 

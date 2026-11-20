@@ -37,6 +37,16 @@
       "key": "tacheId",
       "value": "1",
       "description": "Rempli par « Tâches / Créer » (identifiant entier)"
+    },
+    {
+      "key": "chantierId",
+      "value": "",
+      "description": "Rempli par « Chantiers / Créer » (chantier sans tâche)"
+    },
+    {
+      "key": "tacheSuppressionId",
+      "value": "",
+      "description": "Rempli par « Chantiers / Supprimer un chantier avec tâches (409) »"
     }
   ],
   "item": [
@@ -219,6 +229,20 @@
         },
         {
           "name": "Créer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 et un identifiant', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.collectionVariables.set('chantierId', pm.response.json().id);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "url": {
@@ -297,6 +321,102 @@
               ]
             },
             "header": []
+          }
+        },
+        {
+          "name": "Supprimer un chantier avec tâches (409)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ajoute une tâche au chantier créé par « Créer » pour provoquer le refus (#5).",
+                  "pm.sendRequest({",
+                  "  url: pm.collectionVariables.get('gateway') + '/api/taches',",
+                  "  method: 'POST',",
+                  "  header: {",
+                  "    'Content-Type': 'application/json',",
+                  "    Authorization: 'Bearer ' + pm.collectionVariables.get('token'),",
+                  "  },",
+                  "  body: {",
+                  "    mode: 'raw',",
+                  "    raw: JSON.stringify({",
+                  "      chantierId: Number(pm.collectionVariables.get('chantierId')),",
+                  "      titre: 'Tâche Postman (suppression refusée)',",
+                  "      dateDebut: '2027-01-04',",
+                  "      dateFin: '2027-01-05',",
+                  "      ouvrierIds: [],",
+                  "    }),",
+                  "  },",
+                  "}, (err, res) => pm.collectionVariables.set('tacheSuppressionId', res.json().id));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 : le chantier a des tâches, citées dans le message', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().detail).to.include('Tâche Postman (suppression refusée)');",
+                  "});",
+                  "// Nettoyage : la tâche est supprimée, le chantier redevient supprimable (requête suivante).",
+                  "pm.sendRequest({",
+                  "  url: pm.collectionVariables.get('gateway') + '/api/taches/' + pm.collectionVariables.get('tacheSuppressionId'),",
+                  "  method: 'DELETE',",
+                  "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('token') },",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            },
+            "header": [],
+            "description": "Ajoute d'abord une tâche au chantier créé par « Créer » (script avant la requête), puis tente de le supprimer : 409, la tâche est citée. Toute tâche, terminée comprise, bloque la suppression. Si le module Tâches ne répond pas : 503 et rien n'est supprimé. La tâche est ensuite supprimée."
+          }
+        },
+        {
+          "name": "Supprimer un chantier sans tâche (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 : chantier supprimé', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            },
+            "header": [],
+            "description": "Supprime le chantier créé par « Chantiers / Créer » : il n'a aucune tâche dans le module Tâches."
           }
         }
       ]

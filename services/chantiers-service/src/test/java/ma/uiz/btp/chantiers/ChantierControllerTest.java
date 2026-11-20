@@ -160,4 +160,48 @@ class ChantierControllerTest {
                 .andExpect(jsonPath("$.avancementGlobal").hasJsonPath())
                 .andExpect(jsonPath("$.sourceDisponible").value(false));
     }
+
+    // ---------- #5 : suppression d'un chantier qui a des tâches ----------
+
+    @Test
+    void suppressionSansTacheRenvoie204() throws Exception {
+        when(tachesClient.tachesAvantSuppression(anyLong())).thenReturn(List.of());
+        String id = creer();
+        mvc.perform(delete("/api/chantiers/" + id)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/chantiers/" + id)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void suppressionAvecTachesRenvoie409EtCiteLesTaches() throws Exception {
+        when(tachesClient.tachesAvantSuppression(anyLong())).thenReturn(List.of(
+                new TachesClient.TacheResume("3", "Fondations", "TERMINEE", 100)));
+        String id = creer();
+        mvc.perform(delete("/api/chantiers/" + id))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("1 tâche(s) : « Fondations »")));
+        mvc.perform(get("/api/chantiers/" + id)).andExpect(status().isOk());
+    }
+
+    @Test
+    void suppressionTachesIndisponibleRenvoie503SansSupprimer() throws Exception {
+        when(tachesClient.tachesAvantSuppression(anyLong())).thenThrow(
+                new ma.uiz.btp.chantiers.domain.ServiceIndisponibleException(
+                        "Le module Tâches ne répond pas : impossible de vérifier les tâches du chantier, "
+                                + "suppression annulée. Réessayez plus tard."));
+        String id = creer();
+        mvc.perform(delete("/api/chantiers/" + id))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.startsWith("Le module Tâches ne répond pas")));
+        mvc.perform(get("/api/chantiers/" + id)).andExpect(status().isOk());
+    }
+
+    @Test
+    void suppressionChantierInexistantRenvoie404() throws Exception {
+        mvc.perform(delete("/api/chantiers/999999")).andExpect(status().isNotFound());
+        org.mockito.Mockito.verify(tachesClient, org.mockito.Mockito.never()).tachesAvantSuppression(anyLong());
+    }
 }
