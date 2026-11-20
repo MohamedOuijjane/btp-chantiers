@@ -1,9 +1,8 @@
 package ma.uiz.btp.chantiers.auth;
 
+import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 /** Connexion : vérification du mot de passe, limitation des tentatives, émission du jeton. */
 @Service

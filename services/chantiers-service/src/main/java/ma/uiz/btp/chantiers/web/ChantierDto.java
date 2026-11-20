@@ -2,12 +2,14 @@ package ma.uiz.btp.chantiers.web;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.*;
-import ma.uiz.btp.chantiers.domain.Chantier;
-import ma.uiz.btp.chantiers.domain.StatutChantier;
-
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import ma.uiz.btp.chantiers.domain.Chantier;
+import ma.uiz.btp.chantiers.domain.StatutChantier;
 
 /** Objets d'échange de l'API (on n'expose jamais l'entité JPA directement). */
 public final class ChantierDto {

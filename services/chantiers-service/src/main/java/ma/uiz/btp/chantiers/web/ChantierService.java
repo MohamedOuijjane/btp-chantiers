@@ -1,13 +1,16 @@
 package ma.uiz.btp.chantiers.web;
 
-import ma.uiz.btp.chantiers.client.TachesClient;
-import ma.uiz.btp.chantiers.domain.*;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import ma.uiz.btp.chantiers.client.TachesClient;
+import ma.uiz.btp.chantiers.domain.Chantier;
+import ma.uiz.btp.chantiers.domain.ChantierRepository;
+import ma.uiz.btp.chantiers.domain.RegleMetierException;
+import ma.uiz.btp.chantiers.domain.RessourceIntrouvableException;
+import ma.uiz.btp.chantiers.domain.StatutChantier;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional

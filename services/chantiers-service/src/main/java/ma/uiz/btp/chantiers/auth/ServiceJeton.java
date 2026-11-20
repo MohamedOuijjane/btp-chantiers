@@ -1,5 +1,8 @@
 package ma.uiz.btp.chantiers.auth;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -7,10 +10,6 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
-
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
 
 /** Émission des JWT HS256 (ADR-0006). La vérification est faite par le JwtDecoder de Spring. */
 @Service

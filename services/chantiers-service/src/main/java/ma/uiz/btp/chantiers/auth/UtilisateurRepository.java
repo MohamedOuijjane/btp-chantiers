@@ -1,12 +1,11 @@
 package ma.uiz.btp.chantiers.auth;
 
+import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Optional;
 
 /** Accès à auth.utilisateurs, avec la connexion de auth_user (jamais celle des chantiers). */
 @Repository

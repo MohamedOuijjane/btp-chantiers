@@ -1,7 +1,14 @@
 package ma.uiz.btp.chantiers.domain;
 
-import jakarta.persistence.*;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -58,21 +65,71 @@ public class Chantier {
         this.statut = StatutChantier.TERMINE;
     }
 
-    public Long getId() { return id; }
-    public String getNom() { return nom; }
-    public void setNom(String nom) { this.nom = nom; }
-    public String getAdresse() { return adresse; }
-    public void setAdresse(String adresse) { this.adresse = adresse; }
-    public String getClient() { return client; }
-    public void setClient(String client) { this.client = client; }
-    public LocalDate getDateDebut() { return dateDebut; }
-    public void setDateDebut(LocalDate dateDebut) { this.dateDebut = dateDebut; }
-    public LocalDate getDateFinPrevue() { return dateFinPrevue; }
-    public void setDateFinPrevue(LocalDate dateFinPrevue) { this.dateFinPrevue = dateFinPrevue; }
-    public BigDecimal getBudget() { return budget; }
-    public void setBudget(BigDecimal budget) { this.budget = budget; }
-    public StatutChantier getStatut() { return statut; }
-    public void setStatut(StatutChantier statut) { this.statut = statut; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
+
+    public String getAdresse() {
+        return adresse;
+    }
+
+    public void setAdresse(String adresse) {
+        this.adresse = adresse;
+    }
+
+    public String getClient() {
+        return client;
+    }
+
+    public void setClient(String client) {
+        this.client = client;
+    }
+
+    public LocalDate getDateDebut() {
+        return dateDebut;
+    }
+
+    public void setDateDebut(LocalDate dateDebut) {
+        this.dateDebut = dateDebut;
+    }
+
+    public LocalDate getDateFinPrevue() {
+        return dateFinPrevue;
+    }
+
+    public void setDateFinPrevue(LocalDate dateFinPrevue) {
+        this.dateFinPrevue = dateFinPrevue;
+    }
+
+    public BigDecimal getBudget() {
+        return budget;
+    }
+
+    public void setBudget(BigDecimal budget) {
+        this.budget = budget;
+    }
+
+    public StatutChantier getStatut() {
+        return statut;
+    }
+
+    public void setStatut(StatutChantier statut) {
+        this.statut = statut;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 }

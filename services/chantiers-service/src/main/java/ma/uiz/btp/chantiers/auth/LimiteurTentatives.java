@@ -1,7 +1,5 @@
 package ma.uiz.btp.chantiers.auth;
 
-import org.springframework.stereotype.Component;
-
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -9,6 +7,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.stereotype.Component;
 
 /**
  * Limite les échecs de connexion (force brute) : au-delà de N échecs pour un même e-mail, ou de M

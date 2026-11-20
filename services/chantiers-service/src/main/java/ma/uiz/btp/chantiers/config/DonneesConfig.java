@@ -1,6 +1,7 @@
 package ma.uiz.btp.chantiers.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -9,8 +10,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.simple.JdbcClient;
-
-import javax.sql.DataSource;
 
 /**
  * Deux connexions à btp_db (ADR-0005 et ADR-0006) :

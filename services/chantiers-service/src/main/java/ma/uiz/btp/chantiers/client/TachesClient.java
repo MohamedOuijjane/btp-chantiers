@@ -1,5 +1,8 @@
 package ma.uiz.btp.chantiers.client;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
 import ma.uiz.btp.chantiers.domain.ServiceIndisponibleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,10 +13,6 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
 
 /** Client REST vers le module Tâches (NestJS). */
 @Component
