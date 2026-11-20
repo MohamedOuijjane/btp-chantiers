@@ -47,20 +47,23 @@ def existe(client, oid) -> bool:
 # ---------- Suppression autorisée ----------
 
 def test_sans_tache_supprime(client, taches, oid):
-    assert client.delete(f"/api/ouvriers/{oid}").status_code == 204
+    r = client.delete(f"/api/ouvriers/{oid}")
+    assert r.status_code == 204
     assert not existe(client, oid)
     assert taches.appels == [{"url": URL_TACHES, "params": {"ouvrierId": oid}}]
 
 
 def test_toutes_les_taches_terminees_supprime(client, taches, oid):
     taches.corps = [tache("Fondations", "TERMINEE"), tache("Coffrage", "TERMINEE")]
-    assert client.delete(f"/api/ouvriers/{oid}").status_code == 204
+    r = client.delete(f"/api/ouvriers/{oid}")
+    assert r.status_code == 204
     assert not existe(client, oid)
 
 
 def test_404_de_taches_vaut_aucune_tache(client, taches, oid):
     taches.status, taches.corps = 404, {"message": "Not Found"}
-    assert client.delete(f"/api/ouvriers/{oid}").status_code == 204
+    r = client.delete(f"/api/ouvriers/{oid}")
+    assert r.status_code == 204
     assert not existe(client, oid)
 
 
@@ -86,7 +89,8 @@ def test_409_ne_cite_que_les_taches_non_terminees(client, taches, oid):
 
 def test_tache_sans_statut_comptee_non_terminee(client, taches, oid):
     taches.corps = [{"id": 3, "titre": "Inconnue"}]
-    assert client.delete(f"/api/ouvriers/{oid}").status_code == 409
+    r = client.delete(f"/api/ouvriers/{oid}")
+    assert r.status_code == 409
     assert existe(client, oid)
 
 
@@ -108,7 +112,8 @@ def test_taches_sans_reponse_503(client, taches, oid, erreur):
 @pytest.mark.parametrize("code", [500, 502, 503])
 def test_taches_en_erreur_5xx_503(client, taches, oid, code):
     taches.status, taches.corps = code, {"message": "erreur"}
-    assert client.delete(f"/api/ouvriers/{oid}").status_code == 503
+    r = client.delete(f"/api/ouvriers/{oid}")
+    assert r.status_code == 503
     assert existe(client, oid)
 
 
@@ -121,7 +126,8 @@ def test_503_sans_detail_technique(client, taches, oid):
 # ---------- Cas limites ----------
 
 def test_ouvrier_inexistant_404_sans_appeler_taches(client, taches):
-    assert client.delete("/api/ouvriers/999").status_code == 404
+    r = client.delete("/api/ouvriers/999")
+    assert r.status_code == 404
     assert taches.appels == []
 
 
