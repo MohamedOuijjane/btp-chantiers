@@ -349,6 +349,23 @@
         },
         {
           "name": "Planning",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et sourceDisponible en camelCase', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const p = pm.response.json();",
+                  "  pm.expect(p.sourceDisponible).to.be.a('boolean');",
+                  "  pm.expect(p).to.not.have.property('source_disponible');",
+                  "  pm.expect(p.taches).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
@@ -363,7 +380,41 @@
                 "planning"
               ]
             },
-            "header": []
+            "header": [],
+            "description": "Tâches de l'ouvrier lues dans le module Tâches. sourceDisponible vaut false si Tâches est injoignable (planning vide, mode dégradé)."
+          }
+        },
+        {
+          "name": "Supprimer un ouvrier affecté (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 : ouvrier affecté à une tâche non terminée', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().detail).to.include('non terminée');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers/1",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers",
+                "1"
+              ]
+            },
+            "header": [],
+            "description": "À lancer après « Tâches / Créer », qui affecte l'ouvrier 1 à une tâche A_FAIRE. Toute tâche non TERMINEE (A_FAIRE, EN_COURS, BLOQUEE) bloque la suppression (409). Si le module Tâches ne répond pas : 503 et l'ouvrier n'est pas supprimé."
           }
         }
       ]

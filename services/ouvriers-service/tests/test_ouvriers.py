@@ -1,40 +1,5 @@
-import os
-
-os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
-
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app import taches_client
-from app.database import Base, get_db
-from app.main import app
-
-engine = create_engine("sqlite+pysqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
-TestSession = sessionmaker(bind=engine, expire_on_commit=False)
-
-
-@pytest.fixture()
-def client():
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-
-    def _db():
-        db = TestSession()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = _db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
-
-
-OUVRIER = {"nom": "El Amrani", "prenom": "Youssef", "cin": "JB123456", "specialite": "MACON", "telephone": "0612345678"}
+from tests.conftest import OUVRIER
 
 
 def test_creer_et_consulter(client):
@@ -46,7 +11,40 @@ def test_creer_et_consulter(client):
 
 def test_cin_unique(client):
     client.post("/api/ouvriers", json=OUVRIER)
-    assert client.post("/api/ouvriers", json=OUVRIER).status_code == 409
+    r = client.post("/api/ouvriers", json={**OUVRIER, "nom": "Bennani"})
+    assert r.status_code == 409
+    assert r.json() == {
+        "detail": [
+            {
+                "loc": ["body", "cin"],
+                "msg": "La CIN JB123456 est déjà utilisée par un autre ouvrier",
+                "type": "cin_deja_utilisee",
+            }
+        ]
+    }
+
+
+def test_cin_en_double_sans_detail_technique(client):
+    client.post("/api/ouvriers", json=OUVRIER)
+    texte = client.post("/api/ouvriers", json=OUVRIER).text.lower()
+    for fuite in ("integrity", "unique", "constraint", "sql", "ouvriers.cin"):
+        assert fuite not in texte
+
+
+def test_cin_libre_acceptee_apres_un_autre_ouvrier(client):
+    client.post("/api/ouvriers", json=OUVRIER)
+    assert client.post("/api/ouvriers", json={**OUVRIER, "cin": "AB1234"}).status_code == 201
+
+
+def test_cin_en_double_ne_cree_rien(client):
+    client.post("/api/ouvriers", json=OUVRIER)
+    client.post("/api/ouvriers", json=OUVRIER)
+    assert len(client.get("/api/ouvriers").json()) == 1
+
+
+def test_swagger_documente_le_409_de_creation(client):
+    reponses = client.get("/openapi.json").json()["paths"]["/api/ouvriers"]["post"]["responses"]
+    assert "409" in reponses and "CIN" in reponses["409"]["description"]
 
 
 def test_cin_invalide_refusee(client):
@@ -63,7 +61,8 @@ def test_planning_degrade_si_taches_indisponible(client, monkeypatch):
     oid = client.post("/api/ouvriers", json=OUVRIER).json()["id"]
     monkeypatch.setattr(taches_client, "taches_de_l_ouvrier", lambda _id: None)
     body = client.get(f"/api/ouvriers/{oid}/planning").json()
-    assert body["source_disponible"] is False and body["taches"] == []
+    assert body["sourceDisponible"] is False and body["taches"] == []
+    assert "source_disponible" not in body
 
 
 def test_planning_depuis_le_module_taches(client, monkeypatch):
@@ -71,7 +70,20 @@ def test_planning_depuis_le_module_taches(client, monkeypatch):
     tache = {"id": 1, "chantierId": 1, "titre": "Fondations", "dateDebut": "2026-11-02",
              "dateFin": "2026-11-10", "statut": "EN_COURS"}
     monkeypatch.setattr(taches_client, "taches_de_l_ouvrier", lambda _id: [tache])
-    assert client.get(f"/api/ouvriers/{oid}/planning").json()["taches"][0]["titre"] == "Fondations"
+    body = client.get(f"/api/ouvriers/{oid}/planning").json()
+    assert body["taches"][0]["titre"] == "Fondations"
+    assert body["sourceDisponible"] is True
+
+
+def test_planning_ouvrier_inexistant(client):
+    assert client.get("/api/ouvriers/999/planning").status_code == 404
+
+
+def test_swagger_documente_source_disponible_en_camel_case(client):
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+    planning = next(s for nom, s in schemas.items() if nom.startswith("Planning"))
+    assert "sourceDisponible" in planning["properties"]
+    assert "source_disponible" not in planning["properties"]
 
 
 def test_ouvrier_inexistant(client):
