@@ -13,7 +13,7 @@ Ce guide décrit l'étape 2.
 |---|---|---|---|---|
 | Chantiers | OUIJJANE Mohamed | #49 | **Branché** | `reel` |
 | Tâches & Avancement | OUIJJANE Mohamed | #50 | À brancher (après #99, #11 ; #6 faite) | `fictif` |
-| Ouvriers | BENZINEB Ilyas | #51 | À brancher (après #13, #14) | `fictif` |
+| Ouvriers | BENZINEB Ilyas, OUIJJANE Mohamed | #51 | **Branché** (affectations masquées jusqu'à #50, voir la section Ouvriers) | `reel` |
 | Matériaux | SALHI Hatim | #52 | À brancher (après #17, #18, #102) ; `src/api/soap.ts` à écrire | `fictif` |
 | Authentification | OUIJJANE Mohamed | #109 | **Branchée** (JWT, voir la section Authentification) | `reel` |
 
@@ -169,44 +169,51 @@ Le corps d'erreur NestJS `{ statusCode, message, error }` devient un `ApiError` 
 
 **Mode dégradé :** si Ouvriers ne répond pas, la fiche et la liste restent affichées ; le bandeau « Informations ouvriers indisponibles » remplace les noms (hook `useOuvriersTaches`, `sourceDisponible: false`). Rien à faire côté Tâches pour ce cas.
 
-## Ouvriers · BENZINEB Ilyas · #51
+## Ouvriers · BENZINEB Ilyas, OUIJJANE Mohamed · #51 · Branché
 
-Fichier : `src/features/ouvriers/api.ts`. Pages déjà construites avec les données fictives (#29) : équipe `/ouvriers` (cartes filtrables par spécialité et disponibilité, planning de l'ouvrier choisi), fiche `/ouvriers/:id` (identité, disponibilité, affectations, planning), dialogues création / modification / suppression.
+Fichiers : `src/features/ouvriers/api.ts` (choix du mode), `api.reel.ts` (API réelle), `api.fictif.ts` (données fictives), `api.reel.test.ts` et `pages/ouvriers-reel.test.tsx` (pages en mode réel). Pages : équipe `/ouvriers` (cartes filtrables par spécialité et disponibilité, planning de l'ouvrier choisi), fiche `/ouvriers/:id` (identité, disponibilité, affectations, planning), dialogues création / modification / suppression.
 
-### Fonctions à brancher
-
-| Fonction | Endpoint réel | Codes | Issue backend |
+| Fonction | Endpoint réel | Codes | Remarque |
 |---|---|---|---|
-| `listerOuvriers(filtre)` | `GET /api/ouvriers?specialite=&disponible=` | 200 | #13 |
+| `listerOuvriers(filtre)` | `GET /api/ouvriers?specialite=&disponible=` | 200 | |
 | `getOuvrier(id)` | `GET /api/ouvriers/{id}` | 200, 404 | |
-| `creerOuvrier(donnees)` | `POST /api/ouvriers` | 201, 409, 422 | |
+| `creerOuvrier(donnees)` | `POST /api/ouvriers` | 201, 409, 422 | Toujours créé disponible ; 409 de CIN en double rattaché au champ `cin` (#114) |
 | `modifierOuvrier(id, donnees)` | `PATCH /api/ouvriers/{id}` (dont la bascule `disponible`) | 200, 404, 422 | |
-| `supprimerOuvrier(id)` | `DELETE /api/ouvriers/{id}` | 204, 404, 409 | #15 (refus si tâches en cours) |
-| `getPlanning(id)` | `GET /api/ouvriers/{id}/planning` | 200 (`sourceDisponible`), 404 | **#14** (`sourceDisponible` en camelCase), #13 (`id` entier des tâches) |
+| `supprimerOuvrier(id)` | `DELETE /api/ouvriers/{id}` | 204, 404, 409, 503 | 409 : tâche `A_FAIRE`, `EN_COURS` ou `BLOQUEE`, citée dans le message (#15) ; 503 : Tâches injoignable, rien n'est supprimé |
+| `getPlanning(id)` | `GET /api/ouvriers/{id}/planning` | 200, 404 | `sourceDisponible` en camelCase (#14) ; tâches triées par date de début dans `api.reel.ts` |
 
-Les **affectations** (affecter l'ouvrier à une tâche, le retirer) passent par le module Tâches : `PATCH /api/taches/{id}/ouvriers` (`useAffecterOuvriers`, `useRetirerOuvrier`), branché dans #50. Rien à faire côté Ouvriers.
+### Affectations : masquées tant que Tâches est fictif
 
-### Erreurs attendues par les pages
+Affecter l'ouvrier à une tâche et le retirer d'une tâche passent par le module Tâches : `PATCH /api/taches/{id}/ouvriers` (`useAffecterOuvriers`, `useRetirerOuvrier`). Tant que Tâches est en `fictif` alors qu'Ouvriers est en `reel`, ces actions modifieraient une tâche fictive pendant que le planning affiché vient du vrai module Tâches. La fiche ouvrier masque donc « Affecter à une tâche » et les boutons « Retirer » (condition `estReel('taches') || !estReel('ouvriers')` dans `OuvrierFichePage.tsx`). Ils réapparaissent sans autre changement quand #50 passe Tâches en `reel` ; en mode tout fictif (démo, tests), ils restent visibles.
 
-FastAPI renvoie `{ "detail": "…" }` ou, en validation, `{ "detail": [{ "loc": [...], "msg": "…" }] }`. Conversion en `ApiError` : chaîne → `message` ; tableau → `champs` (clé = dernier élément de `loc`). Les champs du formulaire s'appellent comme les attributs Pydantic (`prenom`, `nom`, `cin`, `specialite`, `telephone`) : un message par champ s'affiche directement sous la saisie.
+Tant que #50 n'est pas faite, les pages Tâches (fictives) cherchent leurs `ouvrierIds` fictifs parmi les ouvriers réels : un identifiant sans ouvrier réel s'affiche « Ouvrier 3 », et un identifiant qui existe aussi côté réel affiche le nom de cet ouvrier réel.
+
+### Erreurs affichées par les pages
+
+FastAPI renvoie `{ "detail": "…" }` ou `{ "detail": [{ "loc": [...], "msg": "…" }] }`. Conversion en `ApiError` par `http.ts` : chaîne → `message` ; tableau → `champs` (clé = dernier élément de `loc`). Les champs du formulaire s'appellent comme les attributs Pydantic (`prenom`, `nom`, `cin`, `specialite`, `telephone`).
 
 | Code | Cas | Affichage |
 |---|---|---|
 | 404 | Ouvrier inconnu | Page « Ouvrier introuvable » |
-| 409 | **CIN déjà utilisée** (RG-06) | Sous le champ CIN ; renvoyer de préférence `{ "detail": [{ "loc": ["body", "cin"], "msg": "…" }] }` avec le code 409 pour que le message aille sous le champ, sinon `{ "detail": "…" }` s'affiche en alerte |
-| 409 | Suppression d'un ouvrier affecté à des tâches en cours (#15) | Alerte dans le dialogue de suppression |
-| 422 | Validation Pydantic : CIN mal formée, téléphone non marocain, champ vide | Sous chaque champ |
-| 503 | Ouvriers injoignable (vu depuis la gateway) | Encart « Équipe indisponible » sur la liste |
+| 409 | CIN déjà utilisée (RG-06, #114) : `detail: [{ loc: ["body", "cin"], msg, type: "cin_deja_utilisee" }]` | Sous le champ CIN |
+| 409 | Suppression d'un ouvrier affecté à une tâche non terminée (#15) | Alerte « Conflit » dans le dialogue de suppression, avec les tâches citées |
+| 422 | Validation Pydantic (CIN mal formée, téléphone non marocain, champ vide) | Sous chaque champ ; Zod bloque ces cas avant l'envoi |
+| 503 | Suppression pendant que Tâches est injoignable | Alerte dans le dialogue, message du service ; l'ouvrier n'est pas supprimé |
+| 503 | Ouvriers injoignable (502 ou délai dépassé vu depuis la gateway) | Encart « Équipe indisponible » sur la liste |
 
-**Mode dégradé :** si le planning revient avec `sourceDisponible: false` (Tâches injoignable), la page affiche « Planning non disponible » et le reste de la fiche fonctionne. Le front lit `sourceDisponible` en camelCase : #14 doit être mergée avant le branchement.
+Équipe vide : « Aucun ouvrier dans l'équipe » (avec l'invitation à créer si le profil le permet) ; filtres sans résultat : « Aucun ouvrier trouvé ».
 
-### Test manuel (à décrire dans la PR de #51)
+**Mode dégradé :** si le planning revient avec `sourceDisponible: false` (Tâches injoignable), la page affiche « Planning non disponible » et le reste de la fiche fonctionne.
 
-1. Créer un ouvrier, puis recréer la même CIN : message 409 sous le champ.
-2. Saisir une CIN `12AB` ou un téléphone `0412` : messages 422 sous les champs.
-3. Rendre un ouvrier indisponible depuis sa fiche : badge « Indisponible » dans la liste et filtre « Disponibles uniquement ».
-4. Supprimer un ouvrier affecté à une tâche en cours : refus 409.
-5. `docker compose stop taches-service` : planning « non disponible », fiche consultable.
+### Test manuel
+
+1. `docker compose up --build -d --wait`, puis http://localhost:8080 (profil Conducteur de travaux), menu Ouvriers.
+2. Créer un ouvrier, puis recréer la même CIN : **409** sous le champ CIN.
+3. Saisir une CIN `12AB` ou un téléphone `0412` : messages sous les champs (Zod, avant l'envoi).
+4. Modifier l'ouvrier, puis le rendre indisponible depuis sa fiche : badge « Indisponible » et filtre « Disponibles uniquement ».
+5. Affecter l'ouvrier à une tâche d'un chantier `PLANIFIE` ou `EN_COURS` (via l'API Tâches tant que #50 n'est pas faite) : la tâche apparaît dans son planning ; « Supprimer » donne **409** avec la tâche citée.
+6. Terminer la tâche (avancement 100 %), puis « Supprimer » : l'ouvrier est supprimé, retour à l'équipe.
+7. `docker compose stop taches-service` : planning « non disponible », fiche consultable ; « Supprimer » donne **503**.
 
 ## Matériaux · SALHI Hatim · #52
 
