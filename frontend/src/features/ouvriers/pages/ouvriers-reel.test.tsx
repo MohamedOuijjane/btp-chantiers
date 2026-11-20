@@ -160,13 +160,33 @@ describe('Suppression depuis la fiche (API réelle)', () => {
     expect(screen.queryByText('Rachid Bennani a été supprimé.')).not.toBeInTheDocument();
   });
 
-  it('204 : l’ouvrier est supprimé et la page revient à l’équipe', async () => {
-    apiOuvriers();
-    serveur.use(msw.delete('*/api/ouvriers/4', () => new HttpResponse(null, { status: 204 })));
+  it('204 : l’ouvrier est supprimé et la page revient à l’équipe (sa fiche répond ensuite 404)', async () => {
+    // Comme le vrai service : après la suppression, l'ouvrier n'existe plus (404) et la liste est vide.
+    let supprime = false;
+    let fichesRedemandees = 0;
+    const introuvable = () => {
+      fichesRedemandees += 1;
+      return HttpResponse.json({ detail: 'Ouvrier 4 introuvable' }, { status: 404 });
+    };
+    serveur.use(
+      msw.get('*/api/ouvriers', () => HttpResponse.json(supprime ? [] : [OUVRIER])),
+      msw.get('*/api/ouvriers/4', () => (supprime ? introuvable() : HttpResponse.json(OUVRIER))),
+      msw.get('*/api/ouvriers/4/planning', () =>
+        supprime ? introuvable() : HttpResponse.json(PLANNING),
+      ),
+      msw.delete('*/api/ouvriers/4', () => {
+        supprime = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
 
     await supprimer();
     expect(await screen.findByText('Rachid Bennani a été supprimé.')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 1, name: 'Ouvriers' })).toBeInTheDocument();
+    expect(await screen.findByText('Aucun ouvrier dans l’équipe')).toBeInTheDocument();
+    // La fiche supprimée n'est pas rechargée (404) : avec les nouvelles tentatives de l'application,
+    // ce rechargement faisait passer la fiche en erreur et démontait le dialogue avant le retour.
+    expect(fichesRedemandees).toBe(0);
   });
 });
 
