@@ -116,6 +116,16 @@ export function OuvriersPage() {
             ? 'Équipe indisponible pendant la panne du module Ouvriers.'
             : error.message}
         </Encart>
+      ) : !isPending && !ouvriers?.length ? (
+        <EtatVide
+          icone={Users}
+          titre="Aucun ouvrier dans l’équipe"
+          description={
+            peutCreer
+              ? 'L’équipe est vide : ajoutez un premier ouvrier avec « Nouvel ouvrier ».'
+              : 'L’équipe est vide pour le moment.'
+          }
+        />
       ) : !isPending && visibles.length === 0 ? (
         <EtatVide
           icone={Users}
