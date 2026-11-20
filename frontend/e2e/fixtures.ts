@@ -37,11 +37,15 @@ type Element = { id: number; nom?: string; cin?: string };
 /** Client REST connecté ; garde la trace de ce qu'il crée pour le supprimer à la fin du test. */
 export class Api {
   private readonly aSupprimer: string[] = [];
+  // Champs déclarés à part (pas de « constructor(private …) ») : Node 22 récent charge les
+  // fichiers .ts en retirant seulement les types, et refuse les propriétés de paramètre.
+  private readonly http: APIRequestContext;
+  private readonly jeton: string;
 
-  constructor(
-    private readonly http: APIRequestContext,
-    private readonly jeton: string,
-  ) {}
+  constructor(http: APIRequestContext, jeton: string) {
+    this.http = http;
+    this.jeton = jeton;
+  }
 
   private get entetes() {
     return { Authorization: `Bearer ${this.jeton}` };
