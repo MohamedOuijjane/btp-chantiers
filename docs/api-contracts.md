@@ -127,6 +127,8 @@ Codes de refus à la création (RG-03, RG-04, RG-07) : chantier inconnu → `404
 | DELETE | `/api/ouvriers/{id}` | Supprimer | 204, 404 |
 | GET | `/api/ouvriers/{id}/planning` | Tâches de l'ouvrier (depuis Tâches) | 200, 404 |
 
+Planning : `{ "ouvrier": {...}, "taches": [...], "sourceDisponible": true }`. Si Tâches est injoignable, réponse `200` dégradée avec `"taches": []` et `"sourceDisponible": false` (même champ que l'avancement de Chantiers, ADR-0004).
+
 Spécialités : `MACON`, `FERRAILLEUR`, `COFFREUR`, `ELECTRICIEN`, `PLOMBIER`, `PEINTRE`, `CONDUCTEUR_ENGINS`, `MANOEUVRE`.
 
 ## Matériaux · SOAP · `:8084/ws`

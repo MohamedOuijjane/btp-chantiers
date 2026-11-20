@@ -349,6 +349,23 @@
         },
         {
           "name": "Planning",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et sourceDisponible en camelCase', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const p = pm.response.json();",
+                  "  pm.expect(p.sourceDisponible).to.be.a('boolean');",
+                  "  pm.expect(p).to.not.have.property('source_disponible');",
+                  "  pm.expect(p.taches).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
@@ -363,7 +380,8 @@
                 "planning"
               ]
             },
-            "header": []
+            "header": [],
+            "description": "Tâches de l'ouvrier lues dans le module Tâches. sourceDisponible vaut false si Tâches est injoignable (planning vide, mode dégradé)."
           }
         }
       ]

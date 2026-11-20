@@ -28,7 +28,8 @@ def test_planning_degrade_si_taches_indisponible(client, monkeypatch):
     oid = client.post("/api/ouvriers", json=OUVRIER).json()["id"]
     monkeypatch.setattr(taches_client, "taches_de_l_ouvrier", lambda _id: None)
     body = client.get(f"/api/ouvriers/{oid}/planning").json()
-    assert body["source_disponible"] is False and body["taches"] == []
+    assert body["sourceDisponible"] is False and body["taches"] == []
+    assert "source_disponible" not in body
 
 
 def test_planning_depuis_le_module_taches(client, monkeypatch):
@@ -36,7 +37,20 @@ def test_planning_depuis_le_module_taches(client, monkeypatch):
     tache = {"id": 1, "chantierId": 1, "titre": "Fondations", "dateDebut": "2026-11-02",
              "dateFin": "2026-11-10", "statut": "EN_COURS"}
     monkeypatch.setattr(taches_client, "taches_de_l_ouvrier", lambda _id: [tache])
-    assert client.get(f"/api/ouvriers/{oid}/planning").json()["taches"][0]["titre"] == "Fondations"
+    body = client.get(f"/api/ouvriers/{oid}/planning").json()
+    assert body["taches"][0]["titre"] == "Fondations"
+    assert body["sourceDisponible"] is True
+
+
+def test_planning_ouvrier_inexistant(client):
+    assert client.get("/api/ouvriers/999/planning").status_code == 404
+
+
+def test_swagger_documente_source_disponible_en_camel_case(client):
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+    planning = next(s for nom, s in schemas.items() if nom.startswith("Planning"))
+    assert "sourceDisponible" in planning["properties"]
+    assert "source_disponible" not in planning["properties"]
 
 
 def test_ouvrier_inexistant(client):

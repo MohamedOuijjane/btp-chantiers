@@ -43,4 +43,8 @@ class TachePlanning(BaseModel):
 class Planning(BaseModel):
     ouvrier: OuvrierReponse
     taches: list[TachePlanning]
-    source_disponible: bool
+    # Même nom JSON que Chantiers (avancement) et le front : sourceDisponible (#14).
+    source_disponible: bool = Field(
+        serialization_alias="sourceDisponible",
+        description="false si le module Tâches est injoignable (planning vide, mode dégradé)",
+    )
