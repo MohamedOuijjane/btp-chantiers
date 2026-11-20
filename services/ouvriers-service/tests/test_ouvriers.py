@@ -11,7 +11,40 @@ def test_creer_et_consulter(client):
 
 def test_cin_unique(client):
     client.post("/api/ouvriers", json=OUVRIER)
-    assert client.post("/api/ouvriers", json=OUVRIER).status_code == 409
+    r = client.post("/api/ouvriers", json={**OUVRIER, "nom": "Bennani"})
+    assert r.status_code == 409
+    assert r.json() == {
+        "detail": [
+            {
+                "loc": ["body", "cin"],
+                "msg": "La CIN JB123456 est déjà utilisée par un autre ouvrier",
+                "type": "cin_deja_utilisee",
+            }
+        ]
+    }
+
+
+def test_cin_en_double_sans_detail_technique(client):
+    client.post("/api/ouvriers", json=OUVRIER)
+    texte = client.post("/api/ouvriers", json=OUVRIER).text.lower()
+    for fuite in ("integrity", "unique", "constraint", "sql", "ouvriers.cin"):
+        assert fuite not in texte
+
+
+def test_cin_libre_acceptee_apres_un_autre_ouvrier(client):
+    client.post("/api/ouvriers", json=OUVRIER)
+    assert client.post("/api/ouvriers", json={**OUVRIER, "cin": "AB1234"}).status_code == 201
+
+
+def test_cin_en_double_ne_cree_rien(client):
+    client.post("/api/ouvriers", json=OUVRIER)
+    client.post("/api/ouvriers", json=OUVRIER)
+    assert len(client.get("/api/ouvriers").json()) == 1
+
+
+def test_swagger_documente_le_409_de_creation(client):
+    reponses = client.get("/openapi.json").json()["paths"]["/api/ouvriers"]["post"]["responses"]
+    assert "409" in reponses and "CIN" in reponses["409"]["description"]
 
 
 def test_cin_invalide_refusee(client):

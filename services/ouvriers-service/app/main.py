@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app import taches_client
 from app.database import Base, engine, get_db
 from app.models import Ouvrier, Specialite
-from app.schemas import OuvrierCreation, OuvrierModification, OuvrierReponse, Planning
+from app.schemas import ErreurChamps, OuvrierCreation, OuvrierModification, OuvrierReponse, Planning
 
 
 @asynccontextmanager
@@ -57,7 +57,13 @@ def trouver(ouvrier_id: int, db: Session = Depends(get_db)):
     return _trouver(db, ouvrier_id)
 
 
-@app.post("/api/ouvriers", response_model=OuvrierReponse, status_code=201, tags=["Ouvriers"])
+@app.post(
+    "/api/ouvriers",
+    response_model=OuvrierReponse,
+    status_code=201,
+    tags=["Ouvriers"],
+    responses={409: {"model": ErreurChamps, "description": "CIN déjà utilisée par un autre ouvrier (RG-06)"}},
+)
 def creer(data: OuvrierCreation, db: Session = Depends(get_db)):
     ouvrier = Ouvrier(**data.model_dump(), disponible=True)
     db.add(ouvrier)
@@ -65,7 +71,17 @@ def creer(data: OuvrierCreation, db: Session = Depends(get_db)):
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Un ouvrier avec la CIN {data.cin} existe déjà") from None
+        # Rattachée au champ cin (#114) : le front l'affiche sous le champ, comme une erreur 422.
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            [
+                {
+                    "loc": ["body", "cin"],
+                    "msg": f"La CIN {data.cin} est déjà utilisée par un autre ouvrier",
+                    "type": "cin_deja_utilisee",
+                }
+            ],
+        ) from None
     db.refresh(ouvrier)
     return ouvrier
 

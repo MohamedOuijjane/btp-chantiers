@@ -127,6 +127,12 @@ Codes de refus à la création (RG-03, RG-04, RG-07) : chantier inconnu → `404
 | DELETE | `/api/ouvriers/{id}` | Supprimer | 204, 404 |
 | GET | `/api/ouvriers/{id}/planning` | Tâches de l'ouvrier (depuis Tâches) | 200, 404 |
 
+CIN déjà utilisée (RG-06) : `409`, avec l'erreur rattachée au champ `cin` (même format que les `422`, affichée sous le champ par le front) :
+
+```json
+{ "detail": [ { "loc": ["body", "cin"], "msg": "La CIN JB123456 est déjà utilisée par un autre ouvrier", "type": "cin_deja_utilisee" } ] }
+```
+
 Planning : `{ "ouvrier": {...}, "taches": [...], "sourceDisponible": true }`. Si Tâches est injoignable, réponse `200` dégradée avec `"taches": []` et `"sourceDisponible": false` (même champ que l'avancement de Chantiers, ADR-0004).
 
 Spécialités : `MACON`, `FERRAILLEUR`, `COFFREUR`, `ELECTRICIEN`, `PLOMBIER`, `PEINTRE`, `CONDUCTEUR_ENGINS`, `MANOEUVRE`.
