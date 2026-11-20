@@ -78,7 +78,7 @@ Les analyses Checkstyle et SpotBugs sont en **mode rapport** pendant le sprint S
 | **Unitaires** | Règles de gestion, clients HTTP/SOAP, composants | JUnit 5, Jest, pytest, Vitest | À chaque commit (CI) |
 | **Intégration** | Une API avec sa base (H2, SQLite) et des modules voisins simulés | MockMvc, Spring-WS Test, TestClient FastAPI, MSW | À chaque commit (CI) |
 | **Contrat** | Les échanges respectent les contrats publiés | Validation XSD (Spring-WS), schémas OpenAPI exportés | À chaque modification d'un contrat |
-| **Bout en bout** | Le scénario de démo fonctionne sur la stack Docker complète | Newman (Postman), Playwright | CI (#16) et avant chaque revue de sprint |
+| **Bout en bout** | Le scénario de démo fonctionne sur la stack Docker complète | Playwright ([`frontend/e2e/`](../../frontend/e2e/README.md)), Newman (Postman) | `make e2e`, workflow **E2E** à chaque PR vers `develop` (informatif) ; Newman dans #16 |
 | **Performance** | Parcours principaux via la gateway sous charge modérée : 90e percentile < 1 s, 0 % d'erreurs ; appels inter-services < 2 s | JMeter ([`tests/performance/`](../../tests/performance/README.md)), timeouts | `make perf` et workflow **Performance** (manuel), avant la recette |
 
 **Critères d'entrée en recette :** tous les tests automatisés verts, quality gate SonarCloud passée, `docker compose up --build` fonctionnel.

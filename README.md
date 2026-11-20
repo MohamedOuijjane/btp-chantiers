@@ -165,6 +165,7 @@ La démarche qualité complète est décrite dans le [Plan d'Assurance Qualité]
 ```bash
 make test        # tests de tous les services
 make perf        # test de charge JMeter via la gateway (stack démarrée), rapport HTML
+make e2e         # tests de bout en bout Playwright (stack démarrée), rapport HTML
 make zap         # scan de sécurité OWASP ZAP baseline (stack démarrée), rapport HTML
 ```
 
@@ -180,6 +181,8 @@ make zap         # scan de sécurité OWASP ZAP baseline (stack démarrée), rap
 Sécurité : scan baseline [OWASP ZAP](tests/securite/README.md) de la gateway et du front (`make zap`, ou workflow **Sécurité** chaque lundi et à la demande, rapport HTML en artefact).
 
 Test de charge : [JMeter](tests/performance/README.md) (`make perf`, ou workflow **Performance** lancé à la main) ; 20 utilisateurs pendant 60 s, 90e percentile sous 1 s.
+
+Tests de bout en bout : [Playwright](frontend/e2e/README.md) (`make e2e`), et workflow **E2E** à chaque pull request vers `develop` qui touche le front, les services ou la gateway (informatif, rapport HTML en artefact).
 
 ## Méthode agile
 

@@ -1,0 +1,60 @@
+name: E2E
+
+# Tests de bout en bout Playwright sur la stack Docker complète. Informatif : ce workflow ne
+# fait pas partie des vérifications obligatoires du ruleset.
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'frontend/**'
+      - 'services/**'
+      - 'gateway/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/e2e.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    name: Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # JWT_SECRET et DEMO_MOT_DE_PASSE sont obligatoires dans docker-compose.yml (ADR-0006).
+      - name: Variables d'environnement de démonstration
+        run: cp .env.example .env
+      - name: Construire et démarrer la stack
+        run: docker compose up -d --build --wait
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - name: Installer les dépendances et Chromium
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Tests de bout en bout
+        working-directory: frontend
+        run: |
+          set -a; . ../.env; set +a
+          E2E_URL="http://localhost:${GATEWAY_PORT:-8080}" npm run e2e
+      - name: Logs de la stack en cas d'échec
+        if: failure()
+        run: docker compose logs --tail=200
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapport-playwright
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: warn
+      - name: Arrêter la stack
+        if: always()
+        run: docker compose down -v

@@ -1,7 +1,7 @@
-/// <reference types="vitest/config" />
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 
 // En développement, /api et /ws sont relayés vers la gateway (docker compose up -d) :
 // même origine qu'en production, donc aucune configuration CORS.
@@ -23,6 +23,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // e2e/ : tests Playwright sur la stack Docker (npm run e2e), hors de Vitest.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
     css: false,
     // Les tests de page affichent toute l'application (jsdom + interactions utilisateur) :
     // sur une machine chargée, certains dépassent les 5 s par défaut sans être bloqués.

@@ -3,6 +3,9 @@ target/
 *.class
 # Node
 node_modules/
+# Playwright (rapports et traces des tests de bout en bout)
+playwright-report/
+test-results/
 dist/
 coverage/
 # Python
