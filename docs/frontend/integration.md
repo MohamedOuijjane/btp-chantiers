@@ -313,11 +313,18 @@ curl -i -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/chantiers
 
 Dans le navigateur : se connecter, puis supprimer la clé `btp-session` dans le `sessionStorage` ou y modifier le jeton, et recharger une page : retour à `/connexion` avec « Session expirée ».
 
-## Tableau de bord (#26)
+## Tableau de bord (#26, #152) · Branché
 
-Le tableau de bord n'a pas d'API propre : il lit les hooks des quatre modules (chantiers, avancements, tâches, historique récent, ouvriers, matériaux, mouvements). Il fonctionnera dès que chaque module sera branché, sans modification. Chaque carte gère la panne de son module (503) : bandeau en haut de page et encadré « non disponible » dans la carte, les autres cartes restant affichées.
+Le tableau de bord n'a pas d'API propre : il lit les hooks des quatre modules (chantiers et leurs avancements, tâches, historique global `GET /api/taches/historique?limite=12`, ouvriers, matériaux, mouvements `ListerMouvements`). Une lecture en échec n'efface que les cartes de son module, les autres restent affichées, et aucune valeur n'est inventée (pas de « 0 » quand la lecture a échoué) :
 
-Pour la démo avec les données fictives, `?panne=taches` (ou `?panne=taches,ouvriers`) dans l'URL simule l'arrêt de ces modules (`src/api/simulation.ts`, supprimé à l'intégration).
+| Erreur d'un module | Haut de page | Cartes et sections du module |
+|---|---|---|
+| `503` (module injoignable, 502 / 504 de la gateway, délai dépassé) | Bandeau ambre « Mode dégradé · module X injoignable » | « Non disponible (module X) », « … le module X ne répond pas » |
+| Autre code (`500`, `403`…) | Bandeau rouge « Module X : message », avec le code et le `X-Request-Id` | « Erreur du module X », « … erreur 500 du module X » |
+
+L'historique global et les mouvements ont leur propre erreur, signalée dans « Dernières activités ». Un mouvement dont le chantier a été supprimé affiche « Chantier N ».
+
+En mode fictif seulement, `?panne=taches` (ou `?panne=taches,ouvriers`) dans l'URL simule l'arrêt de ces modules (`src/api/simulation.ts`). En mode réel, arrêter le service : `docker compose stop ouvriers-service`.
 
 ## Tester une intégration
 

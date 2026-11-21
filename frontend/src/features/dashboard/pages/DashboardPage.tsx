@@ -2,6 +2,7 @@ import { TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import type { ApiError } from '@/api/errors';
+import { AlerteErreur } from '@/components/common/AlerteErreur';
 import { BandeauDegrade } from '@/components/common/BandeauDegrade';
 import { StatutBadge } from '@/components/common/StatutBadge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,8 +18,24 @@ import { DernieresActivites } from '../components/DernieresActivites';
 import { CarteKpi, Indisponible, Section } from '../components/elements';
 import { RepartitionChantiers } from '../components/RepartitionChantiers';
 
-const enPanne = (e: ApiError | null) => e?.status === 503;
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
+
+type NomModule = 'Chantiers' | 'Tâches' | 'Ouvriers' | 'Matériaux';
+
+/**
+ * Texte d'une carte ou d'une section quand la lecture d'un module échoue : 503 = module injoignable
+ * (mode dégradé), autre code = erreur du module (les données ne sont pas affichées, jamais des zéros).
+ */
+function indisponibilite(e: ApiError, module: NomModule, panne: string) {
+  return e.status === 503
+    ? panne
+    : `${panne.split(' :')[0]} : erreur ${e.status} du module ${module}.`;
+}
+
+/** Erreur d'un module autre qu'une panne (500, 403…) : bandeau rouge avec code et X-Request-Id. */
+function ErreurModule({ module, erreur }: { module: NomModule; erreur: ApiError }) {
+  return <AlerteErreur erreur={{ ...erreur, message: `Module ${module} : ${erreur.message}` }} />;
+}
 
 /** Écran 2 de la maquette (et 8 en mode dégradé) : vue d'ensemble de l'activité. */
 export function DashboardPage() {
@@ -33,12 +50,21 @@ export function DashboardPage() {
   const enCours = listeChantiers.filter((c) => c.statut === 'EN_COURS');
   const avancements = useAvancementsChantiers(enCours.map((c) => c.id));
 
-  const pannes = {
-    chantiers: enPanne(chantiers.error),
-    taches: enPanne(taches.error),
-    ouvriers: enPanne(ouvriers.error),
-    materiaux: enPanne(materiaux.error),
+  // Erreur de lecture par module : 503 = panne (bandeau ambre), autre code = bandeau rouge.
+  const erreurs = {
+    chantiers: chantiers.error,
+    taches: taches.error,
+    ouvriers: ouvriers.error,
+    materiaux: materiaux.error,
   };
+  const carte = (e: ApiError | null, module: NomModule) =>
+    e
+      ? e.status === 503
+        ? `Non disponible (module ${module})`
+        : `Erreur du module ${module}`
+      : undefined;
+  const erreurHistorique = taches.error ?? historique.error;
+  const erreurMouvements = materiaux.error ?? mouvements.error;
 
   // Indicateurs
   const jour = aujourdhui();
@@ -71,7 +97,7 @@ export function DashboardPage() {
   const moyenne = connues.length
     ? Math.round(connues.reduce((s, v) => s + v, 0) / connues.length)
     : null;
-  const avancementIndispo = pannes.taches || valeurs.some((v) => v === null);
+  const avancementIndispo = !!erreurs.taches || valeurs.some((v) => v === null);
 
   // Tâches à suivre : en cours et bloquées, par date de fin
   const aSuivre = nonTerminees
@@ -85,26 +111,36 @@ export function DashboardPage() {
 
   return (
     <>
-      {pannes.chantiers && (
+      {erreurs.chantiers?.status === 503 && (
         <BandeauDegrade module="Chantiers" className="rounded-btn border-b-0 sm:px-5">
           La liste et la répartition des chantiers ne sont pas disponibles.
         </BandeauDegrade>
       )}
-      {pannes.taches && (
+      {erreurs.taches?.status === 503 && (
         <BandeauDegrade module="Tâches" className="rounded-btn border-b-0 sm:px-5">
           L’avancement et les plannings ne sont pas à jour. La création de tâches est refusée (503)
           jusqu’au retour du module.
         </BandeauDegrade>
       )}
-      {pannes.ouvriers && (
+      {erreurs.ouvriers?.status === 503 && (
         <BandeauDegrade module="Ouvriers" className="rounded-btn border-b-0 sm:px-5">
           Les disponibilités des ouvriers ne sont pas affichées.
         </BandeauDegrade>
       )}
-      {pannes.materiaux && (
+      {erreurs.materiaux?.status === 503 && (
         <BandeauDegrade module="Matériaux" className="rounded-btn border-b-0 sm:px-5">
           Le stock et les alertes de seuil ne sont pas affichés.
         </BandeauDegrade>
+      )}
+      {(
+        [
+          ['Chantiers', erreurs.chantiers],
+          ['Tâches', erreurs.taches],
+          ['Ouvriers', erreurs.ouvriers],
+          ['Matériaux', erreurs.materiaux],
+        ] as const
+      ).map(([module, e]) =>
+        e && e.status !== 503 ? <ErreurModule key={module} module={module} erreur={e} /> : null,
       )}
 
       <div className="flex flex-wrap gap-4">
@@ -112,7 +148,7 @@ export function DashboardPage() {
           titre="Chantiers en cours"
           vers="/chantiers?statut=EN_COURS"
           chargement={chantiers.isPending}
-          indisponible={pannes.chantiers ? 'Non disponible (module Chantiers)' : undefined}
+          indisponible={carte(erreurs.chantiers, 'Chantiers')}
           valeur={enCours.length}
           total={listeChantiers.length}
           detail={repartition || 'Aucun chantier'}
@@ -121,7 +157,7 @@ export function DashboardPage() {
           titre="Tâches en retard"
           vers="/taches"
           chargement={taches.isPending}
-          indisponible={pannes.taches ? 'Non disponible (module Tâches)' : undefined}
+          indisponible={carte(erreurs.taches, 'Tâches')}
           alerte={enRetard.length > 0}
           valeur={enRetard.length}
           detail={
@@ -137,20 +173,22 @@ export function DashboardPage() {
           titre="Ouvriers disponibles"
           vers="/ouvriers?disponibles=1"
           chargement={ouvriers.isPending}
-          indisponible={pannes.ouvriers ? 'Non disponible (module Ouvriers)' : undefined}
+          indisponible={carte(erreurs.ouvriers, 'Ouvriers')}
           valeur={disponibles.length}
           total={ouvriers.data?.length ?? 0}
           detail={
-            indisponibles.length
-              ? `Indisponibles : ${indisponibles.map((o) => `${o.prenom} ${o.nom}`).join(', ')}`
-              : 'Toute l’équipe est disponible'
+            !ouvriers.data?.length
+              ? 'Aucun ouvrier enregistré'
+              : indisponibles.length
+                ? `Indisponibles : ${indisponibles.map((o) => `${o.prenom} ${o.nom}`).join(', ')}`
+                : 'Toute l’équipe est disponible'
           }
         />
         <CarteKpi
           titre="Matériaux en alerte"
           vers="/materiaux?alerte=1"
           chargement={materiaux.isPending}
-          indisponible={pannes.materiaux ? 'Non disponible (module Matériaux)' : undefined}
+          indisponible={carte(erreurs.materiaux, 'Matériaux')}
           alerte={alertes.length > 0}
           valeur={alertes.length}
           detail="Stock inférieur ou égal au seuil"
@@ -163,14 +201,20 @@ export function DashboardPage() {
           lien={{ vers: '/chantiers?statut=EN_COURS', libelle: 'Tout voir' }}
           className="flex-[1_1_440px]"
         >
-          {pannes.chantiers ? (
+          {erreurs.chantiers ? (
             <Indisponible>
-              Chantiers non disponibles : le module Chantiers ne répond pas.
+              {indisponibilite(
+                erreurs.chantiers,
+                'Chantiers',
+                'Chantiers non disponibles : le module Chantiers ne répond pas.',
+              )}
             </Indisponible>
           ) : avancementIndispo ? (
             <Indisponible>
-              Avancement non disponible : le module Tâches ne répond pas. Les chantiers restent
-              consultables.
+              {erreurs.taches && erreurs.taches.status !== 503
+                ? `Avancement non disponible : erreur ${erreurs.taches.status} du module Tâches.`
+                : 'Avancement non disponible : le module Tâches ne répond pas.'}{' '}
+              Les chantiers restent consultables.
             </Indisponible>
           ) : chantiers.isPending ? (
             <Skeleton className="h-40" />
@@ -197,8 +241,14 @@ export function DashboardPage() {
           lien={{ vers: '/materiaux?alerte=1', libelle: 'Voir le stock' }}
           className="flex-[1_1_440px]"
         >
-          {pannes.materiaux ? (
-            <Indisponible>Stock non disponible : le module Matériaux ne répond pas.</Indisponible>
+          {erreurs.materiaux ? (
+            <Indisponible>
+              {indisponibilite(
+                erreurs.materiaux,
+                'Matériaux',
+                'Stock non disponible : le module Matériaux ne répond pas.',
+              )}
+            </Indisponible>
           ) : materiaux.isPending ? (
             <Skeleton className="h-32" />
           ) : alertes.length === 0 ? (
@@ -235,8 +285,12 @@ export function DashboardPage() {
           lien={{ vers: '/taches?statut=EN_COURS', libelle: 'Toutes les tâches' }}
           className="flex-[1_1_440px]"
         >
-          {pannes.taches ? (
-            <Indisponible>Liste indisponible pendant la panne du module Tâches.</Indisponible>
+          {erreurs.taches ? (
+            <Indisponible>
+              {erreurs.taches.status === 503
+                ? 'Liste indisponible pendant la panne du module Tâches.'
+                : `Liste non disponible : erreur ${erreurs.taches.status} du module Tâches.`}
+            </Indisponible>
           ) : taches.isPending ? (
             <Skeleton className="h-40" />
           ) : aSuivre.length === 0 ? (
@@ -271,9 +325,13 @@ export function DashboardPage() {
         </Section>
 
         <Section titre="Répartition des chantiers" className="flex-[1_1_440px]">
-          {pannes.chantiers ? (
+          {erreurs.chantiers ? (
             <Indisponible>
-              Répartition non disponible : le module Chantiers ne répond pas.
+              {indisponibilite(
+                erreurs.chantiers,
+                'Chantiers',
+                'Répartition non disponible : le module Chantiers ne répond pas.',
+              )}
             </Indisponible>
           ) : chantiers.isPending ? (
             <Skeleton className="h-32" />
@@ -284,7 +342,7 @@ export function DashboardPage() {
       </div>
 
       <Section titre="Dernières activités">
-        {pannes.taches && pannes.materiaux ? (
+        {erreurHistorique && erreurMouvements ? (
           <Indisponible>
             Activités non disponibles : les modules Tâches et Matériaux ne répondent pas.
           </Indisponible>
@@ -292,17 +350,18 @@ export function DashboardPage() {
           <Skeleton className="h-40" />
         ) : (
           <>
-            {(pannes.taches || pannes.materiaux) && (
+            {erreurHistorique && (
               <Indisponible>
-                {pannes.taches
-                  ? 'Changements de statut des tâches indisponibles (module Tâches).'
-                  : 'Mouvements de stock indisponibles (module Matériaux).'}
+                Changements de statut des tâches indisponibles (module Tâches).
               </Indisponible>
             )}
+            {erreurMouvements && (
+              <Indisponible>Mouvements de stock indisponibles (module Matériaux).</Indisponible>
+            )}
             <DernieresActivites
-              changements={pannes.taches ? undefined : historique.data}
+              changements={erreurHistorique ? undefined : historique.data}
               taches={parTache}
-              mouvements={pannes.materiaux ? undefined : mouvements.data}
+              mouvements={erreurMouvements ? undefined : mouvements.data}
               materiaux={parMateriau}
               chantiers={parChantier}
             />
