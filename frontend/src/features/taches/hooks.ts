@@ -33,22 +33,31 @@ function rafraichir(qc: QueryClient) {
 }
 
 export function useTaches(filtre: FiltreTaches = {}) {
-  return useQuery({ queryKey: clesTaches.liste(filtre), queryFn: () => api.listerTaches(filtre) });
+  return useQuery({
+    queryKey: clesTaches.liste(filtre),
+    queryFn: ({ signal }) => api.listerTaches(filtre, { signal }),
+  });
 }
 
 export function useTache(id: number) {
-  return useQuery({ queryKey: clesTaches.detail(id), queryFn: () => api.getTache(id) });
+  return useQuery({
+    queryKey: clesTaches.detail(id),
+    queryFn: ({ signal }) => api.getTache(id, { signal }),
+  });
 }
 
 export function useHistorique(id: number) {
-  return useQuery({ queryKey: clesTaches.historique(id), queryFn: () => api.getHistorique(id) });
+  return useQuery({
+    queryKey: clesTaches.historique(id),
+    queryFn: ({ signal }) => api.getHistorique(id, { signal }),
+  });
 }
 
 /** Derniers changements de statut, toutes tâches confondues (tableau de bord). */
 export function useHistoriqueRecent(limite = 10) {
   return useQuery({
     queryKey: clesTaches.historiqueRecent(limite),
-    queryFn: () => api.listerHistorique(limite),
+    queryFn: ({ signal }) => api.listerHistorique(limite, { signal }),
   });
 }
 

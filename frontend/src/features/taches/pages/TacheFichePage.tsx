@@ -15,6 +15,7 @@ import { SPECIALITES } from '@/features/ouvriers/types';
 import { formatDate, initiales } from '@/lib/format';
 
 import { ActionStatut } from '../components/ActionStatut';
+import { ActionsTache } from '../components/ActionsTache';
 import { HistoriqueStatuts } from '../components/HistoriqueStatuts';
 import { useOuvriersTaches, useTache } from '../hooks';
 import { tonTache } from '../presentation';
@@ -73,6 +74,7 @@ export function TacheFichePage() {
               Modifier
             </Button>
           )}
+          {t && planifie && <ActionsTache tache={t} lectureSeule={clos} />}
           {t && planifie && <ActionStatut tache={t} lectureSeule={clos} taille="default" />}
         </div>
       </div>

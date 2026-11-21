@@ -304,3 +304,62 @@ describe('Formulaire de tâche', () => {
     expect(alerte).toHaveTextContent('503');
   });
 });
+
+describe('Fiche tâche : blocage et avancement', () => {
+  it('bloque avec un motif obligatoire, puis débloque', async () => {
+    afficherApp('/taches/6');
+    await userEvent.click(await screen.findByRole('button', { name: 'Bloquer' }));
+    const d = screen.getByRole('dialog', { name: 'Bloquer la tâche' });
+    await userEvent.click(within(d).getByRole('button', { name: 'Bloquer' }));
+    expect(within(d).getByLabelText('Motif du blocage')).toHaveAccessibleDescription(
+      'Le motif est obligatoire',
+    );
+
+    await userEvent.type(within(d).getByLabelText('Motif du blocage'), 'Livraison en retard');
+    await userEvent.click(within(d).getByRole('button', { name: 'Bloquer' }));
+
+    expect(await screen.findByText('« Installation électrique » est bloquée.')).toBeInTheDocument();
+    expect(await screen.findByText('Motif du blocage : Livraison en retard')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Avancement' })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Débloquer' }));
+    expect(
+      await screen.findByText('« Installation électrique » est débloquée.'),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Bloquer' })).toBeInTheDocument();
+  });
+
+  it('met à jour l’avancement (60 %) et refuse une valeur hors de 0 à 100', async () => {
+    afficherApp('/taches/6');
+    await userEvent.click(await screen.findByRole('button', { name: 'Avancement' }));
+    const d = screen.getByRole('dialog', { name: 'Mettre à jour l’avancement' });
+    const champ = within(d).getByLabelText('Avancement (%)');
+
+    await userEvent.clear(champ);
+    await userEvent.type(champ, '150');
+    await userEvent.click(within(d).getByRole('button', { name: 'Enregistrer' }));
+    expect(champ).toHaveAccessibleDescription('Un nombre entier entre 0 et 100');
+
+    await userEvent.clear(champ);
+    await userEvent.type(champ, '60');
+    await userEvent.click(within(d).getByRole('button', { name: 'Enregistrer' }));
+
+    expect(
+      await screen.findByText('Avancement de « Installation électrique » : 60 %.'),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('60 %')).toBeInTheDocument();
+  });
+
+  it('tâche terminée : ni blocage ni avancement', async () => {
+    afficherApp('/taches/7');
+    expect(await screen.findByRole('button', { name: 'Bloquer' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Avancement' })).toBeDisabled();
+  });
+
+  it('la direction (sans taches.ecrire) ne voit ni Bloquer ni Avancement', async () => {
+    afficherApp('/taches/6', { role: 'DIRECTION' });
+    await screen.findByRole('heading', { level: 1, name: 'Installation électrique' });
+    expect(screen.queryByRole('button', { name: 'Bloquer' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Avancement' })).not.toBeInTheDocument();
+  });
+});
