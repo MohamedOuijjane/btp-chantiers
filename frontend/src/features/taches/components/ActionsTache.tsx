@@ -23,8 +23,8 @@ type Props = { tache: Tache; lectureSeule?: boolean };
 
 /**
  * Fiche tâche : bloquer avec un motif, débloquer (PATCH /blocage, #11) et mettre à jour
- * l'avancement (PATCH /avancement). L'avancement d'une tâche bloquée ou terminée est désactivé
- * (l'API devrait le refuser, #143).
+ * l'avancement (PATCH /avancement). L'avancement d'une tâche bloquée ou terminée est désactivé ;
+ * si la tâche a été bloquée entre-temps, le refus de l'API (409, #143) s'affiche dans le dialogue.
  */
 export function ActionsTache({ tache: t, lectureSeule = false }: Props) {
   const [dialogue, setDialogue] = useState<'bloquer' | 'avancement' | null>(null);

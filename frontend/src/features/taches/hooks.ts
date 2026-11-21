@@ -90,6 +90,10 @@ export function useMajAvancement() {
   return useMutation<Tache, ApiError, { id: number; avancement: number }>({
     mutationFn: ({ id, avancement }) => api.majAvancement(id, avancement),
     onSuccess: () => rafraichir(qc),
+    // 409 : la tâche a été bloquée entre-temps ; la fiche est relue pour l'afficher bloquée.
+    onError: (e) => {
+      if (e.status === 409) void rafraichir(qc);
+    },
   });
 }
 

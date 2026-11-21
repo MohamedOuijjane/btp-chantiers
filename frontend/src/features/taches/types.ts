@@ -15,14 +15,11 @@ export type Tache = {
   dateDebut: string;
   dateFin: string;
   statut: StatutTache;
-  /** Pourcentage de 0 à 100 ; le statut en découle (RG5) sauf si la tâche est bloquée. */
+  /** Pourcentage de 0 à 100 ; le statut en découle (RG5). Refusé sur une tâche bloquée (409). */
   avancement: number;
   ouvrierIds: number[];
   besoinsMateriaux: BesoinMateriau[];
-  /**
-   * Motif du blocage quand statut = BLOQUEE, sinon null. L'API ne le renvoie pas encore (#141) :
-   * en mode réel, il est lu dans l'historique sur la fiche, et vaut null dans les listes.
-   */
+  /** Motif du blocage en cours quand statut = BLOQUEE, sinon null (#141). */
   motif: string | null;
 };
 
@@ -56,9 +53,3 @@ export type ChangementStatut = {
   date: string;
   motif?: string;
 };
-
-/**
- * Derniers changements de statut, toutes tâches confondues (tableau de bord). incomplet : en
- * mode réel, l'historique de certaines tâches n'a pas pu être lu (voir api.reel.ts, #142).
- */
-export type HistoriqueRecent = ChangementStatut[] & { incomplet?: boolean };
