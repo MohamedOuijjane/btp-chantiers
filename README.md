@@ -66,7 +66,7 @@ flowchart LR
 
 Toute l'application partage **une seule base PostgreSQL** (`btp_db`). Chaque module possède son propre schéma et son propre utilisateur, sans aucun droit sur les schémas des autres : voir [ADR-0005](docs/adr/0005-base-de-donnees-unique.md).
 
-> Migration en cours vers la base unique : il reste Matériaux (MySQL, #17). Tâches est sur PostgreSQL (schéma `taches`, migrations TypeORM) depuis #6.
+> Les quatre modules sont sur la base unique : Chantiers, Ouvriers, Tâches (schéma `taches`, migrations TypeORM, #6) et Matériaux (schéma `materiaux`, #17).
 
 **Authentification :** la connexion émet un JWT (Chantiers, `POST /api/auth/login`) que la gateway vérifie avant toute requête vers `/api/*` et `/ws`. Tâches, Ouvriers et Matériaux n'ont rien à vérifier : voir [ADR-0006](docs/adr/0006-authentification-jwt-gateway.md).
 
@@ -115,7 +115,7 @@ Les personnes et la société Souss Bâtiment sont fictives. Après 5 échecs de
 | WSDL Matériaux | http://localhost:8080/ws/materiaux.wsdl |
 | Santé de la gateway | http://localhost:8080/health |
 
-Une collection Postman prête à importer est disponible : [`docs/api/btp-chantiers.postman_collection.json`](docs/api/btp-chantiers.postman_collection.json).
+Une collection Postman prête à importer est disponible : [`docs/api/btp-chantiers.postman_collection.json`](docs/api/btp-chantiers.postman_collection.json). Elle est autonome (50 requêtes, les 4 modules et l'authentification) : lancée en entier, elle crée ses données, vérifie chaque réponse puis supprime ce qu'elle a créé, sur une base vide comme sur la base de démo. En ligne de commande, stack démarrée : `make postman` (Newman).
 
 ## Structure du dépôt
 
@@ -123,7 +123,8 @@ Une collection Postman prête à importer est disponible : [`docs/api/btp-chanti
 btp-chantiers/
 ├── services/
 │   ├── chantiers-service/    # Spring Boot, REST
-│   ├── taches-service/       # NestJS, REST + client SOAP
+│   ├── taches-service-v2/    # NestJS, REST + client SOAP
+│   ├── taches-service/       # v1 archivée (remplacée par la v2, ni construite ni testée)
 │   ├── ouvriers-service/     # FastAPI, REST
 │   └── materiaux-service/    # Spring-WS, SOAP contract-first
 ├── frontend/                 # React + Vite (en cours)
@@ -152,7 +153,7 @@ Chaque service peut être lancé seul. Démarrer d'abord la base : `docker compo
 cd services/chantiers-service && mvn spring-boot:run
 
 # Tâches (applique ses migrations au démarrage ; taches_user sur localhost:5432/btp_db)
-cd services/taches-service && npm install && DB_PASSWORD=<TACHES_DB_PASSWORD du .env> npm run start:dev
+cd services/taches-service-v2 && npm install && DB_PASSWORD=<TACHES_DB_PASSWORD du .env> npm run start:dev
 
 # Ouvriers
 cd services/ouvriers-service && pip install -r requirements-dev.txt && uvicorn app.main:app --reload --port 8083
