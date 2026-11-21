@@ -29,6 +29,17 @@ export async function connecter(page: Page, profil: Profil = 'CONDUCTEUR') {
   await expect(page).not.toHaveURL(/\/connexion/);
 }
 
+/**
+ * Référence de matériau propre au test (format ^[A-Z]{2,5}-\d{3}$). Le web service Matériaux
+ * n'a pas d'opération de suppression : les matériaux créés par les tests restent en base.
+ */
+export function referenceUnique() {
+  const lettres = Array.from({ length: 4 }, () =>
+    String.fromCharCode(65 + Math.floor(Math.random() * 26)),
+  ).join('');
+  return `E${lettres}-${Math.floor(100 + Math.random() * 900)}`;
+}
+
 /** CIN marocaine valide et propre au test (format ^[A-Z]{1,2}\d{3,8}$). */
 export function cinUnique() {
   return `E${Math.floor(1_000_000 + Math.random() * 8_999_999)}`;
@@ -73,6 +84,12 @@ export class Api {
       dateFinPrevue: '2027-12-20',
       budget: 1_500_000,
     });
+  }
+
+  /** Clôture d'un chantier (statut TERMINE) : plus aucun mouvement de stock accepté. */
+  async cloturerChantier(id: number) {
+    const r = await this.http.patch(`/api/chantiers/${id}/cloture`, { headers: this.entetes });
+    expect(r.status(), `PATCH /api/chantiers/${id}/cloture : ${await r.text()}`).toBe(200);
   }
 
   creerOuvrier(prenom: string, nom: string, cin: string) {
