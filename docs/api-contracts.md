@@ -114,6 +114,7 @@ POST /api/taches
   "dateFin": "2026-11-10",
   "statut": "A_FAIRE",
   "avancement": 0,
+  "motif": null,
   "ouvrierIds": [1],
   "besoinsMateriaux": [{ "materiauId": 1, "quantite": 40 }]
 }
@@ -123,6 +124,7 @@ POST /api/taches
 - Données dans le schéma `taches` de `btp_db` : tables `tache` et `besoin_materiau` (classe d'association), créées par les migrations TypeORM.
 - Un même `materiauId` ne peut apparaître qu'une fois dans `besoinsMateriaux` (`400`).
 
+- **Motif de blocage** : chaque tâche renvoyée par l'API (`GET /api/taches`, `GET /api/taches/{id}` et les routes d'écriture) contient `motif` : le motif du blocage en cours si `statut = BLOQUEE`, sinon `null`. Il est lu dans l'historique des statuts (`historique_statut`) ; aucune colonne n'est ajoutée. Ajout compatible : les clients existants ignorent le champ.
 
 Codes de refus à la création (RG-03, RG-04, RG-07) : chantier inconnu → `404` ; chantier `SUSPENDU` ou `TERMINE` → `409` (seuls `PLANIFIE` et `EN_COURS` acceptent une tâche) ; ouvrier indisponible ou stock insuffisant → `422` ; Chantiers, Ouvriers ou Matériaux injoignable → `503`.
 
