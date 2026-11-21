@@ -6,7 +6,7 @@ Parcours rejoués dans un vrai navigateur (Chromium) sur la stack Docker complè
 |---|---|
 | `connexion.spec.ts` | Connexion du conducteur de travaux (menu complet), du magasinier (Matériaux sans Ouvriers), mot de passe refusé, déconnexion |
 | `chantiers.spec.ts` | Création d'un chantier ; suppression refusée (409, tâche citée) ; suppression acceptée (#5) |
-| `taches.spec.ts` | Création d'une tâche depuis la fiche chantier ; démarrage, avancement à 60 %, blocage avec motif et déblocage ; affectation d'un ouvrier depuis sa fiche (#50) |
+| `taches.spec.ts` | Création d'une tâche depuis la fiche chantier ; démarrage, avancement à 60 %, blocage avec motif et déblocage ; affectation d'un ouvrier depuis sa fiche (#50) ; avancement refusé (409) sur une tâche bloquée entre-temps (#143) |
 | `ouvriers.spec.ts` | Création d'un ouvrier ; CIN en double sous le champ (#114) ; suppression refusée (409, tâche citée) ; suppression acceptée (#15) |
 | `materiaux.spec.ts` | Magasinier : nouveau matériau, entrée, sortie refusée (stock insuffisant, 422), sortie sous le seuil (alerte), onglet « Matériaux consommés » ; sortie refusée sur un chantier clôturé ; référence déjà utilisée (409) (#52) |
 

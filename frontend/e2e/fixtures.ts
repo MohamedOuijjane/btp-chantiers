@@ -111,6 +111,15 @@ export class Api {
     });
   }
 
+  /** Blocage d'une tâche (PATCH /blocage), par exemple par un autre utilisateur pendant le test. */
+  async bloquerTache(id: number, motif: string) {
+    const r = await this.http.patch(`/api/taches/${id}/blocage`, {
+      data: { bloquee: true, motif },
+      headers: this.entetes,
+    });
+    expect(r.status(), `PATCH /api/taches/${id}/blocage : ${await r.text()}`).toBe(200);
+  }
+
   /** Les données créées par l'interface sont retrouvées ici pour être supprimées aussi. */
   async suivre(
     chemin: '/api/chantiers' | '/api/ouvriers' | '/api/taches',
