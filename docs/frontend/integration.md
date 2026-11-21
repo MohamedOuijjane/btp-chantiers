@@ -12,8 +12,8 @@ Ce guide décrit l'étape 2.
 | Module | Responsable | Issue | Statut | Mode par défaut (`.env.development`, `.env.production`) |
 |---|---|---|---|---|
 | Chantiers | OUIJJANE Mohamed | #49 | **Branché** | `reel` |
-| Tâches & Avancement | OUIJJANE Mohamed | #50 | À brancher (après #99, #11 ; #6 faite) | `fictif` |
-| Ouvriers | BENZINEB Ilyas, OUIJJANE Mohamed | #51 | **Branché** (affectations masquées jusqu'à #50, voir la section Ouvriers) | `reel` |
+| Tâches & Avancement | OUIJJANE Mohamed | #50 | **Branché** (motif et historique global compensés côté front : #141, #142) | `reel` |
+| Ouvriers | BENZINEB Ilyas, OUIJJANE Mohamed | #51 | **Branché** (affectations visibles depuis #50) | `reel` |
 | Matériaux | SALHI Hatim | #52 | À brancher (après #17, #18, #102) ; `src/api/soap.ts` à écrire | `fictif` |
 | Authentification | OUIJJANE Mohamed | #109 | **Branchée** (JWT, voir la section Authentification) | `reel` |
 
@@ -121,36 +121,29 @@ Fichiers : `src/features/chantiers/api.ts` (choix du mode), `api.reel.ts` (API r
 6. `docker compose stop taches-service` : la fiche reste affichée, l'avancement est « non disponible ».
 7. `docker compose stop chantiers-service` : encart « Module indisponible » (**503**) sur la liste.
 
-## Tâches & Avancement · OUIJJANE Mohamed · #50
+## Tâches & Avancement · OUIJJANE Mohamed · #50 · Branché
 
-Fichier : `src/features/taches/api.ts`. Pages déjà construites avec les données fictives (#28) : liste `/taches`, fiche `/taches/:id`, création `/taches/nouvelle` et `/chantiers/:id/taches/nouvelle`, modification `/taches/:id/modifier`, onglet Tâches de la fiche chantier.
+Fichiers : `src/features/taches/api.ts` (choix du mode), `api.reel.ts` (API réelle, Tâches v2), `api.fictif.ts` (données fictives), `api.reel.test.ts` et `pages/taches-reel.test.tsx` (pages en mode réel). Pages : liste `/taches`, fiche `/taches/:id` (statut, **avancement, blocage et déblocage**), création `/taches/nouvelle` et `/chantiers/:id/taches/nouvelle`, modification `/taches/:id/modifier`, onglet Tâches de la fiche chantier, affectations depuis la fiche ouvrier.
 
-### Fonctions à brancher
-
-| Fonction | Endpoint réel | Codes | Issue backend |
+| Fonction | Endpoint réel | Codes | Remarque |
 |---|---|---|---|
-| `listerTaches(filtre)` | `GET /api/taches?chantierId=&ouvrierId=` | 200 | #6 (`id` entier) |
-| `getTache(id)` | `GET /api/taches/{id}` | 200, 404 | #6 |
-| `creerTache(donnees)` | `POST /api/taches` | 201, 400, 404, 409, 422, 503 | #6, #10 (conflit de planning → 409) |
-| `modifierTache(id, donnees)` | `PUT /api/taches/{id}` (mêmes champs que la création) | 200, 400, 404, 409, 422, 503 | **à créer** |
-| `changerStatut(id, statut)` | `PATCH /api/taches/{id}/statut` `{ statut: "EN_COURS" \| "TERMINEE" }` | 200, 404, 409 | **à créer** |
-| `majAvancement(id, avancement)` | `PATCH /api/taches/{id}/avancement` `{ avancement }` | 200, 400, 404, 409 | |
-| `affecterOuvriers(id, ouvrierIds)` | `PATCH /api/taches/{id}/ouvriers` `{ ouvrierIds }` | 200, 409, 422 | #10 |
-| `bloquerTache(id, blocage)` | `PATCH /api/taches/{id}/blocage` `{ bloquee, motif? }` | 200, 400, 404, 409 | **#11** (à créer) |
-| `getHistorique(id)` | `GET /api/taches/{id}/historique` → `[{ tacheId, statut, date, motif? }]`, du plus récent au plus ancien | 200, 404 | **à créer** |
-| `listerHistorique(limite)` | `GET /api/taches/historique?limite=` → derniers changements de statut, toutes tâches confondues (tableau de bord) | 200 | **à créer** (#99) |
-| `supprimerTache(id)` | `DELETE /api/taches/{id}` | 204, 404 | |
+| `listerTaches(filtre)` | `GET /api/taches?chantierId=&ouvrierId=` | 200 | `motif` à `null` : l'API ne le renvoie pas encore (#141) |
+| `getTache(id)` | `GET /api/taches/{id}` | 200, 400, 404 | Tâche bloquée : motif lu dans l'historique, dernière entrée `BLOQUEE` (#141) |
+| `creerTache(donnees)` | `POST /api/taches` | 201, 400, 404, 409, 422, 503 | 409 : chantier clôturé ou suspendu, conflit de planning ; 422 : ouvrier indisponible, stock insuffisant |
+| `modifierTache(id, donnees)` | `PUT /api/taches/{id}` | 200, 400, 404, 409, 422, 503 | Mêmes vérifications que la création |
+| `changerStatut(id, statut)` | `PATCH /api/taches/{id}/statut` `{ statut: "EN_COURS" \| "TERMINEE" }` | 200, 400, 404, 409 | 409 : transition impossible, tâche bloquée |
+| `majAvancement(id, avancement)` | `PATCH /api/taches/{id}/avancement` `{ avancement }` | 200, 400, 404 | Le statut suit l'avancement (RG5). Une tâche bloquée devrait donner 409 (#143) : le bouton est désactivé dans la fiche |
+| `affecterOuvriers(id, ouvrierIds)` | `PATCH /api/taches/{id}/ouvriers` `{ ouvrierIds }` | 200, 404, 409, 422 | 409 : ouvrier occupé sur la période (#10) |
+| `bloquerTache(id, blocage)` | `PATCH /api/taches/{id}/blocage` `{ bloquee, motif? }` | 200, 400, 404, 409 | Motif obligatoire pour bloquer (400 sinon) ; repris dans la tâche renvoyée |
+| `getHistorique(id)` | `GET /api/taches/{id}/historique` | 200, 400, 404 | Du plus récent au plus ancien ; `date` avec l'heure (ISO) |
+| `listerHistorique(limite)` | Calculé côté front (`historiqueRecentCalcule`) | — | En attendant `GET /api/taches/historique?limite=` (#142) : historiques des **20 tâches les plus récemment créées**, lus en parallèle ; résultat marqué `incomplet` si une partie échoue (encart discret sur le tableau de bord) |
+| `supprimerTache(id)` | `DELETE /api/taches/{id}` | 204, 400, 404 | Pas d'interface de suppression pour l'instant |
 
-Depuis #6, l'API renvoie un `id` entier et des dates `aaaa-mm-jj`, comme `types.ts` : aucune adaptation à faire.
+### Écarts avec le backend (issues pour Tâches)
 
-### Endpoints à créer côté Tâches
-
-Les pages (dont le tableau de bord, #26) en ont besoin ; leur comportement est celui des fonctions fictives (à reprendre dans les tests Jest) :
-
-- **`PUT /api/taches/{id}`** : modification ; mêmes vérifications que la création (chantier, ouvriers en excluant la tâche elle-même, stock).
-- **`PATCH /api/taches/{id}/statut`** : transitions À faire → En cours et En cours → Terminée (l'avancement passe alors à 100 %, cohérent avec RG5) ; toute autre transition, une tâche bloquée ou un chantier clôturé → **409**.
-- **`GET /api/taches/historique?limite=`** : mêmes entrées, toutes tâches confondues, du plus récent au plus ancien ; utilisé par « Dernières activités » du tableau de bord.
-- **`GET /api/taches/{id}/historique`** : chaque changement de statut (création, statut, avancement, blocage) est enregistré avec sa date et, pour un blocage, son motif.
+- **#141** : la réponse d'une tâche n'a pas de `motif` ; le front le lit dans l'historique, sur la fiche seulement (la liste montre le badge « Bloquée » sans motif).
+- **#142** : pas d'historique global ; calculé côté front dans une seule fonction (`historiqueRecentCalcule` de `api.reel.ts`), à remplacer par l'endpoint.
+- **#143** : l'avancement d'une tâche bloquée est accepté (200) au lieu d'être refusé (409).
 
 ### Erreurs attendues par les pages
 
@@ -182,11 +175,9 @@ Fichiers : `src/features/ouvriers/api.ts` (choix du mode), `api.reel.ts` (API r�
 | `supprimerOuvrier(id)` | `DELETE /api/ouvriers/{id}` | 204, 404, 409, 503 | 409 : tâche `A_FAIRE`, `EN_COURS` ou `BLOQUEE`, citée dans le message (#15) ; 503 : Tâches injoignable, rien n'est supprimé |
 | `getPlanning(id)` | `GET /api/ouvriers/{id}/planning` | 200, 404 | `sourceDisponible` en camelCase (#14) ; tâches triées par date de début dans `api.reel.ts` |
 
-### Affectations : masquées tant que Tâches est fictif
+### Affectations
 
-Affecter l'ouvrier à une tâche et le retirer d'une tâche passent par le module Tâches : `PATCH /api/taches/{id}/ouvriers` (`useAffecterOuvriers`, `useRetirerOuvrier`). Tant que Tâches est en `fictif` alors qu'Ouvriers est en `reel`, ces actions modifieraient une tâche fictive pendant que le planning affiché vient du vrai module Tâches. La fiche ouvrier masque donc « Affecter à une tâche » et les boutons « Retirer » (condition `estReel('taches') || !estReel('ouvriers')` dans `OuvrierFichePage.tsx`). Ils réapparaissent sans autre changement quand #50 passe Tâches en `reel` ; en mode tout fictif (démo, tests), ils restent visibles.
-
-Tant que #50 n'est pas faite, les pages Tâches (fictives) cherchent leurs `ouvrierIds` fictifs parmi les ouvriers réels : un identifiant sans ouvrier réel s'affiche « Ouvrier 3 », et un identifiant qui existe aussi côté réel affiche le nom de cet ouvrier réel.
+Affecter l'ouvrier à une tâche et le retirer d'une tâche passent par le module Tâches : `PATCH /api/taches/{id}/ouvriers` (`useAffecterOuvriers`, `useRetirerOuvrier`). La fiche ouvrier n'affiche « Affecter à une tâche » et les boutons « Retirer » que si Tâches est en `reel` ou si Ouvriers est en `fictif` (condition `estReel('taches') || !estReel('ouvriers')` dans `OuvrierFichePage.tsx`), pour ne jamais modifier une tâche fictive depuis un planning réel. Depuis #50, les deux modules sont en `reel` : les actions sont visibles.
 
 ### Erreurs affichées par les pages
 
