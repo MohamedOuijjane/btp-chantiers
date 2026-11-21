@@ -33,22 +33,31 @@ function rafraichir(qc: QueryClient) {
 }
 
 export function useTaches(filtre: FiltreTaches = {}) {
-  return useQuery({ queryKey: clesTaches.liste(filtre), queryFn: () => api.listerTaches(filtre) });
+  return useQuery({
+    queryKey: clesTaches.liste(filtre),
+    queryFn: ({ signal }) => api.listerTaches(filtre, { signal }),
+  });
 }
 
 export function useTache(id: number) {
-  return useQuery({ queryKey: clesTaches.detail(id), queryFn: () => api.getTache(id) });
+  return useQuery({
+    queryKey: clesTaches.detail(id),
+    queryFn: ({ signal }) => api.getTache(id, { signal }),
+  });
 }
 
 export function useHistorique(id: number) {
-  return useQuery({ queryKey: clesTaches.historique(id), queryFn: () => api.getHistorique(id) });
+  return useQuery({
+    queryKey: clesTaches.historique(id),
+    queryFn: ({ signal }) => api.getHistorique(id, { signal }),
+  });
 }
 
 /** Derniers changements de statut, toutes tâches confondues (tableau de bord). */
 export function useHistoriqueRecent(limite = 10) {
   return useQuery({
     queryKey: clesTaches.historiqueRecent(limite),
-    queryFn: () => api.listerHistorique(limite),
+    queryFn: ({ signal }) => api.listerHistorique(limite, { signal }),
   });
 }
 
@@ -81,6 +90,10 @@ export function useMajAvancement() {
   return useMutation<Tache, ApiError, { id: number; avancement: number }>({
     mutationFn: ({ id, avancement }) => api.majAvancement(id, avancement),
     onSuccess: () => rafraichir(qc),
+    // 409 : la tâche a été bloquée entre-temps ; la fiche est relue pour l'afficher bloquée.
+    onError: (e) => {
+      if (e.status === 409) void rafraichir(qc);
+    },
   });
 }
 

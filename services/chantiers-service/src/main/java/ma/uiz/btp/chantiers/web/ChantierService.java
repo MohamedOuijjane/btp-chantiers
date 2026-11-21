@@ -1,34 +1,46 @@
 package ma.uiz.btp.chantiers.web;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import ma.uiz.btp.chantiers.client.TachesClient;
-import ma.uiz.btp.chantiers.domain.*;
+import ma.uiz.btp.chantiers.domain.Chantier;
+import ma.uiz.btp.chantiers.domain.ChantierRepository;
+import ma.uiz.btp.chantiers.domain.RegleMetierException;
+import ma.uiz.btp.chantiers.domain.RessourceIntrouvableException;
+import ma.uiz.btp.chantiers.domain.StatutChantier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-
+/** Règles de gestion des chantiers (RG1 à RG4) ; suppression vérifiée auprès de Tâches (#5). */
 @Service
 @Transactional
 public class ChantierService {
 
+    /** Titres de tâches cités dans le refus de suppression ; les suivantes sont comptées. */
+    static final int TITRES_CITES = 5;
+
     private final ChantierRepository repository;
     private final TachesClient tachesClient;
 
+    /** Crée le service avec le dépôt des chantiers et le client du module Tâches. */
     public ChantierService(ChantierRepository repository, TachesClient tachesClient) {
         this.repository = repository;
         this.tachesClient = tachesClient;
     }
 
+    /** Liste les chantiers, tous ou ceux d'un statut donné. */
     @Transactional(readOnly = true)
     public List<Chantier> lister(StatutChantier statut) {
         return statut == null ? repository.findAll() : repository.findByStatut(statut);
     }
 
+    /** Renvoie le chantier, ou lève RessourceIntrouvableException (404). */
     @Transactional(readOnly = true)
     public Chantier trouver(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RessourceIntrouvableException("Chantier " + id + " introuvable"));
+                .orElseThrow(() ->
+                        new RessourceIntrouvableException("Chantier " + id + " introuvable"));
     }
 
     /** RG4 : un nouveau chantier est toujours PLANIFIE, le statut envoyé est ignoré. */
@@ -39,12 +51,13 @@ public class ChantierService {
         return repository.save(c);
     }
 
+    /** Modifie un chantier qui n'est pas terminé ; le passage à TERMINE passe par la clôture. */
     public Chantier modifier(Long id, ChantierDto.Requete r) {
         Chantier c = trouver(id);
         c.verifierModifiable();
         if (r.statut() == StatutChantier.TERMINE) {
-            throw new RegleMetierException("Un chantier ne peut pas passer à TERMINE par modification : utiliser PATCH /api/chantiers/"
-                    + id + "/cloture.");
+            throw new RegleMetierException("Un chantier ne peut pas passer à TERMINE par "
+                    + "modification : utiliser PATCH /api/chantiers/" + id + "/cloture.");
         }
         verifierDonnees(r);
         appliquer(c, r);
@@ -54,14 +67,37 @@ public class ChantierService {
         return c;
     }
 
+    /** Clôture le chantier, qui devient non modifiable (RG-02). */
     public Chantier cloturer(Long id) {
         Chantier c = trouver(id);
         c.cloturer();
         return c;
     }
 
+    /**
+     * #5 : un chantier qui a des tâches (quel que soit leur statut, terminées comprises) ne peut
+     * pas être supprimé, sinon ses tâches deviendraient orphelines dans le module Tâches (409).
+     * Si Tâches ne peut pas être interrogé, rien n'est supprimé (503).
+     */
     public void supprimer(Long id) {
-        repository.delete(trouver(id));
+        Chantier chantier = trouver(id);
+        List<TachesClient.TacheResume> taches = tachesClient.tachesAvantSuppression(id);
+        if (!taches.isEmpty()) {
+            throw new RegleMetierException(messageRefusSuppression(chantier, taches));
+        }
+        repository.delete(chantier);
+    }
+
+    static String messageRefusSuppression(Chantier chantier,
+                                          List<TachesClient.TacheResume> taches) {
+        String titres = taches.stream().limit(TITRES_CITES)
+                .map(t -> "« " + t.titre() + " »")
+                .collect(Collectors.joining(", "));
+        int autres = taches.size() - TITRES_CITES;
+        return "Suppression impossible : le chantier « " + chantier.getNom() + " » a "
+                + taches.size() + " tâche(s) : " + titres
+                + (autres > 0 ? " et " + autres + " autre(s)" : "")
+                + ". Supprimez ses tâches dans le module Tâches avant de supprimer le chantier.";
     }
 
     /**
@@ -77,7 +113,8 @@ public class ChantierService {
             return new ChantierDto.Avancement(id, 0, null, false);
         }
         List<TachesClient.TacheResume> liste = taches.get();
-        double moyenne = liste.stream().mapToInt(TachesClient.TacheResume::avancement).average().orElse(0);
+        double moyenne = liste.stream()
+                .mapToInt(TachesClient.TacheResume::avancement).average().orElse(0);
         return new ChantierDto.Avancement(id, liste.size(), Math.round(moyenne * 10) / 10.0, true);
     }
 

@@ -1,7 +1,5 @@
 package ma.uiz.btp.chantiers.auth;
 
-import org.springframework.stereotype.Component;
-
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -9,6 +7,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.stereotype.Component;
 
 /**
  * Limite les échecs de connexion (force brute) : au-delà de N échecs pour un même e-mail, ou de M
@@ -24,6 +23,10 @@ public class LimiteurTentatives {
     private final Duration fenetre;
     private final Clock horloge;
 
+    /**
+     * Lit les limites dans la configuration (par défaut 5 échecs par e-mail et 20 par
+     * adresse IP, sur 15 minutes).
+     */
     public LimiteurTentatives(AuthProperties proprietes, Clock horloge) {
         AuthProperties.Tentatives t = proprietes.tentatives();
         this.maxParEmail = t == null ? 5 : t.maxParEmail();
@@ -43,6 +46,7 @@ public class LimiteurTentatives {
         }
     }
 
+    /** Enregistre un échec de connexion pour cet e-mail et pour cette adresse. */
     public void echec(String email, String adresse) {
         Instant maintenant = horloge.instant();
         ajouter(cleEmail(email), maintenant);

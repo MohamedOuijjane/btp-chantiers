@@ -1,10 +1,26 @@
 package ma.uiz.btp.materiaux.ws;
 
+import java.util.List;
+import javax.xml.datatype.DatatypeFactory;
 import ma.uiz.btp.materiaux.config.WebServiceConfig;
 import ma.uiz.btp.materiaux.domain.ConflitStockException;
 import ma.uiz.btp.materiaux.domain.MateriauEntity;
 import ma.uiz.btp.materiaux.domain.Mouvement;
-import ma.uiz.btp.materiaux.ws.gen.*;
+import ma.uiz.btp.materiaux.ws.gen.AjouterMateriauRequest;
+import ma.uiz.btp.materiaux.ws.gen.AjouterMateriauResponse;
+import ma.uiz.btp.materiaux.ws.gen.EnregistrerMouvementRequest;
+import ma.uiz.btp.materiaux.ws.gen.EnregistrerMouvementResponse;
+import ma.uiz.btp.materiaux.ws.gen.GetMateriauRequest;
+import ma.uiz.btp.materiaux.ws.gen.GetMateriauResponse;
+import ma.uiz.btp.materiaux.ws.gen.ListerMateriauxRequest;
+import ma.uiz.btp.materiaux.ws.gen.ListerMateriauxResponse;
+import ma.uiz.btp.materiaux.ws.gen.ListerMouvementsRequest;
+import ma.uiz.btp.materiaux.ws.gen.ListerMouvementsResponse;
+import ma.uiz.btp.materiaux.ws.gen.Materiau;
+import ma.uiz.btp.materiaux.ws.gen.MouvementStock;
+import ma.uiz.btp.materiaux.ws.gen.TypeMouvement;
+import ma.uiz.btp.materiaux.ws.gen.VerifierStockRequest;
+import ma.uiz.btp.materiaux.ws.gen.VerifierStockResponse;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
 import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
@@ -16,12 +32,16 @@ import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 public class MateriauxEndpoint {
 
     private static final String NS = WebServiceConfig.NAMESPACE;
+    /** Dates des mouvements en xs:dateTime (UTC). */
+    private static final DatatypeFactory DATES = DatatypeFactory.newDefaultInstance();
     private final MateriauService service;
 
+    /** Crée le point d'entrée avec le service Matériaux. */
     public MateriauxEndpoint(MateriauService service) {
         this.service = service;
     }
 
+    /** Opération AjouterMateriau : crée un matériau. */
     @PayloadRoot(namespace = NS, localPart = "AjouterMateriauRequest")
     @ResponsePayload
     public AjouterMateriauResponse ajouter(@RequestPayload AjouterMateriauRequest req) {
@@ -37,6 +57,7 @@ public class MateriauxEndpoint {
         return resp;
     }
 
+    /** Opération GetMateriau : renvoie un matériau. */
     @PayloadRoot(namespace = NS, localPart = "GetMateriauRequest")
     @ResponsePayload
     public GetMateriauResponse trouver(@RequestPayload GetMateriauRequest req) {
@@ -45,6 +66,7 @@ public class MateriauxEndpoint {
         return resp;
     }
 
+    /** Opération ListerMateriaux : tous les matériaux, ou seulement ceux en alerte. */
     @PayloadRoot(namespace = NS, localPart = "ListerMateriauxRequest")
     @ResponsePayload
     public ListerMateriauxResponse lister(@RequestPayload ListerMateriauxRequest req) {
@@ -54,16 +76,18 @@ public class MateriauxEndpoint {
         return resp;
     }
 
+    /** Opération VerifierStock : indique si le stock couvre la quantité demandée. */
     @PayloadRoot(namespace = NS, localPart = "VerifierStockRequest")
     @ResponsePayload
     public VerifierStockResponse verifierStock(@RequestPayload VerifierStockRequest req) {
         MateriauEntity m = service.trouver(req.getMateriauId());
         VerifierStockResponse resp = new VerifierStockResponse();
-        resp.setDisponible(m.aStockSuffisant(req.getQuantite()));
+        resp.setDisponible(m.stockSuffitPour(req.getQuantite()));
         resp.setStockActuel(m.getStock());
         return resp;
     }
 
+    /** Opération EnregistrerMouvement : entrée ou sortie de stock vers un chantier. */
     @PayloadRoot(namespace = NS, localPart = "EnregistrerMouvementRequest")
     @ResponsePayload
     public EnregistrerMouvementResponse mouvement(@RequestPayload EnregistrerMouvementRequest req) {
@@ -74,13 +98,38 @@ public class MateriauxEndpoint {
                     Mouvement.Type.valueOf(req.getType().value()), req.getQuantite());
         } catch (OptimisticLockingFailureException e) {
             throw new ConflitStockException(
-                    "Le stock a été modifié par une autre opération; relisez-le avant de réessayer.", e);
+                    "Le stock a été modifié par une autre opération; "
+                            + "relisez-le avant de réessayer.", e);
         }
         EnregistrerMouvementResponse resp = new EnregistrerMouvementResponse();
         resp.setMouvementId(mv.getId());
-        resp.setStockApres(mv.getMateriau().getStock());
-        resp.setEnAlerte(mv.getMateriau().isEnAlerte());
+        resp.setStockApres(mv.getStockApresMouvement());
+        resp.setEnAlerte(mv.isMateriauEnAlerte());
         return resp;
+    }
+
+    /**
+     * Opération ListerMouvements (#18) : mouvements de stock, filtrés par chantier et par
+     * matériau (filtres optionnels), du plus récent au plus ancien.
+     */
+    @PayloadRoot(namespace = NS, localPart = "ListerMouvementsRequest")
+    @ResponsePayload
+    public ListerMouvementsResponse listerMouvements(@RequestPayload ListerMouvementsRequest req) {
+        List<Mouvement> liste = service.listerMouvements(req.getChantierId(), req.getMateriauId());
+        ListerMouvementsResponse resp = new ListerMouvementsResponse();
+        liste.forEach(m -> resp.getMouvement().add(versXml(m)));
+        return resp;
+    }
+
+    private static MouvementStock versXml(Mouvement m) {
+        MouvementStock x = new MouvementStock();
+        x.setId(m.getId());
+        x.setDate(DATES.newXMLGregorianCalendar(m.getDate().toString()));
+        x.setMateriauId(m.getMateriauId());
+        x.setChantierId(m.getChantierId());
+        x.setType(TypeMouvement.fromValue(m.getType().name()));
+        x.setQuantite(m.getQuantite());
+        return x;
     }
 
     private static Materiau versXml(MateriauEntity e) {

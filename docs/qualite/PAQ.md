@@ -41,7 +41,7 @@ Caractéristiques retenues, avec l'exigence du projet et la façon de la mesurer
 | **Maintenabilité** | Code lisible, testé, sans duplication | Couverture de lignes | ≥ 70 % par module | JaCoCo, Jest, pytest-cov, SonarCloud |
 | | | Duplication | < 3 % | SonarCloud |
 | | | Dette technique (note de maintenabilité) | A | SonarCloud |
-| **Sécurité** | Pas de vulnérabilité connue dans le code ni les images | Vulnérabilités CodeQL / SonarCloud | 0 critique ou haute | CodeQL, SonarCloud |
+| **Sécurité** | Pas de vulnérabilité connue dans le code ni les images | Vulnérabilités CodeQL / SonarCloud ; alertes du scan OWASP ZAP | 0 critique ou haute ; alertes ZAP analysées, faux positifs justifiés | CodeQL, SonarCloud, OWASP ZAP (hebdomadaire) |
 | | | Vulnérabilités CRITICAL corrigeables dans les images | 0 | Trivy (release) |
 | | | Dépendances obsolètes | mises à jour chaque semaine | Dependabot |
 | **Utilisabilité** | Interface claire en français, accessible | Contrastes, navigation clavier | conforme WCAG AA | Revue, outils du navigateur |
@@ -61,7 +61,7 @@ Une PR ne peut être mergée que si :
 | Temps de réponse inter-services | < 2 s | timeouts (2 s) et tests de mode dégradé |
 | Titre de PR | Conventional Commits | workflow « Titre de PR » |
 
-Les analyses Checkstyle et SpotBugs sont en **mode rapport** pendant le sprint S1, puis bloquantes une fois la dette existante résorbée.
+Checkstyle (`google_checks`) est **bloquant** dans Chantiers et Matériaux : depuis la résorption de la dette (#138), `mvn verify` échoue à la moindre violation (`failOnViolation`), en local comme en CI. SpotBugs reste en **mode rapport** (0 alerte dans les deux modules).
 
 ## 5. Stratégie de tests
 
@@ -78,8 +78,8 @@ Les analyses Checkstyle et SpotBugs sont en **mode rapport** pendant le sprint S
 | **Unitaires** | Règles de gestion, clients HTTP/SOAP, composants | JUnit 5, Jest, pytest, Vitest | À chaque commit (CI) |
 | **Intégration** | Une API avec sa base (H2, SQLite) et des modules voisins simulés | MockMvc, Spring-WS Test, TestClient FastAPI, MSW | À chaque commit (CI) |
 | **Contrat** | Les échanges respectent les contrats publiés | Validation XSD (Spring-WS), schémas OpenAPI exportés | À chaque modification d'un contrat |
-| **Bout en bout** | Le scénario de démo fonctionne sur la stack Docker complète | Newman (Postman), Playwright | CI (#16) et avant chaque revue de sprint |
-| **Performance** | Appels inter-services < 2 s sous charge modérée | k6 ou Apache Bench, timeouts | Sprint S3, avant la recette |
+| **Bout en bout** | Le scénario de démo fonctionne sur la stack Docker complète | Playwright ([`frontend/e2e/`](../../frontend/e2e/README.md)), Newman (Postman) | `make e2e`, workflow **E2E** à chaque PR vers `develop` (informatif) ; Newman dans #16 |
+| **Performance** | Parcours principaux via la gateway sous charge modérée : 90e percentile < 1 s, 0 % d'erreurs ; appels inter-services < 2 s | JMeter ([`tests/performance/`](../../tests/performance/README.md)), timeouts | `make perf` et workflow **Performance** (manuel), avant la recette |
 
 **Critères d'entrée en recette :** tous les tests automatisés verts, quality gate SonarCloud passée, `docker compose up --build` fonctionnel.
 **Critères de sortie de recette :** tous les scénarios de recette passés, aucune anomalie bloquante ou majeure ouverte.
@@ -162,7 +162,7 @@ Le registre est revu à chaque rétrospective.
 | Code source | Git, GitHub, pull requests, CODEOWNERS, ruleset de protection |
 | Intégration continue | GitHub Actions (tests, analyse, build), Dependabot |
 | Qualité du code | SonarCloud, Checkstyle, SpotBugs, ESLint, ruff, JaCoCo, Jest, pytest-cov |
-| Sécurité | CodeQL, Trivy, Dependabot |
-| Tests | JUnit 5, MockMvc, Spring-WS Test, Jest, pytest, Vitest, MSW, Playwright, Postman / Newman |
+| Sécurité | CodeQL, Trivy, Dependabot, OWASP ZAP (scan baseline) |
+| Tests | JUnit 5, MockMvc, Spring-WS Test, Jest, pytest, Vitest, MSW, Playwright, Postman / Newman, JMeter (charge) |
 | Documentation | Markdown, Mermaid, Swagger / OpenAPI, WSDL, ADR |
 | Déploiement | Docker, Docker Compose, ghcr.io |

@@ -2,10 +2,15 @@ package ma.uiz.btp.chantiers.web;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 import ma.uiz.btp.chantiers.auth.IdentifiantsInvalidesException;
 import ma.uiz.btp.chantiers.auth.TropDeTentativesException;
 import ma.uiz.btp.chantiers.domain.RegleMetierException;
 import ma.uiz.btp.chantiers.domain.RessourceIntrouvableException;
+import ma.uiz.btp.chantiers.domain.ServiceIndisponibleException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,11 +26,6 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Toutes les erreurs au format RFC 9457 (application/problem+json), message en français
@@ -46,6 +46,12 @@ public class GestionErreurs extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RegleMetierException.class)
     ProblemDetail regleMetier(RegleMetierException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /** Module appelé injoignable : message fonctionnel, la cause technique reste dans les logs. */
+    @ExceptionHandler(ServiceIndisponibleException.class)
+    ProblemDetail serviceIndisponible(ServiceIndisponibleException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
     }
 
     /** Connexion refusée : même message pour un e-mail inconnu et un mauvais mot de passe. */

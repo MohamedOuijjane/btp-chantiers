@@ -3,6 +3,9 @@ target/
 *.class
 # Node
 node_modules/
+# Playwright (rapports et traces des tests de bout en bout)
+playwright-report/
+test-results/
 dist/
 coverage/
 # Python
@@ -18,6 +21,8 @@ __pycache__/
 # Secrets
 .env
 # Couverture et analyse
+tests/performance/resultats/
+tests/securite/rapports/
 .coverage
 coverage.xml
 .ruff_cache/

@@ -16,16 +16,22 @@ export const clesOuvriers = {
 export function useOuvriers(filtre: FiltreOuvriers = {}) {
   return useQuery({
     queryKey: clesOuvriers.liste(filtre),
-    queryFn: () => api.listerOuvriers(filtre),
+    queryFn: ({ signal }) => api.listerOuvriers(filtre, { signal }),
   });
 }
 
 export function useOuvrier(id: number) {
-  return useQuery({ queryKey: clesOuvriers.detail(id), queryFn: () => api.getOuvrier(id) });
+  return useQuery({
+    queryKey: clesOuvriers.detail(id),
+    queryFn: ({ signal }) => api.getOuvrier(id, { signal }),
+  });
 }
 
 export function usePlanning(id: number) {
-  return useQuery({ queryKey: clesOuvriers.planning(id), queryFn: () => api.getPlanning(id) });
+  return useQuery({
+    queryKey: clesOuvriers.planning(id),
+    queryFn: ({ signal }) => api.getPlanning(id, { signal }),
+  });
 }
 
 export function useCreerOuvrier() {
@@ -48,6 +54,9 @@ export function useSupprimerOuvrier() {
   const qc = useQueryClient();
   return useMutation<void, ApiError, number>({
     mutationFn: api.supprimerOuvrier,
-    onSuccess: () => qc.invalidateQueries({ queryKey: clesOuvriers.tous }),
+    // Marquées périmées sans recharger les requêtes affichées : la fiche de l'ouvrier supprimé
+    // répondrait 404 et démonterait le dialogue avant son retour à l'équipe. La liste se
+    // recharge en arrivant sur /ouvriers.
+    onSuccess: () => qc.invalidateQueries({ queryKey: clesOuvriers.tous, refetchType: 'none' }),
   });
 }

@@ -1,0 +1,13 @@
+# Règles du scan baseline OWASP ZAP (zap-baseline.py -c) : identifiant, action, commentaire.
+# Actions : IGNORE (faux positif ou choix assumé, justifié ci-dessous), WARN (signalé sans
+# faire échouer le scan), FAIL (fait échouer le scan). Les règles absentes restent en WARN.
+#
+# Faux positifs et choix assumés
+# 10109 : constat qu'il s'agit d'une application monopage (React), pas une vulnérabilité.
+10109	IGNORE	(Modern Web Application)
+# 10049 : /assets/* ont un nom avec empreinte (index-<hash>.js) : le cache long d'un an est voulu ;
+# index.html est servi en no-cache.
+10049	IGNORE	(Storable and Cacheable Content)
+# 120000 : seul le thème clair/sombre (clé btp-theme) est en localStorage ; la session (JWT) est
+# en sessionStorage, fermée avec l'onglet (ADR-0006).
+120000	IGNORE	(Information Disclosure - Information in Browser localStorage)

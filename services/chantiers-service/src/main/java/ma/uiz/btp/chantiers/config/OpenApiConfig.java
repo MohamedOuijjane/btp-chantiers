@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** Description OpenAPI (Swagger) du module, avec le schéma d'authentification JWT. */
 @Configuration
 public class OpenApiConfig {
     @Bean

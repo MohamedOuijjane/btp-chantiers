@@ -6,7 +6,9 @@ import org.springframework.ws.soap.server.endpoint.annotation.SoapFault;
 /** Transformée automatiquement en SOAP Fault (côté client). */
 @SoapFault(faultCode = FaultCode.CLIENT)
 public class StockInsuffisantException extends RuntimeException {
+    /** Crée l'exception avec la référence, le stock disponible et la quantité demandée. */
     public StockInsuffisantException(String reference, double stock, double demande) {
-        super("Stock insuffisant pour " + reference + " : disponible " + stock + ", demandé " + demande);
+        super("Stock insuffisant pour " + reference + " : disponible " + stock
+                + ", demandé " + demande);
     }
 }

@@ -17,7 +17,7 @@ describe('TachesService.changerBlocage (#11)', () => {
   let service: TachesService;
   const repo = { create: jest.fn(), save: jest.fn(), findOne: jest.fn() };
   const chantiers = { verifierChantierModifiable: jest.fn() };
-  const journal = { enregistrer: jest.fn() };
+  const journal = { enregistrer: jest.fn(), motifsDuBlocage: jest.fn() };;
 
   const tache = (partiel: Partial<Tache> = {}): Tache =>
     Object.assign(new Tache(), {

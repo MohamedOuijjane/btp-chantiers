@@ -54,7 +54,9 @@ export function AppLayout() {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar titre={titre} fil={fil} />
-        <main className="box-border flex w-full min-w-0 max-w-[1280px] flex-col gap-6 px-4 pb-12 pt-7 sm:px-8">
+        {/* Toute la largeur à droite de la barre latérale (tableaux, formulaires, cartes) ;
+            les paragraphes gardent une largeur de lecture de 75 caractères. */}
+        <main className="box-border flex w-full min-w-0 flex-col gap-6 px-4 pb-12 pt-7 sm:px-8 [&_p]:max-w-[75ch]">
           <TitreContext.Provider value={setTitrePage}>
             {autorise ? <Outlet /> : <AccesRefuse />}
           </TitreContext.Provider>

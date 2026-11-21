@@ -106,4 +106,30 @@
             <xs:element name="enAlerte" type="xs:boolean"/>
         </xs:sequence></xs:complexType>
     </xs:element>
+
+    <!-- Mouvement de stock d'un matériau vers un chantier (ListerMouvements) -->
+    <xs:complexType name="MouvementStock">
+        <xs:sequence>
+            <xs:element name="id" type="xs:long"/>
+            <xs:element name="date" type="xs:dateTime"/>
+            <xs:element name="materiauId" type="xs:long"/>
+            <xs:element name="chantierId" type="xs:long"/>
+            <xs:element name="type" type="tns:TypeMouvement"/>
+            <xs:element name="quantite" type="xs:double"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ListerMouvements : quel chantier a consommé quoi. Filtres optionnels ;
+         mouvements triés du plus récent au plus ancien. -->
+    <xs:element name="ListerMouvementsRequest">
+        <xs:complexType><xs:sequence>
+            <xs:element name="chantierId" type="xs:long" minOccurs="0"/>
+            <xs:element name="materiauId" type="xs:long" minOccurs="0"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
+    <xs:element name="ListerMouvementsResponse">
+        <xs:complexType><xs:sequence>
+            <xs:element name="mouvement" type="tns:MouvementStock" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence></xs:complexType>
+    </xs:element>
 </xs:schema>

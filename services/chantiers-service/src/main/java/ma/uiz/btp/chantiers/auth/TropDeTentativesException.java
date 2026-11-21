@@ -5,6 +5,7 @@ public class TropDeTentativesException extends RuntimeException {
 
     private final long attenteSecondes;
 
+    /** Crée l'exception avec le délai d'attente, en secondes, avant un nouvel essai. */
     public TropDeTentativesException(long attenteSecondes) {
         super("Trop de tentatives de connexion. Réessayez dans "
                 + Math.max(1, (attenteSecondes + 59) / 60) + " minute(s).");

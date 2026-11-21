@@ -1,4 +1,4 @@
-import { INestApplication, NotFoundException, ValidationPipe } from '@nestjs/common';
+import { ConflictException, INestApplication, NotFoundException, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import request from 'supertest';
@@ -51,7 +51,7 @@ describe('TachesService : historique des statuts (#99)', () => {
   const chantiers = { verifierChantierActif: jest.fn() };
   const ouvriers = { verifierDisponibles: jest.fn() };
   const materiaux = { verifierStock: jest.fn() };
-  const journal = { enregistrer: jest.fn(), lister: jest.fn() };
+    const journal = { enregistrer: jest.fn(), lister: jest.fn(), motifsDuBlocage: jest.fn() };
 
   const tache = (partiel: Partial<Tache> = {}): Tache =>
     Object.assign(new Tache(), {
@@ -106,9 +106,9 @@ describe('TachesService : historique des statuts (#99)', () => {
     expect(journal.enregistrer).not.toHaveBeenCalled();
   });
 
-  it('tâche bloquée : le statut ne change pas, aucune entrée', async () => {
+  it('tâche bloquée : avancement refusé (409, #143), aucune entrée', async () => {
     repo.findOne.mockResolvedValue(tache({ statut: StatutTache.BLOQUEE, avancement: 30 }));
-    await service.mettreAJourAvancement(7, 60);
+    await expect(service.mettreAJourAvancement(7, 60)).rejects.toBeInstanceOf(ConflictException);
     expect(journal.enregistrer).not.toHaveBeenCalled();
   });
 

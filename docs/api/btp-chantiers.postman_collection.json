@@ -2,7 +2,7 @@
   "info": {
     "name": "BTP Chantiers - Équipe 18",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Via la gateway (:8080), toutes les requêtes exigent un jeton (ADR-0006). Lancer d'abord « Authentification / Se connecter » : le jeton est enregistré dans la variable token et envoyé par toutes les autres requêtes (Authorization: Bearer {{token}}). Le mot de passe des comptes de démo est celui de DEMO_MOT_DE_PASSE (.env)."
+    "description": "Via la gateway (:8080), toutes les requêtes exigent un jeton (ADR-0006). La collection est autonome : lancée en entier dans l'ordre (Runner ou Newman), elle crée ses propres données, les vérifie (code HTTP et champ clé) puis les supprime dans « Refus et nettoyage » ; elle passe sur une base vide comme sur la base de démo. Le mot de passe des comptes de démo est celui de DEMO_MOT_DE_PASSE (.env). En ligne de commande : make postman."
   },
   "auth": {
     "type": "bearer",
@@ -30,13 +30,31 @@
     },
     {
       "key": "token",
-      "value": "",
-      "description": "Rempli par « Se connecter »"
+      "value": ""
+    },
+    {
+      "key": "chantierId",
+      "value": ""
+    },
+    {
+      "key": "ouvrierId",
+      "value": ""
+    },
+    {
+      "key": "cin",
+      "value": ""
+    },
+    {
+      "key": "materiauId",
+      "value": ""
+    },
+    {
+      "key": "reference",
+      "value": ""
     },
     {
       "key": "tacheId",
-      "value": "1",
-      "description": "Rempli par « Tâches / Créer » (identifiant entier)"
+      "value": ""
     }
   ],
   "item": [
@@ -213,9 +231,22 @@
                 "api",
                 "chantiers"
               ]
-            },
-            "header": []
-          }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et une liste', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Créer",
@@ -239,88 +270,207 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nom\": \"Résidence Al Amal\",\n  \"adresse\": \"Hay Mohammadi, Agadir\",\n  \"client\": \"Société Souss Immo\",\n  \"dateDebut\": \"2026-11-01\",\n  \"dateFinPrevue\": \"2027-06-30\",\n  \"budget\": 2500000,\n  \"statut\": \"EN_COURS\"\n}"
+              "raw": "{\n  \"nom\": \"Résidence Postman\",\n  \"adresse\": \"Hay Mohammadi, Agadir\",\n  \"client\": \"Société Souss Immo\",\n  \"dateDebut\": \"2027-01-04\",\n  \"dateFinPrevue\": \"2027-12-20\",\n  \"budget\": 2500000\n}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201, statut PLANIFIE', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.statut).to.eql('PLANIFIE');",
+                  "  pm.collectionVariables.set('chantierId', r.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Date de fin avant le début (400)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Résidence Postman\",\n  \"adresse\": \"Hay Mohammadi, Agadir\",\n  \"client\": \"Société Souss Immo\",\n  \"dateDebut\": \"2027-01-04\",\n  \"dateFinPrevue\": \"2026-12-01\",\n  \"budget\": 2500000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 sur dateFinPrevue', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().erreurs).to.have.property('dateFinPrevue');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Consulter",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{gateway}}/api/chantiers/1",
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
               "host": [
                 "{{gateway}}"
               ],
               "path": [
                 "api",
                 "chantiers",
-                "1"
+                "{{chantierId}}"
               ]
-            },
-            "header": []
-          }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et le chantier créé', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().nom).to.eql('Résidence Postman');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Avancement",
+          "name": "Modifier (passer EN_COURS)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Résidence Postman\",\n  \"adresse\": \"Hay Mohammadi, Agadir\",\n  \"client\": \"Société Souss Immo\",\n  \"dateDebut\": \"2027-01-04\",\n  \"dateFinPrevue\": \"2027-12-20\",\n  \"budget\": 2500000,\n  \"statut\": \"EN_COURS\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, statut EN_COURS', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().statut).to.eql('EN_COURS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avancement (sans tâche)",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{gateway}}/api/chantiers/1/avancement",
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}/avancement",
               "host": [
                 "{{gateway}}"
               ],
               "path": [
                 "api",
                 "chantiers",
-                "1",
+                "{{chantierId}}",
                 "avancement"
               ]
-            },
-            "header": []
-          }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, aucune tâche', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.nombreTaches).to.eql(0);",
+                  "  pm.expect(r.sourceDisponible).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Clôturer",
+          "name": "Chantier inconnu (404)",
           "request": {
-            "method": "PATCH",
+            "method": "GET",
             "url": {
-              "raw": "{{gateway}}/api/chantiers/1/cloture",
+              "raw": "{{gateway}}/api/chantiers/999999",
               "host": [
                 "{{gateway}}"
               ],
               "path": [
                 "api",
                 "chantiers",
-                "1",
-                "cloture"
+                "999999"
               ]
-            },
-            "header": []
-          }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
       "name": "Ouvriers (REST)",
       "item": [
-        {
-          "name": "Lister disponibles",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{gateway}}/api/ouvriers?disponible=true",
-              "host": [
-                "{{gateway}}"
-              ],
-              "path": [
-                "api",
-                "ouvriers"
-              ]
-            },
-            "header": []
-          }
-        },
         {
           "name": "Créer",
           "request": {
@@ -343,28 +493,182 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nom\": \"El Amrani\",\n  \"prenom\": \"Youssef\",\n  \"cin\": \"JB123456\",\n  \"specialite\": \"MACON\",\n  \"telephone\": \"0612345678\"\n}"
+              "raw": "{\n  \"nom\": \"El Amrani\",\n  \"prenom\": \"Youssef\",\n  \"cin\": \"{{cin}}\",\n  \"specialite\": \"MACON\",\n  \"telephone\": \"0612345678\"\n}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// CIN unique à chaque exécution (format ^[A-Z]{1,2}\\d{3,8}$).",
+                  "pm.collectionVariables.set('cin', 'PM' + Math.floor(100000 + Math.random() * 899999));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201, disponible', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.disponible).to.be.true;",
+                  "  pm.collectionVariables.set('ouvrierId', r.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Planning",
+          "name": "CIN déjà utilisée (409)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Bennani\",\n  \"prenom\": \"Ali\",\n  \"cin\": \"{{cin}}\",\n  \"specialite\": \"COFFREUR\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lister disponibles",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{gateway}}/api/ouvriers/1/planning",
+              "raw": "{{gateway}}/api/ouvriers?disponible=true",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers"
+              ],
+              "query": [
+                {
+                  "key": "disponible",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, l’ouvrier créé est listé', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().map((o) => o.id)).to.include(Number(pm.collectionVariables.get('ouvrierId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consulter",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers/{{ouvrierId}}",
               "host": [
                 "{{gateway}}"
               ],
               "path": [
                 "api",
                 "ouvriers",
-                "1",
-                "planning"
+                "{{ouvrierId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et la CIN', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().cin).to.eql(pm.collectionVariables.get('cin'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modifier (téléphone)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers/{{ouvrierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers",
+                "{{ouvrierId}}"
               ]
             },
-            "header": []
-          }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telephone\": \"0698765432\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, téléphone modifié', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().telephone).to.eql('0698765432');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -387,14 +691,159 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "text/xml"
+                "value": "text/xml; charset=utf-8"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:AjouterMateriauRequest><m:materiau><m:reference>CIM-01</m:reference><m:nom>Ciment CPJ45</m:nom><m:unite>sac</m:unite><m:stock>100</m:stock><m:seuilAlerte>20</m:seuilAlerte></m:materiau></m:AjouterMateriauRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:AjouterMateriauRequest><m:materiau><m:reference>{{reference}}</m:reference><m:nom>Ciment CPJ 45</m:nom><m:unite>sac</m:unite><m:stock>100</m:stock><m:seuilAlerte>20</m:seuilAlerte></m:materiau></m:AjouterMateriauRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Référence unique à chaque exécution (format ^[A-Z]{2,5}-\\d{3}$) : le service n'a pas de suppression.",
+                  "const l = () => String.fromCharCode(65 + Math.floor(Math.random() * 26));",
+                  "pm.collectionVariables.set('reference', 'PM' + l() + l() + '-' + Math.floor(100 + Math.random() * 900));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et un identifiant', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const id = /<(?:\\w+:)?id>(\\d+)</.exec(pm.response.text());",
+                  "  pm.expect(id).to.not.be.null;",
+                  "  pm.collectionVariables.set('materiauId', id[1]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AjouterMateriau : référence déjà utilisée (Conflit)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:AjouterMateriauRequest><m:materiau><m:reference>{{reference}}</m:reference><m:nom>Ciment CPJ 45</m:nom><m:unite>sac</m:unite><m:stock>100</m:stock><m:seuilAlerte>20</m:seuilAlerte></m:materiau></m:AjouterMateriauRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SOAP Fault Conflit', () => {",
+                  "  pm.response.to.have.status(500);",
+                  "  pm.expect(pm.response.text()).to.match(/<faultcode[^>]*>([\\w-]+:)?Conflit<\\/faultcode>/);",
+                  "  pm.expect(pm.response.text()).to.include('déjà utilisée');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GetMateriau",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:GetMateriauRequest><m:id>{{materiauId}}</m:id></m:GetMateriauRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, stock 100', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.text()).to.match(/<(\\w+:)?stock>100(\\.0)?</);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GetMateriau : inconnu (Introuvable)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:GetMateriauRequest><m:id>999999</m:id></m:GetMateriauRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SOAP Fault Introuvable', () => {",
+                  "  pm.response.to.have.status(500);",
+                  "  pm.expect(pm.response.text()).to.match(/<faultcode[^>]*>([\\w-]+:)?Introuvable<\\/faultcode>/);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "ListerMateriaux",
@@ -412,14 +861,28 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "text/xml"
+                "value": "text/xml; charset=utf-8"
               }
             ],
             "body": {
               "mode": "raw",
               "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:ListerMateriauxRequest></m:ListerMateriauxRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, le matériau est listé', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.text()).to.include(pm.collectionVariables.get('reference'));",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "VerifierStock",
@@ -437,17 +900,31 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "text/xml"
+                "value": "text/xml; charset=utf-8"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:VerifierStockRequest><m:materiauId>1</m:materiauId><m:quantite>40</m:quantite></m:VerifierStockRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:VerifierStockRequest><m:materiauId>{{materiauId}}</m:materiauId><m:quantite>30</m:quantite></m:VerifierStockRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, disponible', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.text()).to.match(/<(\\w+:)?disponible>true</);",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "EnregistrerMouvement",
+          "name": "EnregistrerMouvement (sortie de 10)",
           "request": {
             "method": "POST",
             "url": {
@@ -462,14 +939,107 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "text/xml"
+                "value": "text/xml; charset=utf-8"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:EnregistrerMouvementRequest><m:materiauId>1</m:materiauId><m:chantierId>1</m:chantierId><m:type>SORTIE</m:type><m:quantite>10</m:quantite></m:EnregistrerMouvementRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:EnregistrerMouvementRequest><m:materiauId>{{materiauId}}</m:materiauId><m:chantierId>{{chantierId}}</m:chantierId><m:type>SORTIE</m:type><m:quantite>10</m:quantite></m:EnregistrerMouvementRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, stock après 90', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.text()).to.match(/<(\\w+:)?stockApres>90(\\.0)?</);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "EnregistrerMouvement : stock insuffisant (Client)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:EnregistrerMouvementRequest><m:materiauId>{{materiauId}}</m:materiauId><m:chantierId>{{chantierId}}</m:chantierId><m:type>SORTIE</m:type><m:quantite>1000</m:quantite></m:EnregistrerMouvementRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SOAP Fault Client', () => {",
+                  "  pm.response.to.have.status(500);",
+                  "  pm.expect(pm.response.text()).to.match(/<faultcode[^>]*>([\\w-]+:)?Client<\\/faultcode>/);",
+                  "  pm.expect(pm.response.text()).to.include('Stock insuffisant');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ListerMouvements (chantier)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:ListerMouvementsRequest><m:chantierId>{{chantierId}}</m:chantierId></m:ListerMouvementsRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, un mouvement', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.text().match(/<(\\w+:)?mouvement>/g)).to.have.lengthOf(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -477,11 +1047,11 @@
       "name": "Tâches (REST)",
       "item": [
         {
-          "name": "Lister par chantier",
+          "name": "Créer : stock insuffisant (422)",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "url": {
-              "raw": "{{gateway}}/api/taches?chantierId=1",
+              "raw": "{{gateway}}/api/taches",
               "host": [
                 "{{gateway}}"
               ],
@@ -490,8 +1060,31 @@
                 "taches"
               ]
             },
-            "header": []
-          }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chantierId\": {{chantierId}},\n  \"titre\": \"Coulage des fondations\",\n  \"dateDebut\": \"2027-02-01\",\n  \"dateFin\": \"2027-02-10\",\n  \"ouvrierIds\": [\n    {{ouvrierId}}\n  ],\n  \"besoinsMateriaux\": [\n    {\n      \"materiauId\": {{materiauId}},\n      \"quantite\": 5000\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422, stock insuffisant', () => {",
+                  "  pm.response.to.have.status(422);",
+                  "  pm.expect(pm.response.json().message).to.include('Stock insuffisant');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Créer",
@@ -515,7 +1108,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"chantierId\": 1,\n  \"titre\": \"Coulage des fondations\",\n  \"dateDebut\": \"2026-11-02\",\n  \"dateFin\": \"2026-11-10\",\n  \"ouvrierIds\": [\n    1\n  ],\n  \"besoinsMateriaux\": [\n    {\n      \"materiauId\": 1,\n      \"quantite\": 40\n    }\n  ]\n}"
+              "raw": "{\n  \"chantierId\": {{chantierId}},\n  \"titre\": \"Coulage des fondations\",\n  \"dateDebut\": \"2027-02-01\",\n  \"dateFin\": \"2027-02-10\",\n  \"ouvrierIds\": [\n    {{ouvrierId}}\n  ],\n  \"besoinsMateriaux\": [\n    {\n      \"materiauId\": {{materiauId}},\n      \"quantite\": 30\n    }\n  ]\n}"
             }
           },
           "event": [
@@ -526,10 +1119,201 @@
                 "exec": [
                   "pm.test('201 et un identifiant entier', () => {",
                   "  pm.response.to.have.status(201);",
-                  "  const t = pm.response.json();",
-                  "  pm.expect(t.id).to.be.a('number');",
-                  "  pm.expect(t).to.not.have.property('_id');",
-                  "  pm.collectionVariables.set('tacheId', t.id);",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.id).to.be.a('number');",
+                  "  pm.expect(r.statut).to.eql('A_FAIRE');",
+                  "  pm.collectionVariables.set('tacheId', r.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consulter",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, motif null', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().motif).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lister par chantier",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/taches?chantierId={{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches"
+              ],
+              "query": [
+                {
+                  "key": "chantierId",
+                  "value": "{{chantierId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, une tâche', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.have.lengthOf(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modifier (PUT)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chantierId\": {{chantierId}},\n  \"titre\": \"Coulage des fondations\",\n  \"dateDebut\": \"2027-02-01\",\n  \"dateFin\": \"2027-02-10\",\n  \"ouvrierIds\": [\n    {{ouvrierId}}\n  ],\n  \"besoinsMateriaux\": [\n    {\n      \"materiauId\": {{materiauId}},\n      \"quantite\": 30\n    }\n  ],\n  \"description\": \"Béton B25, coffrage bois\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, description modifiée', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().description).to.eql('Béton B25, coffrage bois');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Démarrer (statut EN_COURS)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/statut",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "statut"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statut\": \"EN_COURS\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, EN_COURS', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().statut).to.eql('EN_COURS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transition impossible (409)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/statut",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "statut"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statut\": \"EN_COURS\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409', () => {",
+                  "  pm.response.to.have.status(409);",
                   "});"
                 ]
               }
@@ -562,7 +1346,619 @@
               "mode": "raw",
               "raw": "{\n  \"avancement\": 60\n}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, 60 %', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().avancement).to.eql(60);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bloquer",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/blocage",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "blocage"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloquee\": true,\n  \"motif\": \"Livraison du béton en retard\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et motif', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().motif).to.eql('Livraison du béton en retard');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avancement d'une tâche bloquée (409, #143)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/avancement",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "avancement"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"avancement\": 80\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 « Débloquez la tâche… »', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().message).to.include('Débloquez la tâche');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Débloquer",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/blocage",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "blocage"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloquee\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, retour EN_COURS', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().statut).to.eql('EN_COURS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historique de la tâche",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/historique",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "historique"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, du plus récent au plus ancien', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const h = pm.response.json();",
+                  "  pm.expect(h.map((e) => e.statut)).to.eql(['EN_COURS', 'BLOQUEE', 'EN_COURS', 'A_FAIRE']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historique global (#142)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/taches/historique?limite=5",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "historique"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et au plus 5 entrées', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.be.an('array').with.lengthOf.at.most(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historique global : limite invalide (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/taches/historique?limite=0",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "historique"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Affecter les ouvriers",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/ouvriers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "ouvriers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ouvrierIds\": [\n    {{ouvrierId}}\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, ouvrier affecté', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().ouvrierIds).to.eql([Number(pm.collectionVariables.get('ouvrierId'))]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Planning de l'ouvrier",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers/{{ouvrierId}}/planning",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers",
+                "{{ouvrierId}}",
+                "planning"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, la tâche est au planning', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().taches.map((t) => t.id)).to.include(Number(pm.collectionVariables.get('tacheId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avancement du chantier",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}/avancement",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}",
+                "avancement"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, une tâche à 60 %', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.nombreTaches).to.eql(1);",
+                  "  pm.expect(r.avancementGlobal).to.eql(60);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Refus et nettoyage",
+      "description": "Refus de suppression, clôture, puis suppression de tout ce que la collection a créé (sauf le matériau : le web service n'a pas de suppression).",
+      "item": [
+        {
+          "name": "Supprimer un chantier avec tâches (409)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 : le chantier a des tâches, citées dans le message', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().detail).to.include('Coulage des fondations');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supprimer un ouvrier affecté (409)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers/{{ouvrierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers",
+                "{{ouvrierId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 : ouvrier affecté à une tâche non terminée', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supprimer la tâche",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204', () => {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tâche supprimée (404)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supprimer l'ouvrier",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/ouvriers/{{ouvrierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "ouvriers",
+                "{{ouvrierId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204', () => {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clôturer le chantier",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}/cloture",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}",
+                "cloture"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, TERMINE', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().statut).to.eql('TERMINE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mouvement sur un chantier clôturé (Client)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/ws",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "ws"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:m=\"http://btp.uiz.ma/materiaux\">\n  <soapenv:Body>\n    <m:EnregistrerMouvementRequest><m:materiauId>{{materiauId}}</m:materiauId><m:chantierId>{{chantierId}}</m:chantierId><m:type>SORTIE</m:type><m:quantite>1</m:quantite></m:EnregistrerMouvementRequest>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SOAP Fault Client', () => {",
+                  "  pm.response.to.have.status(500);",
+                  "  pm.expect(pm.response.text()).to.match(/<faultcode[^>]*>([\\w-]+:)?Client<\\/faultcode>/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supprimer le chantier",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204', () => {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

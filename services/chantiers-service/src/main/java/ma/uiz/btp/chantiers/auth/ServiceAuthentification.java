@@ -1,9 +1,8 @@
 package ma.uiz.btp.chantiers.auth;
 
+import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 /** Connexion : vérification du mot de passe, limitation des tentatives, émission du jeton. */
 @Service
@@ -19,6 +18,7 @@ public class ServiceAuthentification {
     /** Empreinte comparée quand l'e-mail est inconnu : même durée de réponse que pour un compte. */
     private final String empreinteFactice;
 
+    /** Crée le service et prépare l'empreinte factice comparée quand l'e-mail est inconnu. */
     public ServiceAuthentification(UtilisateurRepository utilisateurs, PasswordEncoder encodeur,
                                    ServiceJeton jetons, LimiteurTentatives limiteur) {
         this.utilisateurs = utilisateurs;
@@ -28,6 +28,12 @@ public class ServiceAuthentification {
         this.empreinteFactice = encodeur.encode("empreinte-factice-sans-compte");
     }
 
+    /**
+     * Connecte l'utilisateur et renvoie son jeton.
+     *
+     * @throws TropDeTentativesException si l'e-mail ou l'adresse a trop d'échecs récents
+     * @throws IdentifiantsInvalidesException si l'e-mail est inconnu ou le mot de passe faux
+     */
     public Connexion connecter(String email, String motDePasse, String adresse) {
         limiteur.verifier(email, adresse);
         Optional<Utilisateur> compte = utilisateurs.trouverParEmail(email);

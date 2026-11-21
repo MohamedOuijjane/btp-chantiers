@@ -37,7 +37,7 @@ POST /api/auth/login
 | POST | `/api/chantiers` | Créer | 201, 400 |
 | PUT | `/api/chantiers/{id}` | Modifier | 200, 400, 404, 409 |
 | PATCH | `/api/chantiers/{id}/cloture` | Clôturer | 200, 409 |
-| DELETE | `/api/chantiers/{id}` | Supprimer | 204, 404 |
+| DELETE | `/api/chantiers/{id}` | Supprimer (refusé s'il a des tâches) | 204, 404, 409, 503 |
 | GET | `/api/chantiers/{id}/avancement` | Avancement agrégé depuis Tâches | 200, 404 |
 
 ```json
@@ -50,6 +50,16 @@ POST /api/chantiers
   "dateFinPrevue": "2027-06-30",
   "budget": 2500000
 }
+```
+
+Suppression (#5) : Chantiers interroge `GET /api/taches?chantierId={id}`. **Toute tâche du chantier, terminée comprise**, bloque la suppression → `409`, avec les tâches citées (5 au plus, les suivantes sont comptées). Aucune tâche, ou `404` de Tâches → `204`. Tâches sans réponse, en erreur ou illisible → `503` et rien n'est supprimé.
+
+```json
+409 Conflict
+{ "status": 409, "detail": "Suppression impossible : le chantier « Résidence Al Amal » a 2 tâche(s) : « Fondations », « Gros œuvre ». Supprimez ses tâches dans le module Tâches avant de supprimer le chantier." }
+
+503 Service Unavailable
+{ "status": 503, "detail": "Le module Tâches ne répond pas : impossible de vérifier les tâches du chantier, suppression annulée. Réessayez plus tard." }
 ```
 
 Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json`), avec un message en français dans `detail`. Les erreurs de validation (400) portent en plus `erreurs`, un message par champ (RG-01 sur `dateFinPrevue`). Un paramètre invalide (`?statut=INCONNU`, `/api/chantiers/abc`) ou un JSON mal formé donnent aussi un 400 au même format.
@@ -69,7 +79,8 @@ Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json
 | GET | `/api/taches?chantierId=&ouvrierId=` | Lister / filtrer | 200 |
 | GET | `/api/taches/{id}` | Consulter | 200, 400, 404 |
 | POST | `/api/taches` | Créer (vérifie chantier, ouvriers, stock) | 201, 400, 404, 409, 422, 503 |
-| PATCH | `/api/taches/{id}/avancement` | `{ "avancement": 60 }` | 200, 400, 404 |
+| GET | `/api/taches/historique?limite=20` | Derniers changements de statut, toutes tâches confondues (#142) | 200, 400 |
+| PATCH | `/api/taches/{id}/avancement` | `{ "avancement": 60 }` ; refusé sur une tâche bloquée (#143) | 200, 400, 404, 409 |
 | PATCH | `/api/taches/{id}/ouvriers` | Remplacer les ouvriers affectés (vérifie disponibilité et planning) | 200, 400, 404, 409, 422 |
 | DELETE | `/api/taches/{id}` | Supprimer | 204, 400, 404 |
 | PUT | `/api/taches/{id}` | Modifier (mêmes champs et mêmes vérifications que la création) | 200, 400, 404, 409, 422, 503 |
@@ -77,6 +88,10 @@ Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json
 | GET | `/api/taches/{id}/historique` | Historique des statuts, du plus récent au plus ancien | 200, 400, 404 |
 | PATCH | `/api/taches/{id}/blocage` | `{ "bloquee": true, "motif": "..." }` : bloquer ou débloquer | 200, 400, 404, 409 |
 - **Statut (#99)** : seules les transitions `A_FAIRE → EN_COURS` et `EN_COURS → TERMINEE` sont permises ; `TERMINEE` force l'avancement à 100 %. Une tâche bloquée, une autre transition ou un chantier clôturé → `409`. Chaque changement de statut est enregistré (table `historique_statut`).
+
+- **Historique global (#142)** : `GET /api/taches/historique?limite=N` renvoie les N derniers changements de statut, toutes tâches confondues, du plus récent au plus ancien, au même format que l'historique d'une tâche (`{ tacheId, statut, date, motif? }`). `limite` : entier de 1 à 100, 20 par défaut ; sinon `400`.
+
+- **Avancement d'une tâche bloquée (#143)** : refusé (`409` « Débloquez la tâche avant de changer son avancement »), comme le changement de statut. Débloquer d'abord (`PATCH /blocage`), puis mettre à jour l'avancement.
 
 - **Conflit de planning (#10)** : un ouvrier ne peut pas être affecté à deux tâches dont les périodes se chevauchent (bornes incluses : partager un jour est un conflit, le lendemain non). Les tâches `TERMINEE` sont ignorées, les tâches `BLOQUEE` comptent. Conflit → `409` « L'ouvrier 3 est déjà affecté à « Dalle » (2026-11-05 → 2026-11-08) sur cette période ». Vérifié à la création (`POST`), à la modification (`PUT`) et à l'affectation (`PATCH /ouvriers`).
 
@@ -104,6 +119,7 @@ POST /api/taches
   "dateFin": "2026-11-10",
   "statut": "A_FAIRE",
   "avancement": 0,
+  "motif": null,
   "ouvrierIds": [1],
   "besoinsMateriaux": [{ "materiauId": 1, "quantite": 40 }]
 }
@@ -113,6 +129,7 @@ POST /api/taches
 - Données dans le schéma `taches` de `btp_db` : tables `tache` et `besoin_materiau` (classe d'association), créées par les migrations TypeORM.
 - Un même `materiauId` ne peut apparaître qu'une fois dans `besoinsMateriaux` (`400`).
 
+- **Motif de blocage** : chaque tâche renvoyée par l'API (`GET /api/taches`, `GET /api/taches/{id}` et les routes d'écriture) contient `motif` : le motif du blocage en cours si `statut = BLOQUEE`, sinon `null`. Il est lu dans l'historique des statuts (`historique_statut`) ; aucune colonne n'est ajoutée. Ajout compatible : les clients existants ignorent le champ.
 
 Codes de refus à la création (RG-03, RG-04, RG-07) : chantier inconnu → `404` ; chantier `SUSPENDU` ou `TERMINE` → `409` (seuls `PLANIFIE` et `EN_COURS` acceptent une tâche) ; ouvrier indisponible ou stock insuffisant → `422` ; Chantiers, Ouvriers ou Matériaux injoignable → `503`.
 
@@ -124,8 +141,18 @@ Codes de refus à la création (RG-03, RG-04, RG-07) : chantier inconnu → `404
 | GET | `/api/ouvriers/{id}` | Consulter | 200, 404 |
 | POST | `/api/ouvriers` | Créer | 201, 409, 422 |
 | PATCH | `/api/ouvriers/{id}` | Modification partielle (dont `disponible`) | 200, 404, 422 |
-| DELETE | `/api/ouvriers/{id}` | Supprimer | 204, 404 |
+| DELETE | `/api/ouvriers/{id}` | Supprimer (vérifie ses tâches dans Tâches) | 204, 404, 409, 503 |
 | GET | `/api/ouvriers/{id}/planning` | Tâches de l'ouvrier (depuis Tâches) | 200, 404 |
+
+CIN déjà utilisée (RG-06) : `409`, avec l'erreur rattachée au champ `cin` (même format que les `422`, affichée sous le champ par le front) :
+
+```json
+{ "detail": [ { "loc": ["body", "cin"], "msg": "La CIN JB123456 est déjà utilisée par un autre ouvrier", "type": "cin_deja_utilisee" } ] }
+```
+
+Suppression : Ouvriers interroge `GET /api/taches?ouvrierId={id}`. Au moins une tâche non `TERMINEE` (`A_FAIRE`, `EN_COURS`, `BLOQUEE`) → `409` avec un message qui cite les tâches. Aucune tâche, ou `404` de Tâches → `204`. Tâches sans réponse ou en erreur → `503` et l'ouvrier n'est pas supprimé.
+
+Planning : `{ "ouvrier": {...}, "taches": [...], "sourceDisponible": true }`. Si Tâches est injoignable, réponse `200` dégradée avec `"taches": []` et `"sourceDisponible": false` (même champ que l'avancement de Chantiers, ADR-0004).
 
 Spécialités : `MACON`, `FERRAILLEUR`, `COFFREUR`, `ELECTRICIEN`, `PLOMBIER`, `PEINTRE`, `CONDUCTEUR_ENGINS`, `MANOEUVRE`.
 
@@ -142,12 +169,17 @@ Spécialités : `MACON`, `FERRAILLEUR`, `COFFREUR`, `ELECTRICIEN`, `PLOMBIER`, `
 | `ListerMateriaux` | `enAlerteSeulement?` | `materiau*` |
 | `VerifierStock` | `materiauId`, `quantite` | `disponible`, `stockActuel` |
 | `EnregistrerMouvement` | `materiauId`, `chantierId`, `type` (ENTREE/SORTIE), `quantite` | `mouvementId`, `stockApres`, `enAlerte` |
+| `ListerMouvements` (#18) | `chantierId?`, `materiauId?` (filtres optionnels, combinables) | `mouvement*` : `id`, `date` (xs:dateTime, UTC), `materiauId`, `chantierId`, `type`, `quantite`, du plus récent au plus ancien |
 
-Les erreurs sont renvoyées sous forme de SOAP 1.1 Fault. Ces codes sont des codes SOAP, pas des codes HTTP. Le client doit se baser sur `faultcode`, pas analyser le texte de `faultstring` :
+`ListerMouvements` répond à « quel chantier a consommé quoi » : sans filtre, tous les mouvements ; un chantier ou un matériau sans mouvement donne une liste vide (pas de faute).
+
+Les erreurs sont renvoyées sous forme de SOAP 1.1 Fault. Ces codes sont des codes SOAP, pas des codes HTTP. Le client doit se baser sur `faultcode`, pas analyser le texte de `faultstring`. `Introuvable` et `Conflit` sont des codes propres au module, dans le namespace du contrat (`m` = `http://btp.uiz.ma/materiaux`) ; le front les convertit en 404 et 409 :
 
 | `faultcode` | Situations |
 |---|---|
-| `Client` | Stock ou seuil non fini/négatif, quantité non finie/non positive, matériau introuvable, chantier introuvable (HTTP 404 de Chantiers), chantier terminé, stock insuffisant ou conflit de mise à jour concurrente. Pour un conflit, relire le stock avant de décider de réessayer le mouvement. |
+| `m:Introuvable` (#145) | Matériau introuvable, chantier introuvable (HTTP 404 de Chantiers). |
+| `m:Conflit` (#145) | Référence déjà utilisée (#132) ; conflit de mise à jour concurrente du stock (verrou optimiste) : relire le stock avant de décider de réessayer le mouvement. |
+| `Client` | Stock ou seuil non fini/négatif, quantité non finie/non positive, chantier terminé, stock insuffisant. |
 | `Server` | Chantiers renvoie une réponse vide/invalide, un statut HTTP autre que 404, ou l'appel échoue (timeout, erreur réseau). Réessayer seulement après avoir vérifié que la dépendance est disponible et que l'erreur est transitoire. |
 
 ```xml

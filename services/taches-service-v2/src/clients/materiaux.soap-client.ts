@@ -1,4 +1,4 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
 import { appel } from './http';
 
 const NS = 'http://btp.uiz.ma/materiaux';
@@ -68,6 +68,10 @@ export class MateriauxSoapClient {
         MateriauxSoapClient.lire(xml, 'faultstring') ??
         `erreur SOAP ${MateriauxSoapClient.lire(xml, 'faultcode') ?? 'sans message'}`;
       throw new UnprocessableEntityException(`Matériaux : ${message}`);
+    }
+    // 5xx sans SOAP Fault (service arrêté derrière un proxy, erreur interne) : 503 (#7).
+    if (!res.ok) {
+      throw new ServiceUnavailableException(`Module Matériaux en erreur (HTTP ${res.status})`);
     }
     if (MateriauxSoapClient.lire(xml, 'disponible') !== 'true') {
       const stock = MateriauxSoapClient.lire(xml, 'stockActuel');

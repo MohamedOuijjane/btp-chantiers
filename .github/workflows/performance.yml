@@ -1,0 +1,72 @@
+name: Performance
+
+# Test de charge JMeter sur la stack Docker complète, lancé à la main (onglet Actions).
+on:
+  workflow_dispatch:
+    inputs:
+      utilisateurs:
+        description: Utilisateurs simultanés
+        default: '20'
+      duree:
+        description: Durée du test (s)
+        default: '60'
+      seuil_ms:
+        description: Temps de réponse maximal d'une page (ms)
+        default: '1000'
+
+permissions:
+  contents: read
+
+env:
+  JMETER_VERSION: 5.6.3
+
+jobs:
+  jmeter:
+    name: JMeter
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # JWT_SECRET et DEMO_MOT_DE_PASSE sont obligatoires dans docker-compose.yml (ADR-0006).
+      - name: Variables d'environnement de démonstration
+        run: cp .env.example .env
+      - name: Démarrer la stack
+        run: docker compose up -d --build --wait
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - name: Cache JMeter
+        id: cache-jmeter
+        uses: actions/cache@v4
+        with:
+          path: apache-jmeter-${{ env.JMETER_VERSION }}
+          key: jmeter-${{ env.JMETER_VERSION }}
+      - name: Installer JMeter
+        if: steps.cache-jmeter.outputs.cache-hit != 'true'
+        run: |
+          archive="apache-jmeter-${JMETER_VERSION}.tgz"
+          curl -fsSLO "https://archive.apache.org/dist/jmeter/binaries/${archive}"
+          curl -fsSLO "https://archive.apache.org/dist/jmeter/binaries/${archive}.sha512"
+          sha512sum -c "${archive}.sha512"
+          tar xzf "${archive}"
+      - name: Test de charge
+        env:
+          JMETER_HOME: ${{ github.workspace }}/apache-jmeter-${{ env.JMETER_VERSION }}
+          UTILISATEURS: ${{ inputs.utilisateurs }}
+          DUREE: ${{ inputs.duree }}
+          SEUIL_MS: ${{ inputs.seuil_ms }}
+          SORTIE: ${{ github.workspace }}/resultats-jmeter
+        run: tests/performance/lancer-jmeter.sh | tee resume.txt
+      - name: Résumé
+        if: always()
+        run: |
+          [ -f resume.txt ] || exit 0
+          { echo '### Test de charge JMeter'; echo '```'; sed -n '/^Requête/,$p' resume.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapport-jmeter
+          path: resultats-jmeter/
+          if-no-files-found: warn
+      - name: Arrêter la stack
+        if: always()
+        run: docker compose down -v

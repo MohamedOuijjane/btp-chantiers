@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ChantiersClient } from '../src/clients/chantiers.client';
@@ -46,7 +46,7 @@ describe('TachesService', () => {
   const chantiers = { verifierChantierActif: jest.fn() };
   const ouvriers = { verifierDisponibles: jest.fn() };
   const materiaux = { verifierStock: jest.fn() };
-  const journal = { enregistrer: jest.fn(), lister: jest.fn() };
+    const journal = { enregistrer: jest.fn(), lister: jest.fn(), motifsDuBlocage: jest.fn() };
 
   const dto = {
     chantierId: 1,
@@ -107,6 +107,7 @@ describe('TachesService', () => {
         dateFin: '2026-11-10',
         statut: 'A_FAIRE',
         avancement: 0,
+        motif: null,
         ouvrierIds: [1, 2],
         besoinsMateriaux: [{ materiauId: 1, quantite: 40 }],
       });
@@ -203,11 +204,12 @@ describe('TachesService', () => {
       expect(repo.save).toHaveBeenCalled();
     });
 
-    it('une tâche bloquée garde son statut', async () => {
+    it('tâche bloquée : 409, avancement inchangé (#143)', async () => {
       repo.findOne.mockResolvedValue(tache({ statut: StatutTache.BLOQUEE }));
-      const r = await service.mettreAJourAvancement(7, 60);
-      expect(r.statut).toBe(StatutTache.BLOQUEE);
-      expect(r.avancement).toBe(60);
+      await expect(service.mettreAJourAvancement(7, 60)).rejects.toThrow(
+        new ConflictException('Débloquez la tâche avant de changer son avancement'),
+      );
+      expect(repo.save).not.toHaveBeenCalled();
     });
 
     it('statutPourAvancement', () => {

@@ -29,6 +29,18 @@ class OuvrierReponse(OuvrierBase):
     disponible: bool
 
 
+class ErreurChamp(BaseModel):
+    """Erreur rattachée à un champ, au même format que les 422 de FastAPI."""
+
+    loc: list[str | int] = Field(examples=[["body", "cin"]])
+    msg: str = Field(examples=["La CIN JB123456 est déjà utilisée par un autre ouvrier"])
+    type: str = Field(examples=["cin_deja_utilisee"])
+
+
+class ErreurChamps(BaseModel):
+    detail: list[ErreurChamp]
+
+
 class TachePlanning(BaseModel):
     """Tâche lue dans le module Tâches (identifiant entier depuis la migration PostgreSQL, #6)."""
 
@@ -43,4 +55,8 @@ class TachePlanning(BaseModel):
 class Planning(BaseModel):
     ouvrier: OuvrierReponse
     taches: list[TachePlanning]
-    source_disponible: bool
+    # Même nom JSON que Chantiers (avancement) et le front : sourceDisponible (#14).
+    source_disponible: bool = Field(
+        serialization_alias="sourceDisponible",
+        description="false si le module Tâches est injoignable (planning vide, mode dégradé)",
+    )

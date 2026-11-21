@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, Lock, Plus } from 'lucide-react';
+import { ArrowLeft, Building2, Lock, Plus, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -17,6 +17,7 @@ import { AnneauAvancement } from '../components/AnneauAvancement';
 import { ChantierDialog } from '../components/ChantierDialog';
 import { CloturerDialog } from '../components/CloturerDialog';
 import { MouvementsChantier } from '../components/MouvementsChantier';
+import { SupprimerChantierDialog } from '../components/SupprimerChantierDialog';
 import { TachesChantier } from '../components/TachesChantier';
 import { useAvancementChantier, useChantier } from '../hooks';
 import { refChantier, tonAvancement } from '../presentation';
@@ -30,7 +31,7 @@ export function ChantierFichePage() {
   const avancement = useAvancementChantier(id, valide && chantier.isSuccess);
   const taches = useTaches({ chantierId: id });
   const mouvements = useMouvements({ chantierId: id });
-  const [dialogue, setDialogue] = useState<'modifier' | 'cloturer' | null>(null);
+  const [dialogue, setDialogue] = useState<'modifier' | 'cloturer' | 'supprimer' | null>(null);
   const { peut } = useDroits();
   const gereChantier = peut('chantiers.ecrire');
   const planifie = peut('taches.ecrire');
@@ -101,6 +102,15 @@ export function ChantierFichePage() {
                 onClick={() => setDialogue('cloturer')}
               >
                 Clôturer le chantier
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-surface"
+                disabled={!c}
+                onClick={() => setDialogue('supprimer')}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                Supprimer
               </Button>
             </>
           )}
@@ -211,6 +221,13 @@ export function ChantierFichePage() {
             onOpenChange={(o) => setDialogue(o ? 'cloturer' : null)}
             chantier={c}
           />
+          {gereChantier && (
+            <SupprimerChantierDialog
+              open={dialogue === 'supprimer'}
+              onOpenChange={(o) => setDialogue(o ? 'supprimer' : null)}
+              chantier={c}
+            />
+          )}
         </>
       )}
     </>

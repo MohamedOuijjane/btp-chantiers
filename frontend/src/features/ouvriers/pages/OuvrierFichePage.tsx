@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
+import { estReel } from '@/api/mode';
 import { useTitrePage } from '@/app/titre';
 import { EtatVide } from '@/components/common/EtatVide';
 import { Pastille } from '@/components/common/Pastille';
@@ -30,6 +31,10 @@ export function OuvrierFichePage() {
   const modifier = useModifierOuvrier();
   const [dialogue, setDialogue] = useState<Dialogue>(null);
   const gere = useDroits().peut('ouvriers.ecrire');
+  // Affecter et retirer passent par le module Tâches. Masqués tant que Tâches est en données
+  // fictives alors qu'Ouvriers est réel (le planning affiché vient du vrai module Tâches) ;
+  // ils réapparaissent quand Tâches passe en mode réel (#50).
+  const affectations = gere && (estReel('taches') || !estReel('ouvriers'));
   const retirer = useRetirerOuvrier();
   useTitrePage(o ? `${o.prenom} ${o.nom}` : undefined);
 
@@ -121,14 +126,16 @@ export function OuvrierFichePage() {
               <Trash2 size={16} aria-hidden="true" />
               Supprimer
             </Button>
-            <Button
-              className="px-[18px] font-bold"
-              disabled={!o}
-              onClick={() => setDialogue('affecter')}
-            >
-              <UserPlus size={18} aria-hidden="true" />
-              Affecter à une tâche
-            </Button>
+            {affectations && (
+              <Button
+                className="px-[18px] font-bold"
+                disabled={!o}
+                onClick={() => setDialogue('affecter')}
+              >
+                <UserPlus size={18} aria-hidden="true" />
+                Affecter à une tâche
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -174,7 +181,7 @@ export function OuvrierFichePage() {
         <h2 id="titre-planning-fiche" className="titre m-0 text-xl tracking-[0.04em]">
           Planning et affectations
         </h2>
-        <PlanningOuvrier ouvrierId={id} onRetirer={gere ? retirerDe : undefined} />
+        <PlanningOuvrier ouvrierId={id} onRetirer={affectations ? retirerDe : undefined} />
       </section>
 
       {o && (
@@ -184,11 +191,13 @@ export function OuvrierFichePage() {
             onOpenChange={(v) => setDialogue(v ? 'modifier' : null)}
             ouvrier={o}
           />
-          <AffecterDialog
-            open={dialogue === 'affecter'}
-            onOpenChange={(v) => setDialogue(v ? 'affecter' : null)}
-            ouvrier={o}
-          />
+          {affectations && (
+            <AffecterDialog
+              open={dialogue === 'affecter'}
+              onOpenChange={(v) => setDialogue(v ? 'affecter' : null)}
+              ouvrier={o}
+            />
+          )}
           <SupprimerOuvrierDialog
             open={dialogue === 'supprimer'}
             onOpenChange={(v) => setDialogue(v ? 'supprimer' : null)}

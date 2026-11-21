@@ -26,7 +26,7 @@ describe('TachesService : conflit de planning (#10)', () => {
   const chantiers = { verifierChantierActif: jest.fn() };
   const ouvriers = { verifierDisponibles: jest.fn() };
   const materiaux = { verifierStock: jest.fn() };
-  const journal = { enregistrer: jest.fn() };
+  const journal = { enregistrer: jest.fn(), motifsDuBlocage: jest.fn() };;
 
   const dto = {
     chantierId: 1,

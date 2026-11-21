@@ -179,3 +179,45 @@ describe('Tableau de bord en mode dégradé', () => {
     ).toHaveLength(5);
   });
 });
+
+describe('Tableau de bord selon le profil (mêmes droits que le menu)', () => {
+  it('Magasinier : ni cartes Tâches et Ouvriers, ni changements de statut des tâches', async () => {
+    simulerPanne('taches');
+    simulerPanne('ouvriers');
+    afficherApp('/', { role: 'MAGASINIER' });
+
+    await waitFor(() => expect(carte('Chantiers en cours')).toHaveTextContent('3 / 6'));
+    expect(carte('Matériaux en alerte')).toHaveTextContent('2');
+    expect(screen.queryByText('Tâches en retard')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ouvriers disponibles')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Tâches à suivre' })).not.toBeInTheDocument();
+    // Les pannes de modules qu'il ne voit pas ne sont pas signalées.
+    expect(screen.queryByText(/module Tâches injoignable/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/module Ouvriers injoignable/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Changements de statut des tâches/)).not.toBeInTheDocument();
+
+    const activites = await screen.findByRole('list', { name: 'Dernières activités' });
+    expect(within(activites).queryAllByRole('link', { name: /Étanchéité/ })).toHaveLength(0);
+    expect(within(activites).getAllByText(/Sortie de|Entrée de/).length).toBeGreaterThan(0);
+  });
+
+  it('Chef de chantier : cartes Tâches et Ouvriers affichées, ni cartes ni mouvements Matériaux', async () => {
+    simulerPanne('materiaux');
+    afficherApp('/', { role: 'CHEF_CHANTIER' });
+
+    await screen.findByRole('list', { name: 'Tâches à suivre' });
+    await waitFor(() => expect(carte('Tâches en retard')).not.toHaveTextContent('Non disponible'));
+    expect(carte('Ouvriers disponibles')).toBeInTheDocument();
+    expect(screen.queryByText('Matériaux en alerte')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Alertes de stock' })).not.toBeInTheDocument();
+    // La panne d'un module qu'il ne voit pas n'est pas signalée.
+    expect(screen.queryByText(/module Matériaux injoignable/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Mouvements de stock/)).not.toBeInTheDocument();
+
+    const activites = await screen.findByRole('list', { name: 'Dernières activités' });
+    expect(within(activites).queryByText(/Sortie de|Entrée de/)).not.toBeInTheDocument();
+    expect(
+      within(activites).getAllByRole('link', { name: 'Étanchéité de la toiture' }).length,
+    ).toBeGreaterThan(0);
+  });
+});

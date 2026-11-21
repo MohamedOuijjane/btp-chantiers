@@ -15,11 +15,11 @@ export type Tache = {
   dateDebut: string;
   dateFin: string;
   statut: StatutTache;
-  /** Pourcentage de 0 à 100 ; le statut en découle (RG5) sauf si la tâche est bloquée. */
+  /** Pourcentage de 0 à 100 ; le statut en découle (RG5). Refusé sur une tâche bloquée (409). */
   avancement: number;
   ouvrierIds: number[];
   besoinsMateriaux: BesoinMateriau[];
-  /** Motif du blocage quand statut = BLOQUEE, sinon null. */
+  /** Motif du blocage en cours quand statut = BLOQUEE, sinon null (#141). */
   motif: string | null;
 };
 
@@ -39,17 +39,17 @@ export type Blocage = { bloquee: true; motif: string } | { bloquee: false };
 
 export type FiltreTaches = { chantierId?: number; ouvrierId?: number };
 
-/** Corps de PUT /api/taches/{id} (cible, à créer) : mêmes champs que la création. */
+/** Corps de PUT /api/taches/{id} : mêmes champs que la création. */
 export type TacheModification = TacheCreation;
 
 /** Changements de statut proposés dans l'interface : À faire → En cours → Terminée. */
 export type TransitionStatut = 'EN_COURS' | 'TERMINEE';
 
-/** Entrée de l'historique des statuts d'une tâche (GET /api/taches/{id}/historique, cible). */
+/** Entrée de l'historique des statuts d'une tâche (GET /api/taches/{id}/historique). */
 export type ChangementStatut = {
   tacheId: number;
   statut: StatutTache;
-  /** Date ISO aaaa-mm-jj. */
+  /** Date ISO : aaaa-mm-jj (données fictives) ou date et heure (API réelle). */
   date: string;
   motif?: string;
 };

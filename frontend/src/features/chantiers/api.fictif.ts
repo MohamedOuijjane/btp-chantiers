@@ -80,9 +80,19 @@ export function cloturerChantier(id: number) {
 /** Réel : DELETE /api/chantiers/{id} → 204 | 404 | 409 (le chantier a des tâches, #5) */
 export function supprimerChantier(id: number) {
   return appelFictif('chantiers', () => {
-    trouver(id);
-    if (base.taches.some((t) => t.chantierId === id)) {
-      throw conflit('Impossible de supprimer un chantier qui a des tâches');
+    const chantier = trouver(id);
+    // Même règle et même message que l'API (#5) : toute tâche, terminée comprise, bloque.
+    const taches = base.taches.filter((t) => t.chantierId === id);
+    if (taches.length) {
+      const titres = taches
+        .slice(0, 5)
+        .map((t) => `« ${t.titre} »`)
+        .join(', ');
+      const autres = taches.length > 5 ? ` et ${taches.length - 5} autre(s)` : '';
+      throw conflit(
+        `Suppression impossible : le chantier « ${chantier.nom} » a ${taches.length} tâche(s) : ` +
+          `${titres}${autres}. Supprimez ses tâches dans le module Tâches avant de supprimer le chantier.`,
+      );
     }
     base.chantiers = base.chantiers.filter((c) => c.id !== id);
   });

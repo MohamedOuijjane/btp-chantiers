@@ -139,7 +139,7 @@
                         <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
                     </sourceDirectories>
                     <consoleOutput>false</consoleOutput>
-                    <failOnViolation>false</failOnViolation>
+                    <failOnViolation>true</failOnViolation>
                     <failsOnError>false</failsOnError>
                     <violationSeverity>warning</violationSeverity>
                 </configuration>
