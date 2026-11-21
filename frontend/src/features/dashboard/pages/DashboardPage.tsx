@@ -6,6 +6,7 @@ import { AlerteErreur } from '@/components/common/AlerteErreur';
 import { BandeauDegrade } from '@/components/common/BandeauDegrade';
 import { StatutBadge } from '@/components/common/StatutBadge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDroits } from '@/features/auth/contexte';
 import { useAvancementsChantiers, useChantiers } from '@/features/chantiers/hooks';
 import { useMateriaux, useMouvements } from '@/features/materiaux/hooks';
 import { useOuvriers } from '@/features/ouvriers/hooks';
@@ -39,6 +40,11 @@ function ErreurModule({ module, erreur }: { module: NomModule; erreur: ApiError 
 
 /** Écran 2 de la maquette (et 8 en mode dégradé) : vue d'ensemble de l'activité. */
 export function DashboardPage() {
+  // Mêmes droits que le menu : un profil sans accès aux pages Tâches ou Ouvriers (magasinier)
+  // ne voit pas leurs cartes, leurs bandeaux ni les changements de statut des tâches.
+  const { voit } = useDroits();
+  const voitTaches = voit('taches');
+  const voitOuvriers = voit('ouvriers');
   const chantiers = useChantiers();
   const taches = useTaches();
   const ouvriers = useOuvriers();
@@ -53,8 +59,8 @@ export function DashboardPage() {
   // Erreur de lecture par module : 503 = panne (bandeau ambre), autre code = bandeau rouge.
   const erreurs = {
     chantiers: chantiers.error,
-    taches: taches.error,
-    ouvriers: ouvriers.error,
+    taches: voitTaches ? taches.error : null,
+    ouvriers: voitOuvriers ? ouvriers.error : null,
     materiaux: materiaux.error,
   };
   const carte = (e: ApiError | null, module: NomModule) =>
@@ -63,7 +69,7 @@ export function DashboardPage() {
         ? `Non disponible (module ${module})`
         : `Erreur du module ${module}`
       : undefined;
-  const erreurHistorique = taches.error ?? historique.error;
+  const erreurHistorique = voitTaches ? (taches.error ?? historique.error) : null;
   const erreurMouvements = materiaux.error ?? mouvements.error;
 
   // Indicateurs
@@ -153,37 +159,41 @@ export function DashboardPage() {
           total={listeChantiers.length}
           detail={repartition || 'Aucun chantier'}
         />
-        <CarteKpi
-          titre="Tâches en retard"
-          vers="/taches"
-          chargement={taches.isPending}
-          indisponible={carte(erreurs.taches, 'Tâches')}
-          alerte={enRetard.length > 0}
-          valeur={enRetard.length}
-          detail={
-            enRetard.length
-              ? `Fin dépassée : ${enRetard
-                  .slice(0, 2)
-                  .map((t) => t.titre)
-                  .join(', ')}${enRetard.length > 2 ? '…' : ''}`
-              : `Aucune sur ${pluriel(nonTerminees.length, 'tâche')} à terminer`
-          }
-        />
-        <CarteKpi
-          titre="Ouvriers disponibles"
-          vers="/ouvriers?disponibles=1"
-          chargement={ouvriers.isPending}
-          indisponible={carte(erreurs.ouvriers, 'Ouvriers')}
-          valeur={disponibles.length}
-          total={ouvriers.data?.length ?? 0}
-          detail={
-            !ouvriers.data?.length
-              ? 'Aucun ouvrier enregistré'
-              : indisponibles.length
-                ? `Indisponibles : ${indisponibles.map((o) => `${o.prenom} ${o.nom}`).join(', ')}`
-                : 'Toute l’équipe est disponible'
-          }
-        />
+        {voitTaches && (
+          <CarteKpi
+            titre="Tâches en retard"
+            vers="/taches"
+            chargement={taches.isPending}
+            indisponible={carte(erreurs.taches, 'Tâches')}
+            alerte={enRetard.length > 0}
+            valeur={enRetard.length}
+            detail={
+              enRetard.length
+                ? `Fin dépassée : ${enRetard
+                    .slice(0, 2)
+                    .map((t) => t.titre)
+                    .join(', ')}${enRetard.length > 2 ? '…' : ''}`
+                : `Aucune sur ${pluriel(nonTerminees.length, 'tâche')} à terminer`
+            }
+          />
+        )}
+        {voitOuvriers && (
+          <CarteKpi
+            titre="Ouvriers disponibles"
+            vers="/ouvriers?disponibles=1"
+            chargement={ouvriers.isPending}
+            indisponible={carte(erreurs.ouvriers, 'Ouvriers')}
+            valeur={disponibles.length}
+            total={ouvriers.data?.length ?? 0}
+            detail={
+              !ouvriers.data?.length
+                ? 'Aucun ouvrier enregistré'
+                : indisponibles.length
+                  ? `Indisponibles : ${indisponibles.map((o) => `${o.prenom} ${o.nom}`).join(', ')}`
+                  : 'Toute l’équipe est disponible'
+            }
+          />
+        )}
         <CarteKpi
           titre="Matériaux en alerte"
           vers="/materiaux?alerte=1"
@@ -280,49 +290,51 @@ export function DashboardPage() {
       </div>
 
       <div className="flex flex-wrap items-stretch gap-5">
-        <Section
-          titre="Tâches à suivre"
-          lien={{ vers: '/taches?statut=EN_COURS', libelle: 'Toutes les tâches' }}
-          className="flex-[1_1_440px]"
-        >
-          {erreurs.taches ? (
-            <Indisponible>
-              {erreurs.taches.status === 503
-                ? 'Liste indisponible pendant la panne du module Tâches.'
-                : `Liste non disponible : erreur ${erreurs.taches.status} du module Tâches.`}
-            </Indisponible>
-          ) : taches.isPending ? (
-            <Skeleton className="h-40" />
-          ) : aSuivre.length === 0 ? (
-            <p className="m-0 text-muted">Aucune tâche en cours.</p>
-          ) : (
-            <ul aria-label="Tâches à suivre" className="m-0 flex list-none flex-col p-0">
-              {aSuivre.map((t) => (
-                <li
-                  key={t.id}
-                  className="flex items-center justify-between gap-3 border-b border-line py-3 last:border-b-0"
-                >
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <Link
-                      to={`/taches/${t.id}`}
-                      className="font-semibold text-ink no-underline hover:underline"
-                    >
-                      {t.titre}
-                    </Link>
-                    <span className="text-[13px] text-muted">
-                      {parChantier.get(t.chantierId)?.nom ?? `Chantier ${t.chantierId}`} · fin{' '}
-                      {formatDateCourte(t.dateFin)}
-                      {t.dateFin < jour && (
-                        <strong className="text-[var(--badge-rouge-fg)]"> · en retard</strong>
-                      )}
+        {voitTaches && (
+          <Section
+            titre="Tâches à suivre"
+            lien={{ vers: '/taches?statut=EN_COURS', libelle: 'Toutes les tâches' }}
+            className="flex-[1_1_440px]"
+          >
+            {erreurs.taches ? (
+              <Indisponible>
+                {erreurs.taches.status === 503
+                  ? 'Liste indisponible pendant la panne du module Tâches.'
+                  : `Liste non disponible : erreur ${erreurs.taches.status} du module Tâches.`}
+              </Indisponible>
+            ) : taches.isPending ? (
+              <Skeleton className="h-40" />
+            ) : aSuivre.length === 0 ? (
+              <p className="m-0 text-muted">Aucune tâche en cours.</p>
+            ) : (
+              <ul aria-label="Tâches à suivre" className="m-0 flex list-none flex-col p-0">
+                {aSuivre.map((t) => (
+                  <li
+                    key={t.id}
+                    className="flex items-center justify-between gap-3 border-b border-line py-3 last:border-b-0"
+                  >
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <Link
+                        to={`/taches/${t.id}`}
+                        className="font-semibold text-ink no-underline hover:underline"
+                      >
+                        {t.titre}
+                      </Link>
+                      <span className="text-[13px] text-muted">
+                        {parChantier.get(t.chantierId)?.nom ?? `Chantier ${t.chantierId}`} · fin{' '}
+                        {formatDateCourte(t.dateFin)}
+                        {t.dateFin < jour && (
+                          <strong className="text-[var(--badge-rouge-fg)]"> · en retard</strong>
+                        )}
+                      </span>
                     </span>
-                  </span>
-                  <StatutBadge statut={t.statut} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
+                    <StatutBadge statut={t.statut} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        )}
 
         <Section titre="Répartition des chantiers" className="flex-[1_1_440px]">
           {erreurs.chantiers ? (
@@ -359,7 +371,7 @@ export function DashboardPage() {
               <Indisponible>Mouvements de stock indisponibles (module Matériaux).</Indisponible>
             )}
             <DernieresActivites
-              changements={erreurHistorique ? undefined : historique.data}
+              changements={!voitTaches || erreurHistorique ? undefined : historique.data}
               taches={parTache}
               mouvements={erreurMouvements ? undefined : mouvements.data}
               materiaux={parMateriau}
