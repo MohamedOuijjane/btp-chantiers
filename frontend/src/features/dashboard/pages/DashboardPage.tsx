@@ -40,11 +40,12 @@ function ErreurModule({ module, erreur }: { module: NomModule; erreur: ApiError 
 
 /** Écran 2 de la maquette (et 8 en mode dégradé) : vue d'ensemble de l'activité. */
 export function DashboardPage() {
-  // Mêmes droits que le menu : un profil sans accès aux pages Tâches ou Ouvriers (magasinier)
-  // ne voit pas leurs cartes, leurs bandeaux ni les changements de statut des tâches.
+  // Mêmes droits que le menu : un profil sans accès aux pages Tâches, Ouvriers (magasinier) ou
+  // Matériaux (chef de chantier) ne voit pas leurs cartes, leurs bandeaux ni leurs activités.
   const { voit } = useDroits();
   const voitTaches = voit('taches');
   const voitOuvriers = voit('ouvriers');
+  const voitMateriaux = voit('materiaux');
   const chantiers = useChantiers();
   const taches = useTaches();
   const ouvriers = useOuvriers();
@@ -61,7 +62,7 @@ export function DashboardPage() {
     chantiers: chantiers.error,
     taches: voitTaches ? taches.error : null,
     ouvriers: voitOuvriers ? ouvriers.error : null,
-    materiaux: materiaux.error,
+    materiaux: voitMateriaux ? materiaux.error : null,
   };
   const carte = (e: ApiError | null, module: NomModule) =>
     e
@@ -70,7 +71,7 @@ export function DashboardPage() {
         : `Erreur du module ${module}`
       : undefined;
   const erreurHistorique = voitTaches ? (taches.error ?? historique.error) : null;
-  const erreurMouvements = materiaux.error ?? mouvements.error;
+  const erreurMouvements = voitMateriaux ? (materiaux.error ?? mouvements.error) : null;
 
   // Indicateurs
   const jour = aujourdhui();
@@ -194,15 +195,17 @@ export function DashboardPage() {
             }
           />
         )}
-        <CarteKpi
-          titre="Matériaux en alerte"
-          vers="/materiaux?alerte=1"
-          chargement={materiaux.isPending}
-          indisponible={carte(erreurs.materiaux, 'Matériaux')}
-          alerte={alertes.length > 0}
-          valeur={alertes.length}
-          detail="Stock inférieur ou égal au seuil"
-        />
+        {voitMateriaux && (
+          <CarteKpi
+            titre="Matériaux en alerte"
+            vers="/materiaux?alerte=1"
+            chargement={materiaux.isPending}
+            indisponible={carte(erreurs.materiaux, 'Matériaux')}
+            alerte={alertes.length > 0}
+            valeur={alertes.length}
+            detail="Stock inférieur ou égal au seuil"
+          />
+        )}
       </div>
 
       <div className="flex flex-wrap items-stretch gap-5">
@@ -246,47 +249,52 @@ export function DashboardPage() {
           )}
         </Section>
 
-        <Section
-          titre="Alertes de stock"
-          lien={{ vers: '/materiaux?alerte=1', libelle: 'Voir le stock' }}
-          className="flex-[1_1_440px]"
-        >
-          {erreurs.materiaux ? (
-            <Indisponible>
-              {indisponibilite(
-                erreurs.materiaux,
-                'Matériaux',
-                'Stock non disponible : le module Matériaux ne répond pas.',
-              )}
-            </Indisponible>
-          ) : materiaux.isPending ? (
-            <Skeleton className="h-32" />
-          ) : alertes.length === 0 ? (
-            <p className="m-0 text-muted">Aucun matériau en alerte.</p>
-          ) : (
-            <ul aria-label="Matériaux en alerte" className="m-0 flex list-none flex-col gap-3 p-0">
-              {alertes.map((m) => (
-                <li
-                  key={m.id}
-                  className="flex items-start gap-3.5 rounded-btn bg-[var(--badge-rouge-bg)] px-4 py-3.5 text-[var(--badge-rouge-fg)]"
-                >
-                  <TriangleAlert size={22} aria-hidden="true" className="mt-0.5 flex-none" />
-                  <span className="flex flex-col gap-0.5">
-                    <strong>{m.nom}</strong>
-                    <span className="text-[13px]">
-                      <span className="font-mono">{m.reference}</span> · stock{' '}
-                      {formatNombre(m.stock)} {m.unite} · seuil {formatNombre(m.seuilAlerte)}{' '}
-                      {m.unite}
+        {voitMateriaux && (
+          <Section
+            titre="Alertes de stock"
+            lien={{ vers: '/materiaux?alerte=1', libelle: 'Voir le stock' }}
+            className="flex-[1_1_440px]"
+          >
+            {erreurs.materiaux ? (
+              <Indisponible>
+                {indisponibilite(
+                  erreurs.materiaux,
+                  'Matériaux',
+                  'Stock non disponible : le module Matériaux ne répond pas.',
+                )}
+              </Indisponible>
+            ) : materiaux.isPending ? (
+              <Skeleton className="h-32" />
+            ) : alertes.length === 0 ? (
+              <p className="m-0 text-muted">Aucun matériau en alerte.</p>
+            ) : (
+              <ul
+                aria-label="Matériaux en alerte"
+                className="m-0 flex list-none flex-col gap-3 p-0"
+              >
+                {alertes.map((m) => (
+                  <li
+                    key={m.id}
+                    className="flex items-start gap-3.5 rounded-btn bg-[var(--badge-rouge-bg)] px-4 py-3.5 text-[var(--badge-rouge-fg)]"
+                  >
+                    <TriangleAlert size={22} aria-hidden="true" className="mt-0.5 flex-none" />
+                    <span className="flex flex-col gap-0.5">
+                      <strong>{m.nom}</strong>
+                      <span className="text-[13px]">
+                        <span className="font-mono">{m.reference}</span> · stock{' '}
+                        {formatNombre(m.stock)} {m.unite} · seuil {formatNombre(m.seuilAlerte)}{' '}
+                        {m.unite}
+                      </span>
                     </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="m-0 text-sm text-muted">
-            Un matériau est en alerte quand son stock est inférieur ou égal à son seuil.
-          </p>
-        </Section>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="m-0 text-sm text-muted">
+              Un matériau est en alerte quand son stock est inférieur ou égal à son seuil.
+            </p>
+          </Section>
+        )}
       </div>
 
       <div className="flex flex-wrap items-stretch gap-5">
@@ -373,7 +381,7 @@ export function DashboardPage() {
             <DernieresActivites
               changements={!voitTaches || erreurHistorique ? undefined : historique.data}
               taches={parTache}
-              mouvements={erreurMouvements ? undefined : mouvements.data}
+              mouvements={!voitMateriaux || erreurMouvements ? undefined : mouvements.data}
               materiaux={parMateriau}
               chantiers={parChantier}
             />
