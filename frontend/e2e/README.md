@@ -4,6 +4,7 @@ Parcours rejoués dans un vrai navigateur (Chromium) sur la stack Docker complè
 
 | Fichier | Parcours |
 |---|---|
+| `scenario-demo.spec.ts` | **Scénario de démo complet (#31)**, en conducteur de travaux et uniquement par l'interface : création d'un chantier, d'un ouvrier, d'un matériau et d'une tâche (ouvrier affecté, 80 sacs demandés pour 50 en stock) ; refus 422 « Stock insuffisant » (Tâches → Matériaux en SOAP) ; tâche créée avec 30 sacs ; démarrage et avancement à 60 % ; la tâche dans le planning de l'ouvrier |
 | `connexion.spec.ts` | Connexion du conducteur de travaux (menu complet), du magasinier (Matériaux sans Ouvriers), mot de passe refusé, déconnexion |
 | `chantiers.spec.ts` | Création d'un chantier ; suppression refusée (409, tâche citée) ; suppression acceptée (#5) |
 | `taches.spec.ts` | Création d'une tâche depuis la fiche chantier ; démarrage, avancement à 60 %, blocage avec motif et déblocage ; affectation d'un ouvrier depuis sa fiche (#50) ; avancement refusé (409) sur une tâche bloquée entre-temps (#143) |
@@ -37,4 +38,4 @@ Les fichiers `e2e/` sont exclus de Vitest (`npm test`) et de l'image Docker du f
 
 Workflow **E2E** (`.github/workflows/e2e.yml`) : à chaque pull request vers `develop` qui touche `frontend/`, `services/` ou `gateway/`, et à la demande. Il construit et démarre la stack, lance les tests et publie le rapport HTML en artefact (`rapport-playwright`). Il est informatif : il ne fait pas partie des vérifications obligatoires du ruleset.
 
-Le scénario complet de #31 (matériau, tâche, stock insuffisant, avancement) n'est pas encore couvert d'un seul tenant.
+Avant une démonstration : `npx playwright test scenario-demo` rejoue le scénario seul.
