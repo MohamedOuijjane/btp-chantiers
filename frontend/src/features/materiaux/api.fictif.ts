@@ -1,17 +1,8 @@
 /**
- * API du module Matériaux : DONNÉES FICTIVES, aucun appel réseau.
- *
- * Opérations SOAP réelles à brancher (POST /ws via la gateway, namespace
- * http://btp.uiz.ma/materiaux, voir docs/frontend/integration.md) :
- *   ListerMateriaux(enAlerteSeulement?)
- *   GetMateriau(id)
- *   AjouterMateriau(materiau)
- *   VerifierStock(materiauId, quantite)
- *   EnregistrerMouvement(materiauId, chantierId, type, quantite)
- *   ListerMouvements(chantierId?, materiauId?)   (cible, #18)
- *
- * Erreurs simulées comme les SOAP Faults converties (voir integration.md) :
- *   faultcode Introuvable → 404, Conflit → 409, Client → 422, Server ou module injoignable → 503.
+ * Module Matériaux, mode fictif (VITE_API_MATERIAUX=fictif) : données en mémoire, aucun appel
+ * réseau. Utilisé par les tests de pages et pour une démo sans backend. Les erreurs reproduisent
+ * les SOAP Faults converties par src/api/soap.ts (Introuvable → 404, Conflit → 409, Client → 422,
+ * Server ou module injoignable → 503).
  */
 import { aujourdHui, base, prochainId } from '@/api/donnees-fictives';
 import { conflit, introuvable, refus } from '@/api/errors';

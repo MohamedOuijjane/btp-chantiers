@@ -1,5 +1,5 @@
 // Types du module Matériaux (SOAP, Spring-WS), alignés sur contracts/materiaux.xsd
-// et sur l'opération cible ListerMouvements (#18).
+// dont l'opération ListerMouvements (#18).
 
 /** Élément `Materiau` du XSD. */
 export type Materiau = {
@@ -21,7 +21,7 @@ export type TypeMouvement = 'ENTREE' | 'SORTIE';
 /** Mouvement de stock, tel que renvoyé par ListerMouvements. */
 export type Mouvement = {
   id: number;
-  /** Date ISO aaaa-mm-jj. */
+  /** Date ISO : aaaa-mm-jj (données fictives) ou date et heure UTC (API réelle, xs:dateTime). */
   date: string;
   materiauId: number;
   chantierId: number;

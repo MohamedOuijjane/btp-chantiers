@@ -22,18 +22,21 @@ export const clesMateriaux = {
 export function useMateriaux(enAlerteSeulement = false) {
   return useQuery({
     queryKey: clesMateriaux.liste(enAlerteSeulement),
-    queryFn: () => api.listerMateriaux(enAlerteSeulement),
+    queryFn: ({ signal }) => api.listerMateriaux(enAlerteSeulement, { signal }),
   });
 }
 
 export function useMateriau(id: number) {
-  return useQuery({ queryKey: clesMateriaux.detail(id), queryFn: () => api.getMateriau(id) });
+  return useQuery({
+    queryKey: clesMateriaux.detail(id),
+    queryFn: ({ signal }) => api.getMateriau(id, { signal }),
+  });
 }
 
 export function useMouvements(filtre: FiltreMouvements = {}) {
   return useQuery({
     queryKey: clesMateriaux.mouvements(filtre),
-    queryFn: () => api.listerMouvements(filtre),
+    queryFn: ({ signal }) => api.listerMouvements(filtre, { signal }),
   });
 }
 
