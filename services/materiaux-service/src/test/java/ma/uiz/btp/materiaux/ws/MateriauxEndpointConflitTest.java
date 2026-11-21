@@ -12,6 +12,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import ma.uiz.btp.materiaux.domain.ConflitStockException;
+import ma.uiz.btp.materiaux.domain.FautesMateriaux;
 import ma.uiz.btp.materiaux.domain.MateriauEntity;
 import ma.uiz.btp.materiaux.domain.Mouvement;
 import ma.uiz.btp.materiaux.ws.gen.EnregistrerMouvementRequest;
@@ -58,7 +59,7 @@ class MateriauxEndpointConflitTest {
     }
 
     @Test
-    @DisplayName("UT-MAT-31 : un conflit de verrou optimiste devient une faute Client explicite")
+    @DisplayName("UT-MAT-31 : un conflit de verrou optimiste devient une faute Conflit (#145)")
     void conflitDeVerrouDevientFauteClient() {
         ObjectOptimisticLockingFailureException verrou =
                 new ObjectOptimisticLockingFailureException(MateriauEntity.class, 1L);
@@ -71,7 +72,8 @@ class MateriauxEndpointConflitTest {
                 e.getMessage());
         assertInstanceOf(ObjectOptimisticLockingFailureException.class, e.getCause());
         SoapFault faute = ConflitStockException.class.getAnnotation(SoapFault.class);
-        assertEquals(FaultCode.CLIENT, faute.faultCode());
+        assertEquals(FaultCode.CUSTOM, faute.faultCode());
+        assertEquals(FautesMateriaux.CONFLIT, faute.customFaultCode());
         assertFalse(e.getMessage().contains("Optimistic"), "pas de détail technique dans la faute");
     }
 }

@@ -23,6 +23,7 @@ import ma.uiz.btp.materiaux.domain.MateriauEntity;
 import ma.uiz.btp.materiaux.domain.MateriauRepository;
 import ma.uiz.btp.materiaux.domain.Mouvement;
 import ma.uiz.btp.materiaux.domain.MouvementRepository;
+import ma.uiz.btp.materiaux.domain.ReferenceDejaUtiliseeException;
 import ma.uiz.btp.materiaux.domain.StockInsuffisantException;
 import ma.uiz.btp.materiaux.domain.ValeurStockInvalideException;
 import org.junit.jupiter.api.DisplayName;
@@ -208,6 +209,18 @@ class MateriauServiceTest {
             assertTrue(service.stockSuffisant(1L, 40));
             assertFalse(service.stockSuffisant(1L, 41));
             assertSame(m, service.trouver(1L));
+        }
+
+        @Test
+        @DisplayName("UT-MAT-61 : référence déjà utilisée : refus Conflit, rien n'est enregistré (#132)")
+        void referenceDejaUtilisee() {
+            MateriauEntity m = ciment(40, 10);
+            when(materiaux.existsByReference("CIM-01")).thenReturn(true);
+
+            ReferenceDejaUtiliseeException e = assertThrows(ReferenceDejaUtiliseeException.class,
+                    () -> service.ajouter(m));
+            assertEquals("La référence CIM-01 est déjà utilisée par un autre matériau", e.getMessage());
+            verify(materiaux, never()).save(any());
         }
 
         @Test

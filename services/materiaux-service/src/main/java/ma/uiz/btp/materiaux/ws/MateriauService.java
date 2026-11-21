@@ -7,6 +7,7 @@ import ma.uiz.btp.materiaux.domain.MateriauEntity;
 import ma.uiz.btp.materiaux.domain.MateriauRepository;
 import ma.uiz.btp.materiaux.domain.Mouvement;
 import ma.uiz.btp.materiaux.domain.MouvementRepository;
+import ma.uiz.btp.materiaux.domain.ReferenceDejaUtiliseeException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,8 +28,16 @@ public class MateriauService {
         this.chantiers = chantiers;
     }
 
-    /** Enregistre un nouveau matériau. */
+    /**
+     * Enregistre un nouveau matériau.
+     *
+     * @throws ReferenceDejaUtiliseeException si la référence existe déjà (#132) : faute Conflit
+     *     au lieu de l'erreur d'intégrité de la base, qui remontait en faute Server
+     */
     public MateriauEntity ajouter(MateriauEntity m) {
+        if (materiaux.existsByReference(m.getReference())) {
+            throw new ReferenceDejaUtiliseeException(m.getReference());
+        }
         return materiaux.save(m);
     }
 
