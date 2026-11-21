@@ -51,7 +51,7 @@ describe('TachesService : historique des statuts (#99)', () => {
   const chantiers = { verifierChantierActif: jest.fn() };
   const ouvriers = { verifierDisponibles: jest.fn() };
   const materiaux = { verifierStock: jest.fn() };
-  const journal = { enregistrer: jest.fn(), lister: jest.fn() };
+    const journal = { enregistrer: jest.fn(), lister: jest.fn(), motifsDuBlocage: jest.fn() };
 
   const tache = (partiel: Partial<Tache> = {}): Tache =>
     Object.assign(new Tache(), {
@@ -108,6 +108,7 @@ describe('TachesService : historique des statuts (#99)', () => {
 
   it('tâche bloquée : le statut ne change pas, aucune entrée', async () => {
     repo.findOne.mockResolvedValue(tache({ statut: StatutTache.BLOQUEE, avancement: 30 }));
+    journal.motifsDuBlocage.mockResolvedValue(new Map([[7, 'Pluie']]));
     await service.mettreAJourAvancement(7, 60);
     expect(journal.enregistrer).not.toHaveBeenCalled();
   });

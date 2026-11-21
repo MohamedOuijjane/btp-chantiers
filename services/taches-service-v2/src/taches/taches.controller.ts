@@ -53,6 +53,11 @@ export class TachesController {
   @ApiOperation({
     summary: "Lister les tâches (filtres : chantierId, ouvrierId)",
   })
+  @ApiResponse({
+    status: 200,
+    description:
+      "Liste des tâches ; `motif` : motif du blocage en cours si statut = BLOQUEE, sinon null",
+  })
   @ApiQuery({ name: "chantierId", required: false, type: Number })
   @ApiQuery({ name: "ouvrierId", required: false, type: Number })
   lister(
@@ -67,6 +72,11 @@ export class TachesController {
 
   @Get(":id")
   @ApiOperation({ summary: "Consulter une tâche" })
+  @ApiResponse({
+    status: 200,
+    description:
+      "Tâche ; `motif` : motif du blocage en cours si statut = BLOQUEE, sinon null",
+  })
   @ParamIdTache()
   trouver(@Param("id", IdTachePipe) id: string) {
     return this.service.trouver(Number(id));

@@ -96,6 +96,7 @@ decrire("Tâches sur PostgreSQL (migrations et requêtes)", () => {
       dateFin: "2026-11-10",
       statut: "A_FAIRE",
       avancement: 0,
+      motif: null,
       ouvrierIds: [4, 7],
       besoinsMateriaux: [
         { materiauId: 1, quantite: 2.5 },

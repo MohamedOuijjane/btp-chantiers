@@ -46,7 +46,7 @@ describe('TachesService', () => {
   const chantiers = { verifierChantierActif: jest.fn() };
   const ouvriers = { verifierDisponibles: jest.fn() };
   const materiaux = { verifierStock: jest.fn() };
-  const journal = { enregistrer: jest.fn(), lister: jest.fn() };
+    const journal = { enregistrer: jest.fn(), lister: jest.fn(), motifsDuBlocage: jest.fn() };
 
   const dto = {
     chantierId: 1,
@@ -107,6 +107,7 @@ describe('TachesService', () => {
         dateFin: '2026-11-10',
         statut: 'A_FAIRE',
         avancement: 0,
+        motif: null,
         ouvrierIds: [1, 2],
         besoinsMateriaux: [{ materiauId: 1, quantite: 40 }],
       });
@@ -205,9 +206,11 @@ describe('TachesService', () => {
 
     it('une tâche bloquée garde son statut', async () => {
       repo.findOne.mockResolvedValue(tache({ statut: StatutTache.BLOQUEE }));
+      journal.motifsDuBlocage.mockResolvedValue(new Map([[7, 'Pluie']]));
       const r = await service.mettreAJourAvancement(7, 60);
       expect(r.statut).toBe(StatutTache.BLOQUEE);
       expect(r.avancement).toBe(60);
+      expect(r.motif).toBe('Pluie');
     });
 
     it('statutPourAvancement', () => {

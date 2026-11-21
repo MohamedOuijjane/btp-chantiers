@@ -9,7 +9,7 @@ import { Repository } from "typeorm";
 import { ChantiersClient } from "../clients/chantiers.client";
 import { MateriauxSoapClient } from "../clients/materiaux.soap-client";
 import { OuvriersClient } from "../clients/ouvriers.client";
-import { AffectationDto, CreerTacheDto, BlocageDto} from "./tache.dto";
+import { AffectationDto, CreerTacheDto, BlocageDto } from "./tache.dto";
 import { StatutTache, Tache, BesoinMateriau } from "./tache.entity";
 import { EntreeHistorique, HistoriqueService } from "./historique.service";
 import { verifierTransition } from "./transitions";
@@ -24,11 +24,16 @@ export type TacheReponse = {
   dateFin: string;
   statut: StatutTache;
   avancement: number;
+  /** Motif du blocage en cours si statut = BLOQUEE, sinon null. */
+  motif: string | null;
   ouvrierIds: number[];
   besoinsMateriaux: { materiauId: number; quantite: number }[];
 };
 
-export function versReponse(t: Tache): TacheReponse {
+export function versReponse(
+  t: Tache,
+  motif: string | null = null,
+): TacheReponse {
   return {
     id: t.id,
     chantierId: t.chantierId,
@@ -38,6 +43,7 @@ export function versReponse(t: Tache): TacheReponse {
     dateFin: t.dateFin,
     statut: t.statut,
     avancement: t.avancement,
+    motif,
     ouvrierIds: t.ouvrierIds ?? [],
     besoinsMateriaux: (t.besoinsMateriaux ?? [])
       .map((b) => ({ materiauId: b.materiauId, quantite: b.quantite }))
@@ -61,6 +67,21 @@ export class TachesService {
     private readonly journal: HistoriqueService,
   ) {}
 
+  /** Ajoute le motif du blocage en cours aux tâches BLOQUEE (une seule requête pour toute la liste). */
+  private async reponses(taches: Tache[]): Promise<TacheReponse[]> {
+    const bloquees = taches
+      .filter((t) => t.statut === StatutTache.BLOQUEE)
+      .map((t) => t.id);
+    const motifs = bloquees.length
+      ? await this.journal.motifsDuBlocage(bloquees)
+      : new Map<number, string | null>();
+    return taches.map((t) => versReponse(t, motifs.get(t.id) ?? null));
+  }
+
+  private async reponse(t: Tache): Promise<TacheReponse> {
+    return (await this.reponses([t]))[0];
+  }
+
   async lister(filtre: {
     chantierId?: number;
     ouvrierId?: number;
@@ -78,11 +99,11 @@ export class TachesService {
       q.andWhere(":ouvrierId = ANY(t.ouvrier_ids)", {
         ouvrierId: filtre.ouvrierId,
       });
-    return (await q.getMany()).map(versReponse);
+    return this.reponses(await q.getMany());
   }
 
   async trouver(id: number): Promise<TacheReponse> {
-    return versReponse(await this.charger(id));
+    return this.reponse(await this.charger(id));
   }
 
   /** Création : orchestre 3 modules (Chantiers REST, Ouvriers REST, Matériaux SOAP). */
@@ -130,7 +151,7 @@ export class TachesService {
     // RG5 : un changement de statut dû à l'avancement est tracé dans l'historique.
     if (sauvee.statut !== ancienStatut)
       await this.journal.enregistrer(id, sauvee.statut);
-    return versReponse(sauvee);
+    return this.reponse(sauvee);
   }
 
   /** Historique des statuts, du plus récent au plus ancien (404 si la tâche n'existe pas). */
@@ -154,7 +175,9 @@ export class TachesService {
     const tache = await this.charger(id);
     if (dto.bloquee) {
       if (tache.statut === StatutTache.TERMINEE)
-        throw new ConflictException("Une tâche terminée ne peut pas être bloquée");
+        throw new ConflictException(
+          "Une tâche terminée ne peut pas être bloquée",
+        );
       if (tache.statut === StatutTache.BLOQUEE)
         throw new ConflictException("La tâche est déjà bloquée");
     } else if (tache.statut !== StatutTache.BLOQUEE) {
@@ -165,8 +188,12 @@ export class TachesService {
       ? StatutTache.BLOQUEE
       : statutPourAvancement(tache.avancement);
     const sauvee = await this.taches.save(tache);
-    await this.journal.enregistrer(id, sauvee.statut, dto.bloquee ? dto.motif : undefined);
-    return versReponse(sauvee);
+    await this.journal.enregistrer(
+      id,
+      sauvee.statut,
+      dto.bloquee ? dto.motif : undefined,
+    );
+    return versReponse(sauvee, dto.bloquee ? (dto.motif ?? null) : null);
   }
 
   async affecter(id: number, dto: AffectationDto): Promise<TacheReponse> {
@@ -180,20 +207,30 @@ export class TachesService {
       id,
     );
     tache.ouvrierIds = dto.ouvrierIds;
-    return versReponse(await this.taches.save(tache));
+    return this.reponse(await this.taches.save(tache));
   }
 
-    /** Validations communes à la création et à la modification (400). */
+  /** Validations communes à la création et à la modification (400). */
   private verifierCorps(dto: CreerTacheDto) {
     if (new Date(dto.dateFin) < new Date(dto.dateDebut)) {
-      throw new BadRequestException("dateFin doit être postérieure ou égale à dateDebut");
+      throw new BadRequestException(
+        "dateFin doit être postérieure ou égale à dateDebut",
+      );
     }
     const besoins = dto.besoinsMateriaux ?? [];
-    const doublon = besoins.find((b, i) => besoins.findIndex((x) => x.materiauId === b.materiauId) !== i);
+    const doublon = besoins.find(
+      (b, i) => besoins.findIndex((x) => x.materiauId === b.materiauId) !== i,
+    );
     if (doublon) {
-      throw new BadRequestException(`Le matériau ${doublon.materiauId} apparaît plusieurs fois dans besoinsMateriaux`);
+      throw new BadRequestException(
+        `Le matériau ${doublon.materiauId} apparaît plusieurs fois dans besoinsMateriaux`,
+      );
     }
-    return { besoins, dateDebut: dto.dateDebut.slice(0, 10), dateFin: dto.dateFin.slice(0, 10) };
+    return {
+      besoins,
+      dateDebut: dto.dateDebut.slice(0, 10),
+      dateFin: dto.dateFin.slice(0, 10),
+    };
   }
 
   /** PUT (#99) : mêmes vérifications que la création, la tâche modifiée est exclue du conflit de planning. */
@@ -202,12 +239,14 @@ export class TachesService {
     const { besoins, dateDebut, dateFin } = this.verifierCorps(dto);
     // Les tâches d'un chantier clôturé ne changent plus ; un nouveau chantier doit accepter une tâche (RG-03).
     await this.chantiers.verifierChantierModifiable(tache.chantierId);
-    if (dto.chantierId !== tache.chantierId) await this.chantiers.verifierChantierActif(dto.chantierId);
+    if (dto.chantierId !== tache.chantierId)
+      await this.chantiers.verifierChantierActif(dto.chantierId);
     if (dto.ouvrierIds?.length) {
       await this.ouvriers.verifierDisponibles(dto.ouvrierIds);
       await this.verifierPlanning(dto.ouvrierIds, dateDebut, dateFin, id);
     }
-    for (const b of besoins) await this.materiaux.verifierStock(b.materiauId, b.quantite);
+    for (const b of besoins)
+      await this.materiaux.verifierStock(b.materiauId, b.quantite);
 
     // Une seule transaction : les besoins en matériaux sont remplacés en entier ou pas du tout.
     await this.taches.manager.transaction(async (m) => {
@@ -223,13 +262,17 @@ export class TachesService {
       if (besoins.length) {
         await m.insert(
           BesoinMateriau,
-          besoins.map((b) => ({ tacheId: id, materiauId: b.materiauId, quantite: b.quantite })),
+          besoins.map((b) => ({
+            tacheId: id,
+            materiauId: b.materiauId,
+            quantite: b.quantite,
+          })),
         );
       }
     });
     return this.trouver(id);
   }
-  
+
   /**
    * #10 : un ouvrier ne peut pas être sur deux tâches dont les périodes se chevauchent.
    * Deux périodes se chevauchent si debut1 <= fin2 ET debut2 <= fin1 (bornes incluses :
