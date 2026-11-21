@@ -814,6 +814,202 @@
               "raw": "{\n  \"avancement\": 60\n}"
             }
           }
+        },
+        {
+          "name": "Historique global (#142)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/taches/historique?limite=5",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "historique"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et au plus 5 entrées, du plus récent au plus ancien', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const h = pm.response.json();",
+                  "  pm.expect(h).to.be.an('array').with.lengthOf.at.most(5);",
+                  "  for (let i = 1; i < h.length; i++) pm.expect(h[i - 1].date >= h[i].date).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historique global : limite invalide (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/taches/historique?limite=0",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "historique"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bloquer",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/blocage",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "blocage"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloquee\": true,\n  \"motif\": \"Livraison du béton en retard\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 et motif', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().motif).to.eql('Livraison du béton en retard');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avancement d'une tâche bloquée (409, #143)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/avancement",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "avancement"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"avancement\": 80\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 « Débloquez la tâche… »', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().message).to.include('Débloquez la tâche');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Débloquer",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/blocage",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "blocage"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloquee\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
