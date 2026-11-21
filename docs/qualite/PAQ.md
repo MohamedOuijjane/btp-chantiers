@@ -41,7 +41,7 @@ Caractéristiques retenues, avec l'exigence du projet et la façon de la mesurer
 | **Maintenabilité** | Code lisible, testé, sans duplication | Couverture de lignes | ≥ 70 % par module | JaCoCo, Jest, pytest-cov, SonarCloud |
 | | | Duplication | < 3 % | SonarCloud |
 | | | Dette technique (note de maintenabilité) | A | SonarCloud |
-| **Sécurité** | Pas de vulnérabilité connue dans le code ni les images | Vulnérabilités CodeQL / SonarCloud | 0 critique ou haute | CodeQL, SonarCloud |
+| **Sécurité** | Pas de vulnérabilité connue dans le code ni les images | Vulnérabilités CodeQL / SonarCloud ; alertes du scan OWASP ZAP | 0 critique ou haute ; alertes ZAP analysées, faux positifs justifiés | CodeQL, SonarCloud, OWASP ZAP (hebdomadaire) |
 | | | Vulnérabilités CRITICAL corrigeables dans les images | 0 | Trivy (release) |
 | | | Dépendances obsolètes | mises à jour chaque semaine | Dependabot |
 | **Utilisabilité** | Interface claire en français, accessible | Contrastes, navigation clavier | conforme WCAG AA | Revue, outils du navigateur |
@@ -162,7 +162,7 @@ Le registre est revu à chaque rétrospective.
 | Code source | Git, GitHub, pull requests, CODEOWNERS, ruleset de protection |
 | Intégration continue | GitHub Actions (tests, analyse, build), Dependabot |
 | Qualité du code | SonarCloud, Checkstyle, SpotBugs, ESLint, ruff, JaCoCo, Jest, pytest-cov |
-| Sécurité | CodeQL, Trivy, Dependabot |
+| Sécurité | CodeQL, Trivy, Dependabot, OWASP ZAP (scan baseline) |
 | Tests | JUnit 5, MockMvc, Spring-WS Test, Jest, pytest, Vitest, MSW, Playwright, Postman / Newman, JMeter (charge) |
 | Documentation | Markdown, Mermaid, Swagger / OpenAPI, WSDL, ADR |
 | Déploiement | Docker, Docker Compose, ghcr.io |

@@ -1,4 +1,4 @@
-.PHONY: up down logs test test-taches test-ouvriers test-java ps perf e2e
+.PHONY: up down logs test test-taches test-ouvriers test-java ps perf e2e zap
 
 up:            ## Lance toute l'application
 	docker compose up --build -d
@@ -33,3 +33,7 @@ perf:          ## Test de charge JMeter, rapport HTML dans tests/performance/res
 # Tests de bout en bout Playwright via la gateway (stack démarrée : make up)
 e2e:           ## Tests Playwright, rapport HTML dans frontend/playwright-report/
 	set -a; . ./.env; set +a; cd frontend && npm ci && E2E_URL=http://localhost:$${GATEWAY_PORT:-8080} npm run e2e
+
+# Scan de sécurité OWASP ZAP (baseline, passif) de la gateway et du front (stack démarrée)
+zap:           ## Scan ZAP, rapport HTML dans tests/securite/rapports/
+	tests/securite/lancer-zap.sh

@@ -1,0 +1,41 @@
+name: Sécurité
+
+# Scan baseline OWASP ZAP (passif) de la gateway et du front : chaque lundi et à la demande.
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # chaque lundi à 6 h UTC, comme CodeQL
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zap:
+    name: OWASP ZAP (baseline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # JWT_SECRET et DEMO_MOT_DE_PASSE sont obligatoires dans docker-compose.yml (ADR-0006).
+      - name: Variables d'environnement de démonstration
+        run: cp .env.example .env
+      - name: Construire et démarrer la stack
+        run: docker compose up -d --build --wait
+      - name: Scan baseline ZAP
+        env:
+          SORTIE: ${{ github.workspace }}/rapport-zap
+        run: tests/securite/lancer-zap.sh
+      - name: Résumé
+        if: always()
+        run: |
+          [ -f rapport-zap/rapport.md ] || exit 0
+          { echo '### OWASP ZAP (baseline)'; awk '/^## Summary of Alerts/{p=1;next} /^## /{p=0} p' rapport-zap/rapport.md; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapport-zap
+          path: rapport-zap/
+          if-no-files-found: warn
+      - name: Arrêter la stack
+        if: always()
+        run: docker compose down -v
