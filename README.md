@@ -117,6 +117,24 @@ Les personnes et la société Souss Bâtiment sont fictives. Après 5 échecs de
 
 Une collection Postman prête à importer est disponible : [`docs/api/btp-chantiers.postman_collection.json`](docs/api/btp-chantiers.postman_collection.json).
 
+## Données de démonstration
+
+`make demo` (stack démarrée : `make up`) remet la base locale à zéro puis la remplit **par les API, via la gateway**, avec les données de l'entreprise fictive Souss Bâtiment :
+
+- 5 chantiers à tous les statuts : Résidence Al Amal et Groupe scolaire Anza (en cours), Villa Benali (planifié), Clinique Argana · extension (suspendu), Entrepôt logistique Aït Melloul (terminé) ;
+- 8 ouvriers de spécialités variées, dont un indisponible ;
+- 10 matériaux, dont 2 en alerte (Ciment CPJ 45, Fer à béton HA12), et 18 mouvements de stock ;
+- 15 tâches à tous les statuts, dont une bloquée avec son motif et une en retard ; l'avancement des chantiers découle de leurs tâches.
+
+**Attention : la remise à zéro efface toutes les données métier** (chantiers, ouvriers, matériaux, mouvements, tâches et leur historique) par un `TRUNCATE … RESTART IDENTITY` sur les 4 schémas. Les comptes de connexion (schéma `auth`) et l'historique des migrations sont conservés. Le script peut être relancé autant de fois que voulu : il repart toujours d'une base vide, sans doublon, avec les mêmes identifiants. Les dates sont calculées à partir du jour du lancement.
+
+Garde-fous :
+
+- **confirmation** : le script demande de taper `oui` ; sans terminal (CI, script), il faut `CONFIRMER=oui make demo`, sinon il s'arrête sans rien modifier ;
+- **base locale uniquement** : il refuse de tourner si le conteneur `postgres` n'appartient pas à la stack Docker de ce dépôt, si `DOCKER_HOST` désigne un hôte distant, si la base n'est pas `btp_db` ou si la gateway n'est pas sur `localhost`.
+
+Pour garder les données actuelles, les sauvegarder avant : `docker compose exec -T postgres pg_dump -U btp -d btp_db | gzip > sauvegarde.sql.gz`.
+
 ## Structure du dépôt
 
 ```
