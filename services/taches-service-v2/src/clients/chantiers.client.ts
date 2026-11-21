@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { appel } from './http';
+import { appel, lireJson } from './http';
 
 /** Consommation REST du module Chantiers (Spring Boot). */
 @Injectable()
@@ -9,7 +9,7 @@ export class ChantiersClient {
   private async lire(chantierId: number): Promise<{ statut: string; nom: string }> {
     const res = await appel('Chantiers', `${this.baseUrl}/api/chantiers/${chantierId}`);
     if (res.status === 404) throw new NotFoundException(`Chantier ${chantierId} introuvable`);
-    return (await res.json()) as { statut: string; nom: string };
+    return lireJson<{ statut: string; nom: string }>('Chantiers', res);
   }
 
   /** RG-03 : seuls les chantiers PLANIFIE et EN_COURS acceptent de nouvelles tâches. */

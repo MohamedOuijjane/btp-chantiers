@@ -4,7 +4,7 @@ import { appel } from '../src/clients/http';
 import { MateriauxSoapClient } from '../src/clients/materiaux.soap-client';
 import { OuvriersClient } from '../src/clients/ouvriers.client';
 
-/** Comportement actuel des clients ; les erreurs 5xx (#7) et les SOAP Faults (#8) seront reprises à part. */
+/** Clients REST et SOAP des autres modules : codes métier, erreurs des modules (#7) et SOAP Faults (#8). */
 const reponse = (status: number, corps: unknown) =>
   new Response(typeof corps === 'string' ? corps : JSON.stringify(corps), { status });
 
@@ -186,5 +186,60 @@ describe('MateriauxSoapClient', () => {
       expect(MateriauxSoapClient.estFaute(FAUTE_SPRING_WS)).toBe(true);
       expect(MateriauxSoapClient.estFaute(corps('<ns2:VerifierStockResponse/>'))).toBe(false);
     });
+  });
+});
+
+describe('Erreur ou absence de réponse d’un autre module : 503 (#7)', () => {
+  const chantiers = new ChantiersClient();
+  const ouvriers = new OuvriersClient();
+  const materiaux = new MateriauxSoapClient();
+  const delai = () => Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' });
+
+  it.each([500, 502, 503, 504])('Chantiers répond %i : 503, le chantier n’est pas accepté', async (status) => {
+    fetchSimule.mockResolvedValue(reponse(status, { status, detail: 'Erreur interne' }));
+    await expect(chantiers.verifierChantierActif(1)).rejects.toThrow(
+      new ServiceUnavailableException(`Module Chantiers en erreur (HTTP ${status})`),
+    );
+  });
+
+  it('Chantiers en erreur pendant un changement de statut : 503', async () => {
+    fetchSimule.mockResolvedValue(reponse(500, { detail: 'Erreur interne' }));
+    await expect(chantiers.verifierChantierModifiable(1)).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('Chantiers ne répond pas (délai dépassé) : 503', async () => {
+    fetchSimule.mockRejectedValue(delai());
+    await expect(chantiers.verifierChantierActif(1)).rejects.toThrow(/Module Chantiers injoignable/);
+  });
+
+  it('Chantiers répond 200 avec un corps illisible : 503', async () => {
+    fetchSimule.mockResolvedValue(reponse(200, '<html>proxy</html>'));
+    await expect(chantiers.verifierChantierActif(1)).rejects.toThrow(
+      new ServiceUnavailableException('Module Chantiers : réponse illisible'),
+    );
+  });
+
+  it.each([500, 503])('Ouvriers répond %i : 503 (et non « ouvrier indisponible »)', async (status) => {
+    fetchSimule.mockResolvedValue(reponse(status, { detail: 'Erreur interne' }));
+    const erreur = await ouvriers.verifierDisponibles([4]).catch((e: unknown) => e);
+    expect(erreur).toBeInstanceOf(ServiceUnavailableException);
+    expect((erreur as Error).message).toBe(`Module Ouvriers en erreur (HTTP ${status})`);
+  });
+
+  it('Ouvriers ne répond pas (délai dépassé) : 503', async () => {
+    fetchSimule.mockRejectedValue(delai());
+    await expect(ouvriers.verifierDisponibles([4])).rejects.toThrow(/Module Ouvriers injoignable/);
+  });
+
+  it('Matériaux répond 502 sans SOAP Fault : 503 (et non « stock insuffisant »)', async () => {
+    fetchSimule.mockResolvedValue(reponse(502, '<html>Bad Gateway</html>'));
+    await expect(materiaux.verifierStock(1, 5)).rejects.toThrow(
+      new ServiceUnavailableException('Module Matériaux en erreur (HTTP 502)'),
+    );
+  });
+
+  it('Matériaux ne répond pas (délai dépassé) : 503', async () => {
+    fetchSimule.mockRejectedValue(delai());
+    await expect(materiaux.verifierStock(1, 5)).rejects.toThrow(/Module Matériaux injoignable/);
   });
 });
