@@ -269,8 +269,7 @@ throw new ErreurApi({
 });
 ```
 
-**À faire côté Matériaux** (aujourd'hui, toutes les erreurs métier sont des fautes `Client`, donc 422) : déclarer des codes de faute personnalisés pour distinguer 404 et 409, par exemple
-`@SoapFault(faultCode = FaultCode.CUSTOM, customFaultCode = "{http://btp.uiz.ma/materiaux}Conflit")` sur une `ConflitException` (référence déjà utilisée, chantier clôturé) et `…}Introuvable` sur `IntrouvableException`. Le chantier clôturé lève aujourd'hui `IntrouvableException` dans `ChantiersClient` : il doit devenir un `Conflit`. Les autres cas restent en `Client` (422) ou `Server` (503).
+**Codes émis par Matériaux (#145)** : `Introuvable` pour un matériau ou un chantier inconnu, `Conflit` pour une référence déjà utilisée (#132) ou un conflit de mise à jour du stock ; `Client` pour les autres refus (stock insuffisant, chantier terminé, valeur invalide) ; `Server` si Chantiers est injoignable.
 
 ### Test manuel (à décrire dans la PR de #52)
 

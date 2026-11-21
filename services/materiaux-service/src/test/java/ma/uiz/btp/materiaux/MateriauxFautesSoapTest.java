@@ -13,7 +13,6 @@ import ma.uiz.btp.materiaux.domain.ChantierTermineException;
 import ma.uiz.btp.materiaux.domain.ChantiersIndisponibleException;
 import ma.uiz.btp.materiaux.domain.IntrouvableException;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +21,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.ws.test.server.MockWebServiceClient;
+import org.springframework.ws.test.server.ResponseActions;
 import org.springframework.xml.transform.StringSource;
 
 /**
@@ -60,16 +60,27 @@ class MateriauxFautesSoapTest {
                 </m:EnregistrerMouvementRequest>""".formatted(NS, type, quantite));
     }
 
+    /**
+     * Faute avec un code propre au module (#145) : nom local et namespace du contrat vérifiés.
+     */
+    private static void fautePropre(ResponseActions reponse,
+                                    String code, String message) {
+        reponse.andExpect(xpath("substring-after(//faultcode, ':')", NAMESPACES).evaluatesTo(code))
+                .andExpect(xpath("//faultcode/namespace::*[name() = substring-before(//faultcode, ':')]",
+                        NAMESPACES).evaluatesTo(NS))
+                .andExpect(xpath("//faultstring", NAMESPACES).evaluatesTo(message));
+    }
+
     private void ajouterFer() {
         client.sendRequest(withPayload(ajouter("FER-12", "2.4", "1"))).andExpect(noFault());
     }
 
     @Test
-    @DisplayName("UT-MAT-41 : matériau inconnu : faute Client « Matériau 99 introuvable »")
+    @DisplayName("UT-MAT-41 : matériau inconnu : faute Introuvable « Matériau 99 introuvable » (#145)")
     void materiauInconnu() {
-        client.sendRequest(withPayload(new StringSource(
-                        "<m:GetMateriauRequest xmlns:m=\"%s\"><m:id>99</m:id></m:GetMateriauRequest>".formatted(NS))))
-                .andExpect(clientOrSenderFault("Matériau 99 introuvable"));
+        fautePropre(client.sendRequest(withPayload(new StringSource(
+                        "<m:GetMateriauRequest xmlns:m=\"%s\"><m:id>99</m:id></m:GetMateriauRequest>".formatted(NS)))),
+                "Introuvable", "Matériau 99 introuvable");
     }
 
     @Test
@@ -122,13 +133,13 @@ class MateriauxFautesSoapTest {
     }
 
     @Test
-    @DisplayName("UT-MAT-47 : mouvement vers un chantier inconnu : faute Client")
+    @DisplayName("UT-MAT-47 : mouvement vers un chantier inconnu : faute Introuvable (#145)")
     void chantierInconnu() {
         ajouterFer();
         doThrow(new IntrouvableException("Chantier 7 introuvable"))
                 .when(chantiersClient).verifierChantierActif(7L);
-        client.sendRequest(withPayload(mouvement("ENTREE", "1")))
-                .andExpect(clientOrSenderFault("Chantier 7 introuvable"));
+        fautePropre(client.sendRequest(withPayload(mouvement("ENTREE", "1"))),
+                "Introuvable", "Chantier 7 introuvable");
     }
 
     @Test
@@ -142,12 +153,10 @@ class MateriauxFautesSoapTest {
     }
 
     @Test
-    @Disabled("Bug #132 : la référence en double donne une faute Server (erreur de la base non "
-            + "convertie) au lieu d'une faute Client ; à réactiver avec la correction")
-    @DisplayName("UT-MAT-49 : référence déjà utilisée : faute Client attendue (erreur de l'appelant)")
+    @DisplayName("UT-MAT-49 : référence déjà utilisée : faute Conflit, sans détail SQL (#132, #145)")
     void referenceEnDouble() {
         ajouterFer();
-        client.sendRequest(withPayload(ajouter("FER-12", "3", "1")))
-                .andExpect(clientOrSenderFault());
+        fautePropre(client.sendRequest(withPayload(ajouter("FER-12", "3", "1"))),
+                "Conflit", "La référence FER-12 est déjà utilisée par un autre matériau");
     }
 }

@@ -9,4 +9,7 @@ public interface MateriauRepository extends JpaRepository<MateriauEntity, Long> 
     /** Renvoie les matériaux en alerte : stock inférieur ou égal au seuil. */
     @Query("select m from MateriauEntity m where m.stock <= m.seuilAlerte")
     List<MateriauEntity> findEnAlerte();
+
+    /** Indique si un matériau porte déjà cette référence (unique). */
+    boolean existsByReference(String reference);
 }
