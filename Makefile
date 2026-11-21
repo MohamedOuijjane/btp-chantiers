@@ -24,6 +24,11 @@ test-java:
 	cd services/chantiers-service && mvn -B verify
 	cd services/materiaux-service && mvn -B verify
 
+# Données de démonstration Souss Bâtiment (stack démarrée : make up). EFFACE les données métier
+# de la base locale puis les recharge par les API ; confirmation : taper « oui » ou CONFIRMER=oui.
+demo:          ## Remet la base locale à zéro et charge les données de démo
+	scripts/donnees-demo.sh
+
 # Test de charge JMeter via la gateway (stack démarrée) : make perf UTILISATEURS=50 DUREE=120
 UTILISATEURS ?= 20
 DUREE ?= 60

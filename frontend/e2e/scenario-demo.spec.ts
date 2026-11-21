@@ -100,8 +100,10 @@ test('scénario de démo : chantier, ouvrier, matériau, tâche, stock insuffisa
   await expect(page.getByText(`Avancement de « ${tache} » : 60 %.`)).toBeVisible();
 
   // 9. Planning de l'ouvrier
+  // La liste est en cartes : choisir l'ouvrier (le premier est choisi par défaut), puis sa fiche.
   await page.goto('/ouvriers');
-  await page.getByRole('link', { name: `${prenom} ${nom}` }).click();
+  await page.getByRole('button', { name: `${prenom} ${nom}, Maçon`, exact: false }).click();
+  await page.getByRole('link', { name: `Ouvrir la fiche de ${prenom} ${nom}` }).click();
   const planning = page.getByRole('list', { name: `Planning de ${prenom} ${nom}` });
   await expect(planning).toContainText(tache);
   await expect(planning).toContainText(chantier);

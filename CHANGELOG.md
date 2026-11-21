@@ -7,6 +7,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 ## [Unreleased]
 
 ### Ajouté
+- Données de démonstration Souss Bâtiment : `make demo` remet la base locale à zéro (confirmation obligatoire, refus hors de la stack Docker locale) puis charge par les API 5 chantiers, 8 ouvriers, 10 matériaux (2 en alerte), 15 tâches à tous les statuts (dont une bloquée) et 18 mouvements de stock ; relançable sans doublon.
 - Tests de bout en bout : scénario de démo complet `e2e/scenario-demo.spec.ts` (chantier, ouvrier, matériau, tâche, refus pour stock insuffisant, avancement à 60 %, planning de l'ouvrier), par l'interface en conducteur de travaux ([#31](https://github.com/MohamedOuijjane/btp-chantiers/issues/31)).
 - Front-end : client REST partagé `src/api/http.ts` (gateway sur la même origine, `X-Request-Id`, délai de 10 s, annulation, conversion des erreurs Spring, NestJS et FastAPI en `ApiError`, indisponibilité ramenée à 503), testé avec MSW ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
 - Front-end : choix du mode fictif ou réel par module (`VITE_API_MODE`, `VITE_API_CHANTIERS`…) pour brancher les modules un par un ([#49](https://github.com/MohamedOuijjane/btp-chantiers/issues/49)).
