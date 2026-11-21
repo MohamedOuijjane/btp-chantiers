@@ -19,7 +19,10 @@ export type Tache = {
   avancement: number;
   ouvrierIds: number[];
   besoinsMateriaux: BesoinMateriau[];
-  /** Motif du blocage quand statut = BLOQUEE, sinon null. */
+  /**
+   * Motif du blocage quand statut = BLOQUEE, sinon null. L'API ne le renvoie pas encore (#141) :
+   * en mode réel, il est lu dans l'historique sur la fiche, et vaut null dans les listes.
+   */
   motif: string | null;
 };
 
@@ -39,17 +42,23 @@ export type Blocage = { bloquee: true; motif: string } | { bloquee: false };
 
 export type FiltreTaches = { chantierId?: number; ouvrierId?: number };
 
-/** Corps de PUT /api/taches/{id} (cible, à créer) : mêmes champs que la création. */
+/** Corps de PUT /api/taches/{id} : mêmes champs que la création. */
 export type TacheModification = TacheCreation;
 
 /** Changements de statut proposés dans l'interface : À faire → En cours → Terminée. */
 export type TransitionStatut = 'EN_COURS' | 'TERMINEE';
 
-/** Entrée de l'historique des statuts d'une tâche (GET /api/taches/{id}/historique, cible). */
+/** Entrée de l'historique des statuts d'une tâche (GET /api/taches/{id}/historique). */
 export type ChangementStatut = {
   tacheId: number;
   statut: StatutTache;
-  /** Date ISO aaaa-mm-jj. */
+  /** Date ISO : aaaa-mm-jj (données fictives) ou date et heure (API réelle). */
   date: string;
   motif?: string;
 };
+
+/**
+ * Derniers changements de statut, toutes tâches confondues (tableau de bord). incomplet : en
+ * mode réel, l'historique de certaines tâches n'a pas pu être lu (voir api.reel.ts, #142).
+ */
+export type HistoriqueRecent = ChangementStatut[] & { incomplet?: boolean };

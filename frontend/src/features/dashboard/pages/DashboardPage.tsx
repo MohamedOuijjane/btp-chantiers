@@ -299,6 +299,11 @@ export function DashboardPage() {
                   : 'Mouvements de stock indisponibles (module Matériaux).'}
               </Indisponible>
             )}
+            {!pannes.taches && historique.data?.incomplet && (
+              <p className="m-0 text-sm text-muted" role="status">
+                Activité partielle : l’historique de certaines tâches n’a pas pu être lu.
+              </p>
+            )}
             <DernieresActivites
               changements={pannes.taches ? undefined : historique.data}
               taches={parTache}
