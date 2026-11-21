@@ -102,15 +102,15 @@ class MateriauEntityTest {
         @DisplayName("UT-MAT-08 : stock suffisant si la quantité est inférieure ou égale au stock")
         void stockSuffisant() {
             MateriauEntity m = ciment(40, 10);
-            assertTrue(m.aStockSuffisant(39.9));
-            assertTrue(m.aStockSuffisant(40));
-            assertFalse(m.aStockSuffisant(40.1));
+            assertTrue(m.stockSuffitPour(39.9));
+            assertTrue(m.stockSuffitPour(40));
+            assertFalse(m.stockSuffitPour(40.1));
         }
 
         @ParameterizedTest(name = "UT-MAT-09 : vérification avec la quantité {0} refusée")
         @ValueSource(doubles = {0, -1, Double.NaN})
         void verificationQuantiteInvalide(double quantite) {
-            assertThrows(ValeurStockInvalideException.class, () -> ciment(40, 10).aStockSuffisant(quantite));
+            assertThrows(ValeurStockInvalideException.class, () -> ciment(40, 10).stockSuffitPour(quantite));
         }
 
         @Test

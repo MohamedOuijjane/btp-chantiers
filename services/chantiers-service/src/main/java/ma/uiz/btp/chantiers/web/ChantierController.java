@@ -5,13 +5,22 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import ma.uiz.btp.chantiers.domain.StatutChantier;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.util.List;
-
+/** API REST des chantiers (/api/chantiers). */
 @RestController
 @RequestMapping("/api/chantiers")
 @Tag(name = "Chantiers", description = "Gestion du cycle de vie des chantiers")
@@ -19,44 +28,55 @@ public class ChantierController {
 
     private final ChantierService service;
 
+    /** Crée le contrôleur avec le service des chantiers. */
     public ChantierController(ChantierService service) {
         this.service = service;
     }
 
+    /** Liste les chantiers, filtrés par statut si le paramètre est présent. */
     @GetMapping
     @Operation(summary = "Lister les chantiers, filtrables par statut")
     public List<ChantierDto.Reponse> lister(@RequestParam(required = false) StatutChantier statut) {
         return service.lister(statut).stream().map(ChantierDto.Reponse::de).toList();
     }
 
+    /** Renvoie un chantier (404 s'il n'existe pas). */
     @GetMapping("/{id}")
     @Operation(summary = "Consulter un chantier")
     public ChantierDto.Reponse trouver(@PathVariable Long id) {
         return ChantierDto.Reponse.de(service.trouver(id));
     }
 
+    /** Crée un chantier : 201 avec l'en-tête Location. */
     @PostMapping
-    @Operation(summary = "Créer un chantier", description = "Le chantier est toujours créé au statut PLANIFIE (RG4) : le champ statut est ignoré.")
-    public ResponseEntity<ChantierDto.Reponse> creer(@Valid @RequestBody ChantierDto.Requete requete) {
+    @Operation(summary = "Créer un chantier", description = "Le chantier est toujours créé "
+            + "au statut PLANIFIE (RG4) : le champ statut est ignoré.")
+    public ResponseEntity<ChantierDto.Reponse> creer(
+            @Valid @RequestBody ChantierDto.Requete requete) {
         var cree = ChantierDto.Reponse.de(service.creer(requete));
-        var location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(cree.id()).toUri();
+        var location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}").buildAndExpand(cree.id()).toUri();
         return ResponseEntity.created(location).body(cree);
     }
 
+    /** Modifie un chantier qui n'est pas terminé. */
     @PutMapping("/{id}")
     @Operation(summary = "Modifier un chantier (interdit s'il est terminé)",
-            description = "Le statut peut passer à PLANIFIE, EN_COURS ou SUSPENDU. Le passage à TERMINE est refusé (409) : "
-                    + "utiliser PATCH /api/chantiers/{id}/cloture.")
-    public ChantierDto.Reponse modifier(@PathVariable Long id, @Valid @RequestBody ChantierDto.Requete requete) {
+            description = "Le statut peut passer à PLANIFIE, EN_COURS ou SUSPENDU. Le passage à "
+                    + "TERMINE est refusé (409) : utiliser PATCH /api/chantiers/{id}/cloture.")
+    public ChantierDto.Reponse modifier(@PathVariable Long id,
+                                        @Valid @RequestBody ChantierDto.Requete requete) {
         return ChantierDto.Reponse.de(service.modifier(id, requete));
     }
 
+    /** Clôture un chantier (statut TERMINE). */
     @PatchMapping("/{id}/cloture")
     @Operation(summary = "Clôturer un chantier")
     public ChantierDto.Reponse cloturer(@PathVariable Long id) {
         return ChantierDto.Reponse.de(service.cloturer(id));
     }
 
+    /** Supprime un chantier qui n'a aucune tâche dans le module Tâches (#5). */
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer un chantier (refusé s'il a des tâches)",
             description = "Interroge le module Tâches (GET /api/taches?chantierId=). Toute "
@@ -75,6 +95,7 @@ public class ChantierController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Renvoie l'avancement global du chantier, calculé à partir du module Tâches. */
     @GetMapping("/{id}/avancement")
     @Operation(summary = "Avancement global, agrégé depuis le module Tâches")
     public ChantierDto.Avancement avancement(@PathVariable Long id) {

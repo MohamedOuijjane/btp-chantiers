@@ -1,7 +1,14 @@
 package ma.uiz.btp.materiaux.domain;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
+/** Matériau en stock (table materiaux du schéma materiaux de btp_db), avec verrou optimiste. */
 @Entity
 @Table(name = "materiaux")
 public class MateriauEntity {
@@ -34,7 +41,12 @@ public class MateriauEntity {
         return stock <= seuilAlerte;
     }
 
-    public boolean aStockSuffisant(double quantite) {
+    /**
+     * Indique si le stock couvre la quantité demandée.
+     *
+     * @throws ValeurStockInvalideException si la quantité n'est pas strictement positive
+     */
+    public boolean stockSuffitPour(double quantite) {
         verifierQuantite(quantite);
         return stock >= quantite;
     }
@@ -48,6 +60,7 @@ public class MateriauEntity {
         setStock(stock - quantite);
     }
 
+    /** Entrée en stock : ajoute la quantité, qui doit être strictement positive. */
     public void entrer(double quantite) {
         verifierQuantite(quantite);
         setStock(stock + quantite);
@@ -55,28 +68,61 @@ public class MateriauEntity {
 
     private static void verifierQuantite(double quantite) {
         if (!Double.isFinite(quantite) || quantite <= 0) {
-            throw new ValeurStockInvalideException("La quantité doit être un nombre fini strictement positif");
+            throw new ValeurStockInvalideException(
+                    "La quantité doit être un nombre fini strictement positif");
         }
     }
 
-    public Long getId() { return id; }
-    public String getReference() { return reference; }
-    public void setReference(String reference) { this.reference = reference; }
-    public String getNom() { return nom; }
-    public void setNom(String nom) { this.nom = nom; }
-    public String getUnite() { return unite; }
-    public void setUnite(String unite) { this.unite = unite; }
-    public double getStock() { return stock; }
+    public Long getId() {
+        return id;
+    }
+
+    public String getReference() {
+        return reference;
+    }
+
+    public void setReference(String reference) {
+        this.reference = reference;
+    }
+
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
+
+    public String getUnite() {
+        return unite;
+    }
+
+    public void setUnite(String unite) {
+        this.unite = unite;
+    }
+
+    public double getStock() {
+        return stock;
+    }
+
+    /** Fixe le stock, qui doit être un nombre fini positif ou nul. */
     public void setStock(double stock) {
         if (!Double.isFinite(stock) || stock < 0) {
-            throw new ValeurStockInvalideException("Le stock doit être un nombre fini positif ou nul");
+            throw new ValeurStockInvalideException(
+                    "Le stock doit être un nombre fini positif ou nul");
         }
         this.stock = stock;
     }
-    public double getSeuilAlerte() { return seuilAlerte; }
+
+    public double getSeuilAlerte() {
+        return seuilAlerte;
+    }
+
+    /** Fixe le seuil d'alerte, qui doit être un nombre fini positif ou nul. */
     public void setSeuilAlerte(double seuilAlerte) {
         if (!Double.isFinite(seuilAlerte) || seuilAlerte < 0) {
-            throw new ValeurStockInvalideException("Le seuil d'alerte doit être un nombre fini positif ou nul");
+            throw new ValeurStockInvalideException(
+                    "Le seuil d'alerte doit être un nombre fini positif ou nul");
         }
         this.seuilAlerte = seuilAlerte;
     }

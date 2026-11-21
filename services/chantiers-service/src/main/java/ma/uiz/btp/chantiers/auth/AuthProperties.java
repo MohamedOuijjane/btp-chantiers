@@ -1,9 +1,8 @@
 package ma.uiz.btp.chantiers.auth;
 
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
-
-import java.time.Duration;
 
 /** Réglages de l'authentification (section « auth » de application.yml, ADR-0006). */
 @ConfigurationProperties("auth")

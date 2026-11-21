@@ -1,5 +1,8 @@
 package ma.uiz.btp.chantiers.client;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
 import ma.uiz.btp.chantiers.domain.ServiceIndisponibleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,16 +14,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-
 /** Client REST vers le module Tâches (NestJS). */
 @Component
 public class TachesClient {
 
     private static final Logger log = LoggerFactory.getLogger(TachesClient.class);
 
+    /** Tâche lue dans le module Tâches : seuls les champs utiles à Chantiers. */
     public record TacheResume(String id, String titre, String statut, int avancement) {}
 
     private static final ParameterizedTypeReference<List<TacheResume>> LISTE_TACHES =
@@ -28,6 +28,7 @@ public class TachesClient {
 
     private final RestClient http;
 
+    /** Crée le client avec l'adresse du module Tâches et le délai maximal d'un appel. */
     public TachesClient(@Value("${services.taches.url}") String baseUrl,
                         @Value("${services.timeout:2s}") Duration timeout) {
         var factory = new SimpleClientHttpRequestFactory();
@@ -71,7 +72,11 @@ public class TachesClient {
                 + "de vérifier les tâches du chantier, suppression annulée. Réessayez plus tard.");
     }
 
-    /** @return vide si le service Tâches est injoignable (dégradation contrôlée). */
+    /**
+     * Tâches du chantier pour l'avancement, avec dégradation contrôlée.
+     *
+     * @return vide si le service Tâches est injoignable
+     */
     public Optional<List<TacheResume>> tachesDuChantier(Long chantierId) {
         try {
             return Optional.ofNullable(http.get()

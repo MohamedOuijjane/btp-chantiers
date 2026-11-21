@@ -20,6 +20,7 @@ public class ComptesDemo implements ApplicationRunner {
     private final PasswordEncoder encodeur;
     private final String motDePasse;
 
+    /** Lit le mot de passe des comptes de démonstration dans la configuration. */
     public ComptesDemo(UtilisateurRepository utilisateurs, PasswordEncoder encodeur,
                        AuthProperties proprietes) {
         this.utilisateurs = utilisateurs;

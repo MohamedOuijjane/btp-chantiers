@@ -1,12 +1,11 @@
 package ma.uiz.btp.chantiers.auth;
 
+import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Optional;
 
 /** Accès à auth.utilisateurs, avec la connexion de auth_user (jamais celle des chantiers). */
 @Repository
@@ -26,6 +25,7 @@ public class UtilisateurRepository {
 
     private final JdbcClient jdbc;
 
+    /** Utilise la connexion dédiée au schéma auth (utilisateur auth_user). */
     public UtilisateurRepository(@Qualifier("authJdbcClient") JdbcClient jdbc) {
         this.jdbc = jdbc;
     }
@@ -38,12 +38,14 @@ public class UtilisateurRepository {
                 .optional();
     }
 
+    /** Renvoie les comptes de démonstration, triés par identifiant. */
     public List<Utilisateur> comptesDemo() {
         return jdbc.sql("SELECT " + COLONNES + " WHERE demo = TRUE ORDER BY id")
                 .query(LIGNE)
                 .list();
     }
 
+    /** Remplace l'empreinte du mot de passe d'un compte. */
     public void changerMotDePasse(long id, String empreinte) {
         jdbc.sql("UPDATE auth.utilisateurs SET mot_de_passe = :mdp WHERE id = :id")
                 .param("mdp", empreinte)

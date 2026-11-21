@@ -2,6 +2,10 @@ package ma.uiz.btp.chantiers.web;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 import ma.uiz.btp.chantiers.auth.IdentifiantsInvalidesException;
 import ma.uiz.btp.chantiers.auth.TropDeTentativesException;
 import ma.uiz.btp.chantiers.domain.RegleMetierException;
@@ -22,11 +26,6 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Toutes les erreurs au format RFC 9457 (application/problem+json), message en français

@@ -1,7 +1,14 @@
 package ma.uiz.btp.materiaux.domain;
 
-import jakarta.persistence.*;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.time.Instant;
 
 /** Historique des entrées/sorties de stock, toujours rattachées à un chantier. */
@@ -9,6 +16,7 @@ import java.time.Instant;
 @Table(name = "mouvements")
 public class Mouvement {
 
+    /** Sens du mouvement : entrée ou sortie de stock. */
     public enum Type { ENTREE, SORTIE }
 
     @Id
@@ -31,8 +39,10 @@ public class Mouvement {
     @Column(name = "date_mouvement", nullable = false)
     private Instant date = Instant.now();
 
+    /** Constructeur réservé à JPA. */
     protected Mouvement() {}
 
+    /** Crée le mouvement d'un matériau vers un chantier. */
     public Mouvement(MateriauEntity materiau, Long chantierId, Type type, double quantite) {
         this.materiau = materiau;
         this.chantierId = chantierId;
@@ -40,7 +50,9 @@ public class Mouvement {
         this.quantite = quantite;
     }
 
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
     /** Stock du matériau après ce mouvement (une valeur, pas l'entité : SpotBugs EI_EXPOSE_REP). */
     public double getStockApresMouvement() {
@@ -52,8 +64,19 @@ public class Mouvement {
         return materiau.isEnAlerte();
     }
 
-    public Long getChantierId() { return chantierId; }
-    public Type getType() { return type; }
-    public double getQuantite() { return quantite; }
-    public Instant getDate() { return date; }
+    public Long getChantierId() {
+        return chantierId;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public double getQuantite() {
+        return quantite;
+    }
+
+    public Instant getDate() {
+        return date;
+    }
 }

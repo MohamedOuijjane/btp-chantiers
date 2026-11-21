@@ -2,6 +2,12 @@ package ma.uiz.btp.chantiers.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.util.Objects;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import ma.uiz.btp.chantiers.auth.AuthProperties;
 import ma.uiz.btp.chantiers.auth.ServiceJeton;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -29,13 +35,6 @@ import org.springframework.security.oauth2.server.resource.web.BearerTokenResolv
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.time.Clock;
-import java.util.Objects;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Sécurité de Chantiers (ADR-0006). Seuls /api/auth/moi et /api/auth/verifier exigent un jeton :

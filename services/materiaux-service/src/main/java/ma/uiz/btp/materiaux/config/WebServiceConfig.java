@@ -11,6 +11,7 @@ import org.springframework.ws.wsdl.wsdl11.DefaultWsdl11Definition;
 import org.springframework.xml.xsd.SimpleXsdSchema;
 import org.springframework.xml.xsd.XsdSchema;
 
+/** Configuration Spring-WS : servlet SOAP sur /ws et WSDL généré à partir du contrat XSD. */
 @EnableWs
 @Configuration
 public class WebServiceConfig {
@@ -18,14 +19,15 @@ public class WebServiceConfig {
     public static final String NAMESPACE = "http://btp.uiz.ma/materiaux";
 
     @Bean
-    ServletRegistrationBean<MessageDispatcherServlet> messageDispatcherServlet(ApplicationContext ctx) {
+    ServletRegistrationBean<MessageDispatcherServlet> messageDispatcherServlet(
+            ApplicationContext ctx) {
         MessageDispatcherServlet servlet = new MessageDispatcherServlet();
         servlet.setApplicationContext(ctx);
         servlet.setTransformWsdlLocations(true);
         return new ServletRegistrationBean<>(servlet, "/ws/*");
     }
 
-    /** WSDL publié sur /ws/materiaux.wsdl */
+    /** WSDL publié sur /ws/materiaux.wsdl. */
     @Bean(name = "materiaux")
     DefaultWsdl11Definition materiauxWsdl(XsdSchema materiauxSchema) {
         DefaultWsdl11Definition wsdl = new DefaultWsdl11Definition();
