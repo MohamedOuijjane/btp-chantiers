@@ -64,6 +64,11 @@ public class Mouvement {
         return materiau.isEnAlerte();
     }
 
+    /** Identifiant du matériau du mouvement (une valeur, pas l'entité). */
+    public Long getMateriauId() {
+        return materiau.getId();
+    }
+
     public Long getChantierId() {
         return chantierId;
     }

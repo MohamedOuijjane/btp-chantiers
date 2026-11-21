@@ -19,6 +19,7 @@ class MouvementTest {
 
         assertNull(mv.getId());
         assertEquals(7L, mv.getChantierId());
+        assertNull(mv.getMateriauId(), "matériau pas encore enregistré : identifiant null");
         assertEquals(Mouvement.Type.SORTIE, mv.getType());
         assertEquals(30, mv.getQuantite());
         assertNotNull(mv.getDate());

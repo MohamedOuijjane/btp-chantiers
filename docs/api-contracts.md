@@ -162,6 +162,9 @@ Spécialités : `MACON`, `FERRAILLEUR`, `COFFREUR`, `ELECTRICIEN`, `PLOMBIER`, `
 | `ListerMateriaux` | `enAlerteSeulement?` | `materiau*` |
 | `VerifierStock` | `materiauId`, `quantite` | `disponible`, `stockActuel` |
 | `EnregistrerMouvement` | `materiauId`, `chantierId`, `type` (ENTREE/SORTIE), `quantite` | `mouvementId`, `stockApres`, `enAlerte` |
+| `ListerMouvements` (#18) | `chantierId?`, `materiauId?` (filtres optionnels, combinables) | `mouvement*` : `id`, `date` (xs:dateTime, UTC), `materiauId`, `chantierId`, `type`, `quantite`, du plus récent au plus ancien |
+
+`ListerMouvements` répond à « quel chantier a consommé quoi » : sans filtre, tous les mouvements ; un chantier ou un matériau sans mouvement donne une liste vide (pas de faute).
 
 Les erreurs sont renvoyées sous forme de SOAP 1.1 Fault. Ces codes sont des codes SOAP, pas des codes HTTP. Le client doit se baser sur `faultcode`, pas analyser le texte de `faultstring` :
 
