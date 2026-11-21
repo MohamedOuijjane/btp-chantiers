@@ -66,7 +66,7 @@ flowchart LR
 
 Toute l'application partage **une seule base PostgreSQL** (`btp_db`). Chaque module possède son propre schéma et son propre utilisateur, sans aucun droit sur les schémas des autres : voir [ADR-0005](docs/adr/0005-base-de-donnees-unique.md).
 
-> Migration en cours vers la base unique : il reste Matériaux (MySQL, #17). Tâches est sur PostgreSQL (schéma `taches`, migrations TypeORM) depuis #6.
+> Les quatre modules sont sur la base unique : Chantiers, Ouvriers, Tâches (schéma `taches`, migrations TypeORM, #6) et Matériaux (schéma `materiaux`, #17).
 
 **Authentification :** la connexion émet un JWT (Chantiers, `POST /api/auth/login`) que la gateway vérifie avant toute requête vers `/api/*` et `/ws`. Tâches, Ouvriers et Matériaux n'ont rien à vérifier : voir [ADR-0006](docs/adr/0006-authentification-jwt-gateway.md).
 
