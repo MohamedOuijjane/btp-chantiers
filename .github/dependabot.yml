@@ -46,7 +46,7 @@ updates:
 
   # Tâches (NestJS)
   - package-ecosystem: npm
-    directory: /services/taches-service
+    directory: /services/taches-service-v2
     target-branch: develop
     schedule:
       interval: weekly
@@ -105,7 +105,7 @@ updates:
   - package-ecosystem: docker
     directories:
       - /services/chantiers-service
-      - /services/taches-service
+      - /services/taches-service-v2
       - /services/ouvriers-service
       - /services/materiaux-service
       - /frontend

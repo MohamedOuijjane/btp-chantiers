@@ -123,7 +123,8 @@ Une collection Postman prête à importer est disponible : [`docs/api/btp-chanti
 btp-chantiers/
 ├── services/
 │   ├── chantiers-service/    # Spring Boot, REST
-│   ├── taches-service/       # NestJS, REST + client SOAP
+│   ├── taches-service-v2/    # NestJS, REST + client SOAP
+│   ├── taches-service/       # v1 archivée (remplacée par la v2, ni construite ni testée)
 │   ├── ouvriers-service/     # FastAPI, REST
 │   └── materiaux-service/    # Spring-WS, SOAP contract-first
 ├── frontend/                 # React + Vite (en cours)
@@ -152,7 +153,7 @@ Chaque service peut être lancé seul. Démarrer d'abord la base : `docker compo
 cd services/chantiers-service && mvn spring-boot:run
 
 # Tâches (applique ses migrations au démarrage ; taches_user sur localhost:5432/btp_db)
-cd services/taches-service && npm install && DB_PASSWORD=<TACHES_DB_PASSWORD du .env> npm run start:dev
+cd services/taches-service-v2 && npm install && DB_PASSWORD=<TACHES_DB_PASSWORD du .env> npm run start:dev
 
 # Ouvriers
 cd services/ouvriers-service && pip install -r requirements-dev.txt && uvicorn app.main:app --reload --port 8083
