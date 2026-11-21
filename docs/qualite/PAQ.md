@@ -61,7 +61,7 @@ Une PR ne peut être mergée que si :
 | Temps de réponse inter-services | < 2 s | timeouts (2 s) et tests de mode dégradé |
 | Titre de PR | Conventional Commits | workflow « Titre de PR » |
 
-Les analyses Checkstyle et SpotBugs sont en **mode rapport** pendant le sprint S1, puis bloquantes une fois la dette existante résorbée.
+Checkstyle (`google_checks`) est **bloquant** dans Chantiers et Matériaux : depuis la résorption de la dette (#138), `mvn verify` échoue à la moindre violation (`failOnViolation`), en local comme en CI. SpotBugs reste en **mode rapport** (0 alerte dans les deux modules).
 
 ## 5. Stratégie de tests
 
