@@ -7,6 +7,13 @@ import { StatutTache } from './tache.entity';
 /** Entrée de l'historique telle que renvoyée par l'API (date ISO, motif absent quand il est vide). */
 export type EntreeHistorique = { tacheId: number; statut: StatutTache; date: string; motif?: string };
 
+const versEntree = (e: HistoriqueStatut): EntreeHistorique => ({
+  tacheId: e.tacheId,
+  statut: e.statut,
+  date: e.date.toISOString(),
+  ...(e.motif ? { motif: e.motif } : {}),
+});
+
 /** Historique des changements de statut d'une tâche (#99), table historique_statut. */
 @Injectable()
 export class HistoriqueService {
@@ -19,12 +26,13 @@ export class HistoriqueService {
   /** Du plus récent au plus ancien (l'identifiant départage deux changements simultanés). */
   async lister(tacheId: number): Promise<EntreeHistorique[]> {
     const entrees = await this.lignes.find({ where: { tacheId }, order: { date: 'DESC', id: 'DESC' } });
-    return entrees.map((e) => ({
-      tacheId: e.tacheId,
-      statut: e.statut,
-      date: e.date.toISOString(),
-      ...(e.motif ? { motif: e.motif } : {}),
-    }));
+    return entrees.map(versEntree);
+  }
+
+  /** Les `limite` derniers changements de statut, toutes tâches confondues (#142). */
+  async recents(limite: number): Promise<EntreeHistorique[]> {
+    const entrees = await this.lignes.find({ order: { date: 'DESC', id: 'DESC' }, take: limite });
+    return entrees.map(versEntree);
   }
     /** Motif du blocage en cours : la dernière entrée BLOQUEE de chaque tâche (null si le motif est vide). */
   async motifsDuBlocage(tacheIds: number[]): Promise<Map<number, string | null>> {

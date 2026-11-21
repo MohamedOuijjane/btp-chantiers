@@ -21,6 +21,11 @@ import {
 } from "@nestjs/swagger";
 import { IdTachePipe } from "./id-tache.pipe";
 import {
+  LIMITE_HISTORIQUE_DEFAUT,
+  LIMITE_HISTORIQUE_MAX,
+  LimiteHistoriquePipe,
+} from "./limite-historique.pipe";
+import {
   AffectationDto,
   AvancementDto,
   ChangerStatutDto,
@@ -70,6 +75,27 @@ export class TachesController {
     });
   }
 
+  // Déclarée avant :id, sinon « historique » serait lu comme un identifiant (400).
+  @Get("historique")
+  @ApiOperation({
+    summary:
+      "Derniers changements de statut, toutes tâches confondues (du plus récent au plus ancien)",
+  })
+  @ApiQuery({
+    name: "limite",
+    required: false,
+    type: Number,
+    description: `Nombre d'entrées, de 1 à ${LIMITE_HISTORIQUE_MAX} (${LIMITE_HISTORIQUE_DEFAUT} par défaut)`,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Entrées { tacheId, statut, date, motif? }",
+  })
+  @ApiResponse({ status: 400, description: "limite hors de 1 à 100" })
+  historiqueRecent(@Query("limite", LimiteHistoriquePipe) limite: string) {
+    return this.service.historiqueRecent(Number(limite));
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "Consulter une tâche" })
   @ApiResponse({
@@ -93,6 +119,10 @@ export class TachesController {
   @Patch(":id/avancement")
   @ApiOperation({ summary: "Mettre à jour le pourcentage d'avancement" })
   @ParamIdTache()
+  @ApiResponse({
+    status: 409,
+    description: "Tâche bloquée : la débloquer avant de changer son avancement",
+  })
   avancement(@Param("id", IdTachePipe) id: string, @Body() dto: AvancementDto) {
     return this.service.mettreAJourAvancement(Number(id), dto.avancement);
   }
