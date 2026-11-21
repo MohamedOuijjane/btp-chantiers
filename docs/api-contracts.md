@@ -166,11 +166,13 @@ Spécialités : `MACON`, `FERRAILLEUR`, `COFFREUR`, `ELECTRICIEN`, `PLOMBIER`, `
 
 `ListerMouvements` répond à « quel chantier a consommé quoi » : sans filtre, tous les mouvements ; un chantier ou un matériau sans mouvement donne une liste vide (pas de faute).
 
-Les erreurs sont renvoyées sous forme de SOAP 1.1 Fault. Ces codes sont des codes SOAP, pas des codes HTTP. Le client doit se baser sur `faultcode`, pas analyser le texte de `faultstring` :
+Les erreurs sont renvoyées sous forme de SOAP 1.1 Fault. Ces codes sont des codes SOAP, pas des codes HTTP. Le client doit se baser sur `faultcode`, pas analyser le texte de `faultstring`. `Introuvable` et `Conflit` sont des codes propres au module, dans le namespace du contrat (`m` = `http://btp.uiz.ma/materiaux`) ; le front les convertit en 404 et 409 :
 
 | `faultcode` | Situations |
 |---|---|
-| `Client` | Stock ou seuil non fini/négatif, quantité non finie/non positive, matériau introuvable, chantier introuvable (HTTP 404 de Chantiers), chantier terminé, stock insuffisant ou conflit de mise à jour concurrente. Pour un conflit, relire le stock avant de décider de réessayer le mouvement. |
+| `m:Introuvable` (#145) | Matériau introuvable, chantier introuvable (HTTP 404 de Chantiers). |
+| `m:Conflit` (#145) | Référence déjà utilisée (#132) ; conflit de mise à jour concurrente du stock (verrou optimiste) : relire le stock avant de décider de réessayer le mouvement. |
+| `Client` | Stock ou seuil non fini/négatif, quantité non finie/non positive, chantier terminé, stock insuffisant. |
 | `Server` | Chantiers renvoie une réponse vide/invalide, un statut HTTP autre que 404, ou l'appel échoue (timeout, erreur réseau). Réessayer seulement après avoir vérifié que la dépendance est disponible et que l'erreur est transitoire. |
 
 ```xml
