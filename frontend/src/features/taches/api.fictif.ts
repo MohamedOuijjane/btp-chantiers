@@ -195,7 +195,7 @@ export function majAvancement(id: number, avancement: number) {
     }
     const tache = trouver(id);
     if (tache.statut === 'BLOQUEE') {
-      throw conflit('Débloquez la tâche avant de modifier son avancement');
+      throw conflit('Débloquez la tâche avant de changer son avancement');
     }
     tache.avancement = avancement;
     definirStatut(tache, statutDepuis(avancement));

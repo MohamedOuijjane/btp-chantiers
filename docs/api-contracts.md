@@ -79,7 +79,8 @@ Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json
 | GET | `/api/taches?chantierId=&ouvrierId=` | Lister / filtrer | 200 |
 | GET | `/api/taches/{id}` | Consulter | 200, 400, 404 |
 | POST | `/api/taches` | Créer (vérifie chantier, ouvriers, stock) | 201, 400, 404, 409, 422, 503 |
-| PATCH | `/api/taches/{id}/avancement` | `{ "avancement": 60 }` | 200, 400, 404 |
+| GET | `/api/taches/historique?limite=20` | Derniers changements de statut, toutes tâches confondues (#142) | 200, 400 |
+| PATCH | `/api/taches/{id}/avancement` | `{ "avancement": 60 }` ; refusé sur une tâche bloquée (#143) | 200, 400, 404, 409 |
 | PATCH | `/api/taches/{id}/ouvriers` | Remplacer les ouvriers affectés (vérifie disponibilité et planning) | 200, 400, 404, 409, 422 |
 | DELETE | `/api/taches/{id}` | Supprimer | 204, 400, 404 |
 | PUT | `/api/taches/{id}` | Modifier (mêmes champs et mêmes vérifications que la création) | 200, 400, 404, 409, 422, 503 |
@@ -87,6 +88,10 @@ Toutes les erreurs sont renvoyées au format RFC 9457 (`application/problem+json
 | GET | `/api/taches/{id}/historique` | Historique des statuts, du plus récent au plus ancien | 200, 400, 404 |
 | PATCH | `/api/taches/{id}/blocage` | `{ "bloquee": true, "motif": "..." }` : bloquer ou débloquer | 200, 400, 404, 409 |
 - **Statut (#99)** : seules les transitions `A_FAIRE → EN_COURS` et `EN_COURS → TERMINEE` sont permises ; `TERMINEE` force l'avancement à 100 %. Une tâche bloquée, une autre transition ou un chantier clôturé → `409`. Chaque changement de statut est enregistré (table `historique_statut`).
+
+- **Historique global (#142)** : `GET /api/taches/historique?limite=N` renvoie les N derniers changements de statut, toutes tâches confondues, du plus récent au plus ancien, au même format que l'historique d'une tâche (`{ tacheId, statut, date, motif? }`). `limite` : entier de 1 à 100, 20 par défaut ; sinon `400`.
+
+- **Avancement d'une tâche bloquée (#143)** : refusé (`409` « Débloquez la tâche avant de changer son avancement »), comme le changement de statut. Débloquer d'abord (`PATCH /blocage`), puis mettre à jour l'avancement.
 
 - **Conflit de planning (#10)** : un ouvrier ne peut pas être affecté à deux tâches dont les périodes se chevauchent (bornes incluses : partager un jour est un conflit, le lendemain non). Les tâches `TERMINEE` sont ignorées, les tâches `BLOQUEE` comptent. Conflit → `409` « L'ouvrier 3 est déjà affecté à « Dalle » (2026-11-05 → 2026-11-08) sur cette période ». Vérifié à la création (`POST`), à la modification (`PUT`) et à l'affectation (`PATCH /ouvriers`).
 

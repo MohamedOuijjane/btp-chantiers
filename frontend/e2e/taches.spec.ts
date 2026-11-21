@@ -60,6 +60,27 @@ test.describe('Tâches', () => {
     await expect(historique.getByRole('listitem')).toHaveCount(4);
   });
 
+  test('tâche bloquée entre-temps : l’avancement est refusé (409) dans le dialogue (#143)', async ({
+    page,
+    api,
+    suffixe,
+  }) => {
+    const chantier = await api.creerChantier(`Chantier 409 E2E ${suffixe}`);
+    const tache = await api.creerTache(chantier.id, `Dalle E2E ${suffixe}`);
+    await page.goto(`/taches/${tache.id}`);
+
+    await page.getByRole('button', { name: 'Avancement' }).click();
+    const d = page.getByRole('dialog', { name: 'Mettre à jour l’avancement' });
+    await api.bloquerTache(tache.id, 'Contrôle du bureau d’études');
+    await d.getByLabel('Avancement (%)').fill('40');
+    await d.getByRole('button', { name: 'Enregistrer' }).click();
+
+    await expect(d.getByText('Débloquez la tâche avant de changer son avancement')).toBeVisible();
+    await d.getByRole('button', { name: 'Annuler' }).click();
+    await expect(page.getByText('Motif du blocage : Contrôle du bureau d’études')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Avancement' })).toBeDisabled();
+  });
+
   test('affectation d’un ouvrier depuis sa fiche (actions visibles avec Tâches en réel)', async ({
     page,
     api,

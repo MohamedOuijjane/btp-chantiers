@@ -190,6 +190,25 @@ decrire("Tâches sur PostgreSQL (migrations et requêtes)", () => {
     expect(h.every((e) => e.tacheId === t.id)).toBe(true);
   });
 
+  it("historique global (#142) : les N derniers changements, toutes tâches confondues", async () => {
+    const t = await service.creer({
+      chantierId: 4,
+      titre: "Historique global",
+      dateDebut: "2026-12-01",
+      dateFin: "2026-12-05",
+    });
+    await service.changerBlocage(t.id, { bloquee: true, motif: "Pluie" });
+    const h = await service.historiqueRecent(2);
+    expect(h).toEqual([
+      { tacheId: t.id, statut: "BLOQUEE", date: expect.any(String), motif: "Pluie" },
+      { tacheId: t.id, statut: "A_FAIRE", date: expect.any(String) },
+    ]);
+    await expect(service.mettreAJourAvancement(t.id, 50)).rejects.toThrow(
+      "Débloquez la tâche avant de changer son avancement",
+    );
+    await service.supprimer(t.id);
+  });
+
   it("supprimer une tâche supprime son historique (ON DELETE CASCADE)", async () => {
     const [t] = await service.lister({ chantierId: 3 });
     await service.supprimer(t.id);

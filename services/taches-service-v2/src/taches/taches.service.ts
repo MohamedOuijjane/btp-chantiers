@@ -137,16 +137,19 @@ export class TachesService {
     return this.trouver(cree.id);
   }
 
-  /** Une tâche bloquée garde son statut (RG5 ne s'applique qu'au déblocage, #11). */
+  /** RG5 : le statut suit l'avancement. Une tâche bloquée est refusée (409, #143), comme pour /statut. */
   async mettreAJourAvancement(
     id: number,
     avancement: number,
   ): Promise<TacheReponse> {
     const tache = await this.charger(id);
+    if (tache.statut === StatutTache.BLOQUEE)
+      throw new ConflictException(
+        "Débloquez la tâche avant de changer son avancement",
+      );
     const ancienStatut = tache.statut;
     tache.avancement = avancement;
-    if (tache.statut !== StatutTache.BLOQUEE)
-      tache.statut = statutPourAvancement(avancement);
+    tache.statut = statutPourAvancement(avancement);
     const sauvee = await this.taches.save(tache);
     // RG5 : un changement de statut dû à l'avancement est tracé dans l'historique.
     if (sauvee.statut !== ancienStatut)
@@ -159,6 +162,11 @@ export class TachesService {
     await this.charger(id);
     return this.journal.lister(id);
   }
+  /** Derniers changements de statut, toutes tâches confondues (#142). */
+  historiqueRecent(limite: number): Promise<EntreeHistorique[]> {
+    return this.journal.recents(limite);
+  }
+
   /** PATCH /statut (#99) : A_FAIRE → EN_COURS → TERMINEE ; TERMINEE force l'avancement à 100 (RG5). */
   async changerStatut(id: number, cible: StatutTache): Promise<TacheReponse> {
     const tache = await this.charger(id);

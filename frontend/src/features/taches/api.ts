@@ -13,7 +13,7 @@
  *   PATCH  /api/taches/{id}/blocage
  *   GET    /api/taches/{id}/historique
  *   DELETE /api/taches/{id}
- *   Historique global : calculé côté front en attendant GET /api/taches/historique (#142)
+ *   GET    /api/taches/historique?limite=
  */
 import type { OptionsAppel } from '@/api/http';
 import { estReel } from '@/api/mode';
@@ -22,8 +22,8 @@ import * as fictif from './api.fictif';
 import * as reel from './api.reel';
 import type {
   Blocage,
+  ChangementStatut,
   FiltreTaches,
-  HistoriqueRecent,
   TacheCreation,
   TacheModification,
   TransitionStatut,
@@ -67,7 +67,7 @@ export function getHistorique(id: number, options?: OptionsAppel) {
   return estReel('taches') ? reel.getHistorique(id, options) : fictif.getHistorique(id);
 }
 
-export function listerHistorique(limite = 10, options?: OptionsAppel): Promise<HistoriqueRecent> {
+export function listerHistorique(limite = 10, options?: OptionsAppel): Promise<ChangementStatut[]> {
   return estReel('taches')
     ? reel.listerHistorique(limite, options)
     : fictif.listerHistorique(limite);

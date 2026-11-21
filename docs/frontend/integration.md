@@ -12,7 +12,7 @@ Ce guide décrit l'étape 2.
 | Module | Responsable | Issue | Statut | Mode par défaut (`.env.development`, `.env.production`) |
 |---|---|---|---|---|
 | Chantiers | OUIJJANE Mohamed | #49 | **Branché** | `reel` |
-| Tâches & Avancement | OUIJJANE Mohamed | #50 | **Branché** (motif et historique global compensés côté front : #141, #142) | `reel` |
+| Tâches & Avancement | OUIJJANE Mohamed | #50 | **Branché** (motif #141, historique global #142, avancement d'une tâche bloquée #143) | `reel` |
 | Ouvriers | BENZINEB Ilyas, OUIJJANE Mohamed | #51 | **Branché** (affectations visibles depuis #50) | `reel` |
 | Matériaux | SALHI Hatim, OUIJJANE Mohamed | #52 | **Branché** (SOAP via `src/api/soap.ts`, mouvements par `ListerMouvements`) | `reel` |
 | Authentification | OUIJJANE Mohamed | #109 | **Branchée** (JWT, voir la section Authentification) | `reel` |
@@ -127,23 +127,17 @@ Fichiers : `src/features/taches/api.ts` (choix du mode), `api.reel.ts` (API rée
 
 | Fonction | Endpoint réel | Codes | Remarque |
 |---|---|---|---|
-| `listerTaches(filtre)` | `GET /api/taches?chantierId=&ouvrierId=` | 200 | `motif` à `null` : l'API ne le renvoie pas encore (#141) |
-| `getTache(id)` | `GET /api/taches/{id}` | 200, 400, 404 | Tâche bloquée : motif lu dans l'historique, dernière entrée `BLOQUEE` (#141) |
+| `listerTaches(filtre)` | `GET /api/taches?chantierId=&ouvrierId=` | 200 | `motif` : motif du blocage en cours, `null` hors blocage (#141) ; affiché dans la liste |
+| `getTache(id)` | `GET /api/taches/{id}` | 200, 400, 404 | `motif` dans la réponse (#141) |
 | `creerTache(donnees)` | `POST /api/taches` | 201, 400, 404, 409, 422, 503 | 409 : chantier clôturé ou suspendu, conflit de planning ; 422 : ouvrier indisponible, stock insuffisant |
 | `modifierTache(id, donnees)` | `PUT /api/taches/{id}` | 200, 400, 404, 409, 422, 503 | Mêmes vérifications que la création |
 | `changerStatut(id, statut)` | `PATCH /api/taches/{id}/statut` `{ statut: "EN_COURS" \| "TERMINEE" }` | 200, 400, 404, 409 | 409 : transition impossible, tâche bloquée |
-| `majAvancement(id, avancement)` | `PATCH /api/taches/{id}/avancement` `{ avancement }` | 200, 400, 404 | Le statut suit l'avancement (RG5). Une tâche bloquée devrait donner 409 (#143) : le bouton est désactivé dans la fiche |
+| `majAvancement(id, avancement)` | `PATCH /api/taches/{id}/avancement` `{ avancement }` | 200, 400, 404, 409 | Le statut suit l'avancement (RG5). Tâche bloquée : 409 (#143) ; le bouton est désactivé dans la fiche, et si la tâche a été bloquée entre-temps le 409 s'affiche dans le dialogue et la fiche est relue |
 | `affecterOuvriers(id, ouvrierIds)` | `PATCH /api/taches/{id}/ouvriers` `{ ouvrierIds }` | 200, 404, 409, 422 | 409 : ouvrier occupé sur la période (#10) |
-| `bloquerTache(id, blocage)` | `PATCH /api/taches/{id}/blocage` `{ bloquee, motif? }` | 200, 400, 404, 409 | Motif obligatoire pour bloquer (400 sinon) ; repris dans la tâche renvoyée |
+| `bloquerTache(id, blocage)` | `PATCH /api/taches/{id}/blocage` `{ bloquee, motif? }` | 200, 400, 404, 409 | Motif obligatoire pour bloquer (400 sinon) ; renvoyé dans la tâche |
 | `getHistorique(id)` | `GET /api/taches/{id}/historique` | 200, 400, 404 | Du plus récent au plus ancien ; `date` avec l'heure (ISO) |
-| `listerHistorique(limite)` | Calculé côté front (`historiqueRecentCalcule`) | — | En attendant `GET /api/taches/historique?limite=` (#142) : historiques des **20 tâches les plus récemment créées**, lus en parallèle ; résultat marqué `incomplet` si une partie échoue (encart discret sur le tableau de bord) |
+| `listerHistorique(limite)` | `GET /api/taches/historique?limite=` | 200, 400 | Derniers changements de statut, toutes tâches confondues (#142) ; `limite` de 1 à 100 (20 par défaut côté API) ; le tableau de bord en demande 12 |
 | `supprimerTache(id)` | `DELETE /api/taches/{id}` | 204, 400, 404 | Pas d'interface de suppression pour l'instant |
-
-### Écarts avec le backend (issues pour Tâches)
-
-- **#141** : la réponse d'une tâche n'a pas de `motif` ; le front le lit dans l'historique, sur la fiche seulement (la liste montre le badge « Bloquée » sans motif).
-- **#142** : pas d'historique global ; calculé côté front dans une seule fonction (`historiqueRecentCalcule` de `api.reel.ts`), à remplacer par l'endpoint.
-- **#143** : l'avancement d'une tâche bloquée est accepté (200) au lieu d'être refusé (409).
 
 ### Erreurs attendues par les pages
 
@@ -157,6 +151,7 @@ Le corps d'erreur NestJS `{ statusCode, message, error }` devient un `ApiError` 
 | 409 | **Chantier suspendu** (création, #12) | « Le chantier « … » est suspendu : aucune tâche ne peut y être ajoutée » |
 | 409 | **Ouvrier déjà occupé** sur la période (RG-04, #10) | « Rachid Bouzid est déjà affecté à « … » sur cette période » |
 | 409 | Transition de statut impossible, tâche bloquée | « Débloquez la tâche avant de changer son statut » |
+| 409 | Avancement d'une tâche bloquée (#143) | « Débloquez la tâche avant de changer son avancement » |
 | 422 | Ouvrier indisponible, **stock insuffisant** (SOAP `VerifierStock`) | « Stock insuffisant pour Ciment CPJ 45 : 400 sacs demandés, 320 sacs en stock » |
 | 503 | Chantiers, Ouvriers ou Matériaux injoignable | « Le module Ouvriers est indisponible, réessayez dans un instant. » |
 

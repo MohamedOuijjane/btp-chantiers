@@ -4,12 +4,11 @@ import { ErreurApi } from '@/api/errors';
 import { demarrerServeurMsw } from '@/test/msw';
 
 import * as api from './api';
-import { TACHES_LUES_POUR_HISTORIQUE } from './api.reel';
 import type { ChangementStatut } from './types';
 
 const serveur = demarrerServeurMsw();
 
-/** Tâche telle que Tâches v2 la renvoie : sans motif (#141). */
+/** Tâche telle que Tâches v2 la renvoie : motif null hors blocage (#141). */
 const TACHE = {
   id: 7,
   chantierId: 5,
@@ -20,6 +19,7 @@ const TACHE = {
   avancement: 0,
   ouvrierIds: [3],
   besoinsMateriaux: [{ materiauId: 1, quantite: 40 }],
+  motif: null,
 };
 const CREATION = {
   chantierId: 5,
@@ -42,7 +42,7 @@ afterEach(() => {
 });
 
 describe('Tâches en mode réel (VITE_API_TACHES=reel)', () => {
-  it('liste les tâches avec les filtres chantier et ouvrier ; motif à null (#141)', async () => {
+  it('liste les tâches avec les filtres chantier et ouvrier', async () => {
     let url = '';
     serveur.use(
       msw.get('*/api/taches', ({ request }) => {
@@ -74,28 +74,20 @@ describe('Tâches en mode réel (VITE_API_TACHES=reel)', () => {
     expect(e).toMatchObject({ status: 404, message: 'Tâche 99 introuvable' });
   });
 
-  it('tâche bloquée : le motif vient de la dernière entrée BLOQUEE de l’historique (#141)', async () => {
+  it('tâche bloquée : le motif vient de la réponse (#141), l’historique n’est pas lu', async () => {
+    const historique = vi.fn();
     serveur.use(
-      msw.get('*/api/taches/7', () => HttpResponse.json({ ...TACHE, statut: 'BLOQUEE' })),
-      msw.get('*/api/taches/7/historique', () =>
-        HttpResponse.json([
-          { tacheId: 7, statut: 'BLOQUEE', date: '2027-03-03T10:00:00.000Z', motif: 'Pluie' },
-          { tacheId: 7, statut: 'BLOQUEE', date: '2027-03-02T10:00:00.000Z', motif: 'Ancien' },
-          { tacheId: 7, statut: 'A_FAIRE', date: '2027-03-01T08:00:00.000Z' },
-        ]),
+      msw.get('*/api/taches/7', () =>
+        HttpResponse.json({ ...TACHE, statut: 'BLOQUEE', motif: 'Pluie' }),
       ),
+      msw.get('*/api/taches/7/historique', () => {
+        historique();
+        return HttpResponse.json([]);
+      }),
     );
 
     await expect(api.getTache(7)).resolves.toMatchObject({ statut: 'BLOQUEE', motif: 'Pluie' });
-  });
-
-  it('tâche bloquée dont l’historique est illisible : la fiche reste affichée, sans motif', async () => {
-    serveur.use(
-      msw.get('*/api/taches/7', () => HttpResponse.json({ ...TACHE, statut: 'BLOQUEE' })),
-      msw.get('*/api/taches/7/historique', () => nest(500, 'Erreur interne')),
-    );
-
-    await expect(api.getTache(7)).resolves.toMatchObject({ statut: 'BLOQUEE', motif: null });
+    expect(historique).not.toHaveBeenCalled();
   });
 
   it('crée une tâche (POST) ; 409 chantier clôturé et 422 stock insuffisant', async () => {
@@ -174,13 +166,23 @@ describe('Tâches en mode réel (VITE_API_TACHES=reel)', () => {
     await expect(api.affecterOuvriers(7, [3])).rejects.toMatchObject({ status: 409 });
   });
 
-  it('bloque avec un motif (repris dans la tâche) puis débloque', async () => {
+  it('avancement d’une tâche bloquée : 409 de l’API (#143)', async () => {
+    const message = 'Débloquez la tâche avant de changer son avancement';
+    serveur.use(msw.patch('*/api/taches/7/avancement', () => nest(409, message, 'Conflict')));
+    await expect(api.majAvancement(7, 60)).rejects.toMatchObject({ status: 409, message });
+  });
+
+  it('bloque avec un motif (renvoyé par l’API) puis débloque', async () => {
     const corps: unknown[] = [];
     serveur.use(
       msw.patch('*/api/taches/7/blocage', async ({ request }) => {
-        const b = (await request.json()) as { bloquee: boolean };
+        const b = (await request.json()) as { bloquee: boolean; motif?: string };
         corps.push(b);
-        return HttpResponse.json({ ...TACHE, statut: b.bloquee ? 'BLOQUEE' : 'A_FAIRE' });
+        return HttpResponse.json({
+          ...TACHE,
+          statut: b.bloquee ? 'BLOQUEE' : 'A_FAIRE',
+          motif: b.bloquee ? b.motif : null,
+        });
       }),
     );
 
@@ -222,60 +224,26 @@ describe('Tâches en mode réel (VITE_API_TACHES=reel)', () => {
   });
 });
 
-describe('Historique global calculé côté front (#142)', () => {
-  const entree = (tacheId: number, jour: number): ChangementStatut => ({
-    tacheId,
-    statut: 'EN_COURS',
-    date: `2027-03-${String(jour).padStart(2, '0')}T08:00:00.000Z`,
-  });
-
-  it(`ne lit l’historique que des ${TACHES_LUES_POUR_HISTORIQUE} tâches les plus récentes, en parallèle`, async () => {
-    const lus: number[] = [];
+describe('Historique global : GET /api/taches/historique (#142)', () => {
+  it('envoie la limite et renvoie les entrées telles quelles', async () => {
+    let limite: string | null = null;
+    const entrees: ChangementStatut[] = [
+      { tacheId: 4, statut: 'BLOQUEE', date: '2027-03-05T10:00:00.000Z', motif: 'Pluie' },
+      { tacheId: 7, statut: 'EN_COURS', date: '2027-03-04T08:00:00.000Z' },
+    ];
     serveur.use(
-      msw.get('*/api/taches', () =>
-        HttpResponse.json(Array.from({ length: 30 }, (_, i) => ({ ...TACHE, id: i + 1 }))),
-      ),
-      msw.get('*/api/taches/:id/historique', ({ params }) => {
-        const id = Number(params.id);
-        lus.push(id);
-        return HttpResponse.json([entree(id, (id % 28) + 1)]);
+      msw.get('*/api/taches/historique', ({ request }) => {
+        limite = new URL(request.url).searchParams.get('limite');
+        return HttpResponse.json(entrees);
       }),
     );
 
-    const h = await api.listerHistorique(5);
-
-    expect(lus.sort((a, b) => a - b)).toEqual(Array.from({ length: 20 }, (_, i) => i + 11));
-    expect(h).toHaveLength(5);
-    expect(h.map((e) => e.date)).toEqual([...h.map((e) => e.date)].sort().reverse());
-    expect(h.incomplet).toBeUndefined();
+    await expect(api.listerHistorique(12)).resolves.toEqual(entrees);
+    expect(limite).toBe('12');
   });
 
-  it('une partie des historiques échoue : résultat partiel marqué incomplet', async () => {
-    serveur.use(
-      msw.get('*/api/taches', () => HttpResponse.json([1, 2, 3].map((id) => ({ ...TACHE, id })))),
-      msw.get('*/api/taches/:id/historique', ({ params }) =>
-        params.id === '2'
-          ? nest(500, 'Erreur interne')
-          : HttpResponse.json([entree(Number(params.id), Number(params.id))]),
-      ),
-    );
-
-    const h = await api.listerHistorique(10);
-    expect(h.map((e) => e.tacheId)).toEqual([3, 1]);
-    expect(h.incomplet).toBe(true);
-  });
-
-  it('tous les historiques échouent : l’erreur est levée', async () => {
-    serveur.use(
-      msw.get('*/api/taches', () => HttpResponse.json([{ ...TACHE, id: 1 }])),
-      msw.get('*/api/taches/:id/historique', () => new HttpResponse(null, { status: 502 })),
-    );
-
+  it('Tâches arrêté (502) : 503', async () => {
+    serveur.use(msw.get('*/api/taches/historique', () => new HttpResponse(null, { status: 502 })));
     await expect(api.listerHistorique(10)).rejects.toMatchObject({ status: 503 });
-  });
-
-  it('aucune tâche : historique vide, sans erreur', async () => {
-    serveur.use(msw.get('*/api/taches', () => HttpResponse.json([])));
-    await expect(api.listerHistorique(10)).resolves.toEqual([]);
   });
 });
