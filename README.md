@@ -115,7 +115,7 @@ Les personnes et la société Souss Bâtiment sont fictives. Après 5 échecs de
 | WSDL Matériaux | http://localhost:8080/ws/materiaux.wsdl |
 | Santé de la gateway | http://localhost:8080/health |
 
-Une collection Postman prête à importer est disponible : [`docs/api/btp-chantiers.postman_collection.json`](docs/api/btp-chantiers.postman_collection.json).
+Une collection Postman prête à importer est disponible : [`docs/api/btp-chantiers.postman_collection.json`](docs/api/btp-chantiers.postman_collection.json). Elle est autonome (50 requêtes, les 4 modules et l'authentification) : lancée en entier, elle crée ses données, vérifie chaque réponse puis supprime ce qu'elle a créé, sur une base vide comme sur la base de démo. En ligne de commande, stack démarrée : `make postman` (Newman).
 
 ## Structure du dépôt
 

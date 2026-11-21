@@ -1,4 +1,4 @@
-.PHONY: up down logs test test-taches test-ouvriers test-java ps perf e2e zap
+.PHONY: up down logs test test-taches test-ouvriers test-java ps perf e2e postman zap
 
 up:            ## Lance toute l'application
 	docker compose up --build -d
@@ -33,6 +33,15 @@ perf:          ## Test de charge JMeter, rapport HTML dans tests/performance/res
 # Tests de bout en bout Playwright via la gateway (stack démarrée : make up)
 e2e:           ## Tests Playwright, rapport HTML dans frontend/playwright-report/
 	set -a; . ./.env; set +a; cd frontend && npm ci && E2E_URL=http://localhost:$${GATEWAY_PORT:-8080} npm run e2e
+
+# Collection Postman complète avec Newman, dans le réseau Docker de la stack (stack démarrée : make up).
+# Autonome : elle crée ses données, les vérifie puis les supprime (sauf le matériau, sans suppression SOAP).
+RESEAU ?= btp-chantiers_backend
+postman:       ## Collection Postman (50 requêtes) avec Newman
+	set -a; . ./.env; set +a; docker run --rm --network $(RESEAU) \
+	  -v "$(CURDIR)/docs/api:/collection:ro" postman/newman:6-alpine \
+	  run /collection/btp-chantiers.postman_collection.json \
+	  --env-var gateway=http://gateway:8080 --env-var "motDePasse=$$DEMO_MOT_DE_PASSE"
 
 # Scan de sécurité OWASP ZAP (baseline, passif) de la gateway et du front (stack démarrée)
 zap:           ## Scan ZAP, rapport HTML dans tests/securite/rapports/
