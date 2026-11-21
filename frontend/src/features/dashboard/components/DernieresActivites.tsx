@@ -34,6 +34,8 @@ export function DernieresActivites({
   chantiers,
   limite = 8,
 }: Props) {
+  // Chantier supprimé depuis (mouvements conservés) : son numéro plutôt qu'un nom vide.
+  const nomChantier = (id: number) => chantiers.get(id)?.nom ?? `Chantier ${id}`;
   const activites: Activite[] = [
     ...(changements ?? []).map((h, i) => {
       const t = taches.get(h.tacheId);
@@ -47,7 +49,7 @@ export function DernieresActivites({
               <Link to={`/taches/${h.tacheId}`} className="font-semibold text-ink">
                 {t?.titre ?? `Tâche ${h.tacheId}`}
               </Link>
-              {t && <span className="text-muted"> · {chantiers.get(t.chantierId)?.nom}</span>}
+              {t && <span className="text-muted"> · {nomChantier(t.chantierId)}</span>}
             </span>
             <StatutBadge statut={h.statut} className="text-xs" />
           </>
@@ -74,7 +76,7 @@ export function DernieresActivites({
             <Link to="/materiaux" className="font-semibold text-ink">
               {m?.nom ?? `matériau ${mv.materiauId}`}
             </Link>
-            <span className="text-muted"> · {chantiers.get(mv.chantierId)?.nom}</span>
+            <span className="text-muted"> · {nomChantier(mv.chantierId)}</span>
           </span>
         ),
       };
