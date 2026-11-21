@@ -14,7 +14,7 @@ Ce guide décrit l'étape 2.
 | Chantiers | OUIJJANE Mohamed | #49 | **Branché** | `reel` |
 | Tâches & Avancement | OUIJJANE Mohamed | #50 | **Branché** (motif et historique global compensés côté front : #141, #142) | `reel` |
 | Ouvriers | BENZINEB Ilyas, OUIJJANE Mohamed | #51 | **Branché** (affectations visibles depuis #50) | `reel` |
-| Matériaux | SALHI Hatim | #52 | À brancher (après #17, #18, #102) ; `src/api/soap.ts` à écrire | `fictif` |
+| Matériaux | SALHI Hatim, OUIJJANE Mohamed | #52 | **Branché** (SOAP via `src/api/soap.ts`, mouvements par `ListerMouvements`) | `reel` |
 | Authentification | OUIJJANE Mohamed | #109 | **Branchée** (JWT, voir la section Authentification) | `reel` |
 
 ## Choisir le mode d'un module : `VITE_API_*`
@@ -86,7 +86,7 @@ export function supprimerOuvrier(id: number) {
 - **Chemins relatifs uniquement** : `/api/chantiers`, `/api/taches`, `/api/ouvriers`, `/ws`. Ne jamais appeler `localhost:8081` ni un nom Docker : en développement, Vite relaie `/api` et `/ws` vers la gateway (`http://localhost:8080`) ; en Docker, la gateway sert le front et les API sur la même origine.
 - **Signatures identiques** : une fonction garde ses paramètres et son type de retour, et renvoie une `Promise`. Les lectures acceptent en plus un dernier paramètre facultatif `{ signal }`.
 - **Erreurs** : toute réponse en erreur est convertie en `ApiError { status, message, champs?, requestId? }` et levée (`ErreurApi`) par `http.ts`. Réseau coupé, délai dépassé, `502`, `503` et `504` donnent `status: 503`.
-- **Clients partagés** : `src/api/http.ts` pour le REST (écrit, à réutiliser tel quel) ; `src/api/soap.ts` pour le SOAP (à écrire dans #52, sur le même modèle).
+- **Clients partagés** : `src/api/http.ts` pour le REST (écrit, à réutiliser tel quel) ; `src/api/soap.ts` pour le SOAP (même comportement, voir la section Matériaux).
 - **Tests** : chaque `api.reel.ts` est testé avec Vitest et MSW, sans backend.
 
 | Format d'erreur reçu | Conversion en `ApiError` (`versErreurApi`) |
@@ -206,78 +206,64 @@ FastAPI renvoie `{ "detail": "…" }` ou `{ "detail": [{ "loc": [...], "msg": "�
 6. Terminer la tâche (avancement 100 %), puis « Supprimer » : l'ouvrier est supprimé, retour à l'équipe.
 7. `docker compose stop taches-service` : planning « non disponible », fiche consultable ; « Supprimer » donne **503**.
 
-## Matériaux · SALHI Hatim · #52
+## Matériaux · SALHI Hatim, OUIJJANE Mohamed · #52 · Branché
 
-Fichier : `src/features/materiaux/api.ts`. Page déjà construite avec les données fictives (#30) : `/materiaux` (stock avec jauge et état d'alerte, filtre « en alerte », derniers mouvements, consommation par chantier, dialogues « Nouveau matériau » et « Mouvement de stock »), onglet « Matériaux consommés » de la fiche chantier, pastille du nombre d'alertes dans la barre latérale.
+Fichiers : `src/features/materiaux/api.ts` choisit entre `api.reel.ts` (web service SOAP) et `api.fictif.ts` (données fictives) selon `VITE_API_MATERIAUX`. Pages concernées : `/materiaux` (stock avec jauge et état d'alerte, filtre « en alerte », derniers mouvements, consommation par chantier, dialogues « Nouveau matériau » et « Mouvement de stock »), onglet « Matériaux consommés » de la fiche chantier, alertes et dernières activités du tableau de bord, pastille du nombre d'alertes dans la barre latérale.
 
-Toutes les opérations sont des `POST /ws` en SOAP 1.1 (`Content-Type: text/xml; charset=utf-8`, namespace `http://btp.uiz.ma/materiaux`). Les préfixes de la réponse (`ns2:`, `SOAP-ENV:`) doivent être ignorés à la lecture.
+Toutes les opérations sont des `POST /ws` en SOAP 1.1 (`Content-Type: text/xml; charset=utf-8`, namespace `http://btp.uiz.ma/materiaux`), avec le jeton de la session et un `X-Request-Id`, comme `http.ts`.
 
-### Fonctions à brancher
+### Fonctions branchées
 
-| Fonction | Opération SOAP | Erreurs (après conversion) | Issue backend |
+| Fonction | Opération SOAP | Erreurs (après conversion) |
+|---|---|---|
+| `listerMateriaux(enAlerteSeulement)` | `ListerMateriaux` | 503 |
+| `getMateriau(id)` | `GetMateriau` | 404 |
+| `ajouterMateriau(donnees)` | `AjouterMateriau` | 409 référence déjà utilisée (#132), 422 valeur invalide |
+| `verifierStock(materiauId, quantite)` | `VerifierStock` | 404 |
+| `enregistrerMouvement(donnees)` | `EnregistrerMouvement` | 404 matériau ou chantier inconnu, 409 stock modifié en même temps, **422 stock insuffisant ou chantier terminé**, 503 Chantiers injoignable |
+| `listerMouvements(filtre)` | `ListerMouvements` `{ chantierId?, materiauId? }`, du plus récent au plus ancien (#18) | 503 |
+
+La consommation par chantier est calculée côté front à partir de `ListerMouvements` (somme des sorties par chantier et par matériau). La date d'un mouvement est un `xs:dateTime` en UTC : l'affichage n'en garde que le jour.
+
+### Client SOAP : `src/api/soap.ts`
+
+- `enveloppe(ns, operation, champs)` écrit `<m:<operation>Request>` ; l'ordre des clés de `champs` est celui du XSD (`xs:sequence`), les valeurs `undefined` ou `null` ne sont pas envoyées, un objet devient un élément imbriqué, le texte est échappé.
+- La réponse est lue avec `DOMParser` (aucune dépendance) ; `enfants(el, nom)` et `texte(el, nom)` cherchent par **nom local**, les préfixes (`ns2:`, `SOAP-ENV:`) sont ignorés.
+- Le service répond en HTTP 200 (succès) ou 500 (SOAP Fault). Conversion en `ErreurApi` :
+  1. Pas de réponse (réseau coupé, délai de 10 s dépassé) ou HTTP 502 / 503 / 504 de la gateway (service arrêté) → `503`, comme `http.ts` ; `401` avec un jeton → session expirée.
+  2. `Body/Fault` → code selon le nom local du `faultcode`, `message = faultstring`, `requestId` = en-tête `X-Request-Id`. Une SOAP Fault ne désigne pas de champ : le message s'affiche en alerte dans le dialogue (la validation par champ est faite avant l'envoi par Zod).
+  3. Réponse sans élément `<operation>Response` → `503` « Réponse illisible du module Matériaux. »
+
+| `faultcode` (nom local) | Cas côté service (#145) | `ApiError.status` | Affichage |
 |---|---|---|---|
-| `listerMateriaux(enAlerteSeulement)` | `ListerMateriaux` | 503 | #17 (PostgreSQL) |
-| `getMateriau(id)` | `GetMateriau` | 404 | |
-| `ajouterMateriau(donnees)` | `AjouterMateriau` | 409 référence déjà utilisée, 422 validation XSD | #19 (XSD) |
-| `verifierStock(materiauId, quantite)` | `VerifierStock` | 404 | |
-| `enregistrerMouvement(donnees)` | `EnregistrerMouvement` | 404 matériau ou chantier inconnu, **409 chantier clôturé**, **422 stock insuffisant**, 503 Chantiers injoignable | |
-| `listerMouvements(filtre)` | `ListerMouvements` `{ chantierId?, materiauId? }`, du plus récent au plus ancien | 503 | **#18** (opération à créer) |
+| `Introuvable` | Matériau ou chantier inconnu | 404 | Alerte dans le dialogue + toast |
+| `Conflit` | Référence déjà utilisée (#132), stock modifié en même temps | 409 | Alerte « Conflit » dans le dialogue + toast |
+| `Client` | Stock insuffisant (RG-07), chantier terminé, valeur invalide | 422 | Alerte « Demande refusée » dans le dialogue + toast |
+| `Server` ou autre | Erreur interne, Chantiers injoignable | 503 | Alerte « Module indisponible » ; encart sur la page si la lecture échoue |
 
-La consommation par chantier est calculée côté front à partir de `ListerMouvements` (somme des sorties par chantier et par matériau) : pas d'opération supplémentaire.
-
-### Des SOAP Faults aux `ApiError`
-
-Le service répond toujours en HTTP 200 (succès) ou 500 (SOAP Fault). Le client SOAP (`src/api/soap.ts`, à écrire au branchement) lit l'enveloppe et lève une `ErreurApi` :
-
-1. **Pas de réponse** (réseau coupé, délai de 10 s dépassé) ou **HTTP 502 / 503 / 504** de la gateway (service arrêté) → `status: 503`, comme dans `http.ts`.
-2. **Réponse avec `Body/Fault`** → lire `faultcode` et `faultstring` en ignorant les préfixes. `faultstring` peut porter un attribut `xml:lang="fr"` : avec fast-xml-parser, le texte est alors dans `#text`.
-3. **Code HTTP de l'`ApiError`** selon le nom local du `faultcode` :
-
-| `faultcode` (nom local) | Cas côté service | `ApiError.status` | Affichage dans la page |
-|---|---|---|---|
-| `Introuvable` | Matériau ou chantier inconnu | 404 | Alerte « Introuvable » |
-| `Conflit` | Référence déjà utilisée ; mouvement vers un chantier clôturé (RG-09) | 409 | Alerte « Conflit » dans le dialogue + toast |
-| `Client` | Stock insuffisant (RG-07), validation XSD, quantité ≤ 0 | 422 | Alerte « Demande refusée » dans le dialogue + toast |
-| `Server` | Erreur interne, Chantiers injoignable | 503 | Alerte « Module indisponible » ; encart sur la page si la lecture du stock échoue |
-
-4. `message = faultstring` ; `requestId` = en-tête `X-Request-Id` de la gateway. Une SOAP Fault ne désigne pas de champ : pas de `champs`, le message s'affiche en alerte (la validation par champ est faite avant l'envoi par Zod).
-
-Exemple de faute attendue pour un mouvement vers un chantier clôturé :
+Exemple, référence déjà utilisée :
 
 ```xml
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
   <SOAP-ENV:Body>
     <SOAP-ENV:Fault>
-      <faultcode xmlns:m="http://btp.uiz.ma/materiaux">m:Conflit</faultcode>
-      <faultstring xml:lang="fr">Le chantier « Entrepôt logistique » est clôturé : aucun mouvement de stock possible</faultstring>
+      <faultcode xmlns:ns3="http://btp.uiz.ma/materiaux">ns3:Conflit</faultcode>
+      <faultstring xml:lang="fr">La référence MAT-001 est déjà utilisée par un autre matériau</faultstring>
     </SOAP-ENV:Fault>
   </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>
 ```
 
-Conversion attendue (à tester avec Vitest : réponse normale, faute avec et sans préfixe, `xml:lang`) :
+Tests : `src/api/soap.test.ts` (enveloppe, préfixes, chaque `faultcode`, 502, 401, réseau, délai, annulation), `src/features/materiaux/api.reel.test.ts` (les six opérations) et `pages/materiaux-reel.test.tsx` (pages sur le web service simulé par MSW) ; parcours Playwright `e2e/materiaux.spec.ts`.
 
-```ts
-const CODES: Record<string, number> = { Introuvable: 404, Conflit: 409, Client: 422, Server: 503 };
-const nomLocal = (qname: string) => qname.split(':').pop() ?? qname;
-// fault = Envelope.Body.Fault lu par fast-xml-parser avec removeNSPrefix: true
-const texte = (v: unknown) => (typeof v === 'object' && v ? (v as { '#text': string })['#text'] : String(v));
-throw new ErreurApi({
-  status: CODES[nomLocal(texte(fault.faultcode))] ?? 503,
-  message: texte(fault.faultstring),
-  requestId: reponse.headers.get('X-Request-Id') ?? undefined,
-});
-```
+### Test manuel
 
-**Codes émis par Matériaux (#145)** : `Introuvable` pour un matériau ou un chantier inconnu, `Conflit` pour une référence déjà utilisée (#132) ou un conflit de mise à jour du stock ; `Client` pour les autres refus (stock insuffisant, chantier terminé, valeur invalide) ; `Server` si Chantiers est injoignable.
-
-### Test manuel (à décrire dans la PR de #52)
-
-1. Sortie de 5 t de « Fer à béton HA12 » (stock 2,4 t) : alerte 422 « Stock insuffisant », stock inchangé.
-2. Mouvement vers « Entrepôt logistique » (clôturé) : alerte 409.
-3. « Nouveau matériau » avec la référence `MAT-001` : alerte 409.
-4. Sortie qui fait passer un matériau sous son seuil : toast d'alerte, badge « En alerte », pastille de la barre latérale mise à jour.
-5. `docker compose stop materiaux-service` : encart « Stock indisponible » (503) ; `docker compose stop chantiers-service` puis un mouvement : alerte 503.
+1. Profil Magasinier, « Nouveau matériau » (stock 10, seuil 4) : toast, badge « Suffisant ».
+2. Entrée de 5 sur un chantier : stock 15, mouvement dans « Derniers mouvements » et dans l'onglet « Matériaux consommés » du chantier.
+3. Sortie de 20 : alerte 422 « Stock insuffisant pour … », stock inchangé.
+4. Sortie de 12 : toast d'alerte, badge « En alerte », pastille de la barre latérale mise à jour, alerte sur le tableau de bord.
+5. Sortie vers un chantier « (clôturé) » : alerte 422 « … terminé ». « Nouveau matériau » avec une référence existante : alerte 409.
+6. `docker compose stop materiaux-service` : encart sur la page Matériaux et le tableau de bord (503) ; `docker compose stop chantiers-service` puis un mouvement : alerte 503.
 
 ## Authentification · #109 · Branchée
 
@@ -300,7 +286,7 @@ La connexion est **réelle** ([ADR-0006](../adr/0006-authentification-jwt-gatewa
 | `AuthProvider.tsx`, `contexte.ts` | `useAuth()` : `utilisateur`, `jeton`, `deconnecte`, `sessionExpiree`, `connecter`, `deconnecter` |
 | `permissions.ts` | Sections et actions par profil : **affichage seulement**, le refus côté serveur (`403` selon `X-Role`) reste à faire module par module |
 
-**Jeton sur chaque appel.** `src/api/http.ts` lit la session (`lireSession()`) et ajoute `Authorization: Bearer <jeton>`. Le futur `src/api/soap.ts` (#52) doit faire de même, sinon `/ws` répond `401`.
+**Jeton sur chaque appel.** `src/api/http.ts` lit la session (`lireSession()`) et ajoute `Authorization: Bearer <jeton>`. `src/api/soap.ts` fait de même, sinon `/ws` répond `401`.
 
 **Session expirée.** Une réponse `401` à une requête qui portait un jeton efface la session et prévient `AuthProvider` : retour à `/connexion` avec le message « Session expirée », puis, après reconnexion, retour à la page demandée. Un `401` sur `/api/auth/login` (mauvais mot de passe) reste une simple erreur du formulaire.
 
