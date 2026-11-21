@@ -6,6 +6,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-21
+
 ### Ajouté
 - Données de démonstration Souss Bâtiment : `make demo` remet la base locale à zéro (confirmation obligatoire, refus hors de la stack Docker locale) puis charge par les API 5 chantiers, 8 ouvriers, 10 matériaux (2 en alerte), 15 tâches à tous les statuts (dont une bloquée) et 18 mouvements de stock ; relançable sans doublon.
 - Tests de bout en bout : scénario de démo complet `e2e/scenario-demo.spec.ts` (chantier, ouvrier, matériau, tâche, refus pour stock insuffisant, avancement à 60 %, planning de l'ouvrier), par l'interface en conducteur de travaux ([#31](https://github.com/MohamedOuijjane/btp-chantiers/issues/31)).
@@ -94,7 +96,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Gateway : le WSDL obtenu via le port 8080 annonce la bonne adresse ([#22](https://github.com/MohamedOuijjane/btp-chantiers/pull/22)).
 - Ouvriers : l'erreur 409 sur une CIN en double n'expose plus l'exception SQL d'origine ([#45](https://github.com/MohamedOuijjane/btp-chantiers/pull/45)).
 
-[Unreleased]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.2...develop
+[Unreleased]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v1.0.0...develop
+[1.0.0]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.2...v1.0.0
 [0.1.2]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/MohamedOuijjane/btp-chantiers/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/MohamedOuijjane/btp-chantiers/releases/tag/v0.1.0
