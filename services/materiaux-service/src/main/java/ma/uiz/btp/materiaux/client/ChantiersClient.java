@@ -18,6 +18,7 @@ public class ChantiersClient {
 
     private final RestClient http;
 
+    /** Crée le client avec l'adresse du module Chantiers et le délai maximal d'un appel. */
     public ChantiersClient(@Value("${services.chantiers.url}") String baseUrl,
                            @Value("${services.timeout:2s}") Duration timeout) {
         var factory = new SimpleClientHttpRequestFactory();
@@ -29,8 +30,10 @@ public class ChantiersClient {
     /** Vérifie que le chantier destinataire existe et n'est pas terminé. */
     public void verifierChantierActif(Long chantierId) {
         record ChantierResume(Long id, String statut) {}
+
         try {
-            ChantierResume c = http.get().uri("/api/chantiers/{id}", chantierId).retrieve().body(ChantierResume.class);
+            ChantierResume c = http.get().uri("/api/chantiers/{id}", chantierId)
+                    .retrieve().body(ChantierResume.class);
             if (c == null || c.statut() == null || c.statut().isBlank()) {
                 throw new ChantiersIndisponibleException(
                         "Réponse invalide du service Chantiers pour le chantier " + chantierId);
@@ -43,7 +46,8 @@ public class ChantiersClient {
                 throw new IntrouvableException("Chantier " + chantierId + " introuvable");
             }
             throw new ChantiersIndisponibleException(
-                    "Le service Chantiers a répondu avec le statut HTTP " + e.getStatusCode().value(), e);
+                    "Le service Chantiers a répondu avec le statut HTTP "
+                            + e.getStatusCode().value(), e);
         } catch (RestClientException e) {
             throw new ChantiersIndisponibleException(
                     "Échec de l'appel au service Chantiers.", e);

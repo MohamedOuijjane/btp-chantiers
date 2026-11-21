@@ -16,6 +16,7 @@ import java.time.Instant;
 @Table(name = "mouvements")
 public class Mouvement {
 
+    /** Sens du mouvement : entrée ou sortie de stock. */
     public enum Type { ENTREE, SORTIE }
 
     @Id
@@ -38,8 +39,10 @@ public class Mouvement {
     @Column(name = "date_mouvement", nullable = false)
     private Instant date = Instant.now();
 
+    /** Constructeur réservé à JPA. */
     protected Mouvement() {}
 
+    /** Crée le mouvement d'un matériau vers un chantier. */
     public Mouvement(MateriauEntity materiau, Long chantierId, Type type, double quantite) {
         this.materiau = materiau;
         this.chantierId = chantierId;
