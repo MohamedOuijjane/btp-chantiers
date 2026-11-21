@@ -6,6 +6,7 @@ Parcours rejoués dans un vrai navigateur (Chromium) sur la stack Docker complè
 |---|---|
 | `connexion.spec.ts` | Connexion du conducteur de travaux (menu complet), du magasinier (Matériaux sans Ouvriers), mot de passe refusé, déconnexion |
 | `chantiers.spec.ts` | Création d'un chantier ; suppression refusée (409, tâche citée) ; suppression acceptée (#5) |
+| `taches.spec.ts` | Création d'une tâche depuis la fiche chantier ; démarrage, avancement à 60 %, blocage avec motif et déblocage ; affectation d'un ouvrier depuis sa fiche (#50) |
 | `ouvriers.spec.ts` | Création d'un ouvrier ; CIN en double sous le champ (#114) ; suppression refusée (409, tâche citée) ; suppression acceptée (#15) |
 
 Chaque parcours se connecte par l'écran `/connexion` (`connecter(page, profil)` dans `fixtures.ts`). Les données sont propres à chaque test (suffixe unique) : celles qu'un parcours ne crée pas lui-même (une tâche qui bloque une suppression) sont créées par l'API, et tout ce qui a été créé est supprimé à la fin du test, même en cas d'échec.
@@ -35,4 +36,4 @@ Les fichiers `e2e/` sont exclus de Vitest (`npm test`) et de l'image Docker du f
 
 Workflow **E2E** (`.github/workflows/e2e.yml`) : à chaque pull request vers `develop` qui touche `frontend/`, `services/` ou `gateway/`, et à la demande. Il construit et démarre la stack, lance les tests et publie le rapport HTML en artefact (`rapport-playwright`). Il est informatif : il ne fait pas partie des vérifications obligatoires du ruleset.
 
-Tant que les pages Tâches et Matériaux sont en données fictives (#50, #52), le scénario complet de #31 (matériau, tâche, stock insuffisant, avancement) n'est pas encore couvert.
+Tant que la page Matériaux est en données fictives (#52), le scénario complet de #31 (matériau, tâche, stock insuffisant, avancement) n'est pas encore couvert.

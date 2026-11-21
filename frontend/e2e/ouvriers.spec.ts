@@ -1,13 +1,8 @@
-import { connecter, expect, test } from './fixtures';
+import { cinUnique, connecter, expect, test } from './fixtures';
 
 test.beforeEach(async ({ page }) => {
   await connecter(page, 'CONDUCTEUR');
 });
-
-/** CIN marocaine valide et propre au test (format ^[A-Z]{1,2}\d{3,8}$). */
-function cinUnique() {
-  return `E${Math.floor(1_000_000 + Math.random() * 8_999_999)}`;
-}
 
 async function supprimer(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: 'Supprimer' }).click();

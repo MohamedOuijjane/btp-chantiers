@@ -29,10 +29,15 @@ export async function connecter(page: Page, profil: Profil = 'CONDUCTEUR') {
   await expect(page).not.toHaveURL(/\/connexion/);
 }
 
+/** CIN marocaine valide et propre au test (format ^[A-Z]{1,2}\d{3,8}$). */
+export function cinUnique() {
+  return `E${Math.floor(1_000_000 + Math.random() * 8_999_999)}`;
+}
+
 type Chantier = { id: number; nom: string; statut: string };
 type Tache = { id: number; titre: string };
 /** Élément d'une liste de l'API (chantier ou ouvrier), pour retrouver ce que l'interface a créé. */
-type Element = { id: number; nom?: string; cin?: string };
+type Element = { id: number; nom?: string; cin?: string; titre?: string };
 
 /** Client REST connecté ; garde la trace de ce qu'il crée pour le supprimer à la fin du test. */
 export class Api {
@@ -90,7 +95,10 @@ export class Api {
   }
 
   /** Les données créées par l'interface sont retrouvées ici pour être supprimées aussi. */
-  async suivre(chemin: '/api/chantiers' | '/api/ouvriers', filtre: (e: Element) => boolean) {
+  async suivre(
+    chemin: '/api/chantiers' | '/api/ouvriers' | '/api/taches',
+    filtre: (e: Element) => boolean,
+  ) {
     const r = await this.http.get(chemin, { headers: this.entetes });
     const liste = (await r.json()) as Element[];
     for (const o of liste.filter(filtre)) this.aSupprimer.push(`${chemin}/${o.id}`);
