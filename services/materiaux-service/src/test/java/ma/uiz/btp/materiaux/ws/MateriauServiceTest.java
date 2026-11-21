@@ -146,6 +146,44 @@ class MateriauServiceTest {
     }
 
     @Nested
+    @DisplayName("listerMouvements (#18)")
+    class ListerMouvements {
+
+        private final List<Mouvement> resultat =
+                List.of(new Mouvement(ciment(10, 5), 7L, Mouvement.Type.SORTIE, 2));
+
+        @Test
+        @DisplayName("UT-MAT-50 : sans filtre, tous les mouvements")
+        void sansFiltre() {
+            when(mouvements.tous()).thenReturn(resultat);
+            assertSame(resultat, service.listerMouvements(null, null));
+        }
+
+        @Test
+        @DisplayName("UT-MAT-51 : filtre par chantier")
+        void parChantier() {
+            when(mouvements.parChantier(7L)).thenReturn(resultat);
+            assertSame(resultat, service.listerMouvements(7L, null));
+        }
+
+        @Test
+        @DisplayName("UT-MAT-52 : filtre par matériau")
+        void parMateriau() {
+            when(mouvements.parMateriau(1L)).thenReturn(resultat);
+            assertSame(resultat, service.listerMouvements(null, 1L));
+        }
+
+        @Test
+        @DisplayName("UT-MAT-53 : filtres chantier et matériau combinés")
+        void parChantierEtMateriau() {
+            when(mouvements.parChantierEtMateriau(7L, 1L))
+                    .thenReturn(resultat);
+            assertSame(resultat, service.listerMouvements(7L, 1L));
+            verifyNoInteractions(chantiers);
+        }
+    }
+
+    @Nested
     @DisplayName("lecture")
     class Lecture {
 

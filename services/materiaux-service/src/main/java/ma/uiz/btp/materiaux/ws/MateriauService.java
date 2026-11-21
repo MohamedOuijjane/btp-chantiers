@@ -52,6 +52,26 @@ public class MateriauService {
     }
 
     /**
+     * Liste les mouvements de stock, du plus récent au plus ancien (#18).
+     *
+     * @param chantierId filtre optionnel (null : tous les chantiers)
+     * @param materiauId filtre optionnel (null : tous les matériaux)
+     */
+    @Transactional(readOnly = true)
+    public List<Mouvement> listerMouvements(Long chantierId, Long materiauId) {
+        if (chantierId != null && materiauId != null) {
+            return mouvements.parChantierEtMateriau(chantierId, materiauId);
+        }
+        if (chantierId != null) {
+            return mouvements.parChantier(chantierId);
+        }
+        if (materiauId != null) {
+            return mouvements.parMateriau(materiauId);
+        }
+        return mouvements.tous();
+    }
+
+    /**
      * Enregistre une entrée ou une sortie de stock pour un chantier.
      *
      * <p>Le chantier est vérifié auprès du module Chantiers avant toute modification du stock.
