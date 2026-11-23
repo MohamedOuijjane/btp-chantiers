@@ -240,15 +240,6 @@ Backlog, epics et planification : [GitHub Project de l'équipe](https://github.c
 | [SECURITY.md](SECURITY.md) | Signaler une vulnérabilité |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Code de conduite |
 
-### Livrables
-
-| Livrable | Échéance | Statut |
-|---|---|---|
-| Note de cadrage | 17/10/2026 | ✅ Livré |
-| Cahier des charges | 03/11/2026 | ⏳ #32 |
-| Dossier de conception (UML, contrats) | 07/11/2026 | ⏳ #33 |
-| Code, Docker et documentation des API | **20/11/2026** | ⏳ ce dépôt |
-| Soutenance | à partir du 26/11/2026 | ⏳ #36 |
 
 ## Licence
 
