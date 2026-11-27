@@ -9,8 +9,6 @@
 [![Licence MIT](https://img.shields.io/github/license/MohamedOuijjane/btp-chantiers)](LICENSE)
 [![Dernière release](https://img.shields.io/github/v/release/MohamedOuijjane/btp-chantiers?include_prereleases&label=release)](https://github.com/MohamedOuijjane/btp-chantiers/releases)
 
-> Projet de Master Ingénierie Logicielle (S3), Faculté des Sciences Agadir, Université Ibn Zohr · modules Web Services et Qualité Logicielle · Équipe 18 · 2026-2027
-
 ## Sommaire
 
 - [Problème et solution](#problème-et-solution)
@@ -20,12 +18,8 @@
 - [Développement](#développement)
 - [Qualité](#qualité)
 - [Méthode agile](#méthode-agile)
-- [Équipe](#équipe)
+- [Contributeurs](#contributeurs)
 - [Documentation](#documentation)
-
-> Master d'Excellence Ingénierie Logicielle (S3), Faculté des Sciences Agadir, Université Ibn Zohr
-> Modules **Web Services** et **Qualité Logicielle**, Pr. IDRAIS, 2026-2027
-> **Équipe 18** : OUIJJANE Mohamed (chef de projet), IJJAALI Houssam, BENZINEB Ilyas, Hatim
 
 - **Problème :** dans beaucoup de PME du BTP, le suivi des chantiers se fait sur papier ou dans des fichiers Excel dispersés : retards, ruptures de stock et aucune vision de l'avancement réel.
 - **Solution :** une application web qui centralise chantiers, tâches, ouvriers et matériaux, et calcule automatiquement l'avancement de chaque chantier.
@@ -213,16 +207,16 @@ Le projet suit **Scrum** en 3 sprints d'une semaine ([détails](docs/agile/scrum
 | S2 · Développement | 08 → 14/11/2026 | Règles de gestion des modules, front-end |
 | S3 · Livraison | 15 → 20/11/2026 | Tests de bout en bout, recette, livraison |
 
-Backlog, epics et planification : [GitHub Project de l'équipe](https://github.com/users/MohamedOuijjane/projects/1).
+Backlog, epics et planification : [GitHub Project](https://github.com/users/MohamedOuijjane/projects/1).
 
-## Équipe
+## Contributeurs
 
-| Membre | Rôle Scrum | Responsabilités |
-|---|---|---|
-| OUIJJANE Mohamed | Product Owner · développeur | Chef de projet, besoin métier et backlog ; modules Chantiers, gateway et front-end |
-| IJJAALI Houssam | Développeur | Architecture technique ; module Tâches & Avancement |
-| BENZINEB Ilyas | Scrum Master · développeur | Animation des cérémonies, responsable qualité (tests, recette, anomalies) ; module Ouvriers |
-| SALHI Hatim | Développeur | Module Matériaux (SOAP) |
+| Contributeur | Contributions |
+|---|---|
+| OUIJJANE Mohamed | Module Chantiers, authentification, gateway et front-end |
+| IJJAALI Houssam | Module Tâches & Avancement |
+| BENZINEB Ilyas | Module Ouvriers, tests et recette |
+| SALHI Hatim | Module Matériaux (SOAP) |
 
 ## Documentation
 
@@ -233,7 +227,7 @@ Backlog, epics et planification : [GitHub Project de l'équipe](https://github.c
 | [docs/adr/](docs/adr/) | Décisions d'architecture (microservices, technologies, SOAP, résilience, base unique) |
 | [docs/frontend/architecture.md](docs/frontend/architecture.md) | Architecture du front-end |
 | [docs/qualite/PAQ.md](docs/qualite/PAQ.md) | Plan d'Assurance Qualité |
-| [docs/qualite/](docs/qualite/) | Livrables qualité (note de cadrage, cahier des charges, conception, recette) |
+| [docs/qualite/](docs/qualite/) | Documents qualité (cadrage, cahier des charges, conception, recette) |
 | [docs/agile/](docs/agile/) | Scrum, sprints, revues et rétrospectives |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Workflow Git, commits, revue de code, gestion du projet |
 | [CHANGELOG.md](CHANGELOG.md) | Historique des versions |
@@ -243,4 +237,4 @@ Backlog, epics et planification : [GitHub Project de l'équipe](https://github.c
 
 ## Licence
 
-[MIT](LICENSE) © 2026 Équipe 18
+[MIT](LICENSE) © 2026 les contributeurs de BTP Chantiers
