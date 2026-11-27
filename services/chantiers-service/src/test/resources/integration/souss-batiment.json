@@ -1,0 +1,82 @@
+{
+  "_description": "Jeu de données des tests d'intégration du module Chantiers. Entreprise fictive Souss Bâtiment (Agadir) : chantiers, clients, adresses et tâches inventés.",
+  "chantiers": {
+    "residenceAlAmal": {
+      "nom": "Résidence Al Amal - 48 logements",
+      "adresse": "Lotissement Al Amal, lot 112, Hay Mohammadi, Agadir",
+      "client": "Al Omrane Souss-Massa",
+      "dateDebut": "2026-09-01",
+      "dateFinPrevue": "2027-12-31",
+      "budget": 18500000.00
+    },
+    "ecoleTikiouine": {
+      "nom": "École primaire Tikiouine - extension 6 classes",
+      "adresse": "Quartier Tikiouine, Agadir",
+      "client": "Direction provinciale de l'Éducation nationale",
+      "dateDebut": "2026-10-15",
+      "dateFinPrevue": "2027-06-30",
+      "budget": 4200000.00
+    },
+    "villaTaghazout": {
+      "nom": "Villa R+1 Taghazout Bay",
+      "adresse": "Route d'Essaouira, km 17, Taghazout",
+      "client": "M. et Mme Benali",
+      "dateDebut": "2026-11-02",
+      "dateFinPrevue": "2027-07-15",
+      "budget": 2350000.00
+    },
+    "hangarAitMelloul": {
+      "nom": "Hangar logistique Aït Melloul",
+      "adresse": "Zone industrielle Aït Melloul, lot 27",
+      "client": "Souss Agrumes Export",
+      "dateDebut": "2026-08-01",
+      "dateFinPrevue": "2027-02-28",
+      "budget": 7800000.00
+    },
+    "centreSanteInezgane": {
+      "nom": "Centre de santé Inezgane - réhabilitation",
+      "adresse": "Avenue Mokhtar Soussi, Inezgane",
+      "client": "Délégation provinciale de la Santé",
+      "dateDebut": "2026-07-01",
+      "dateFinPrevue": "2026-12-20",
+      "budget": 1650000.00
+    },
+    "voirieDrarga": {
+      "nom": "Voirie et assainissement Drarga - tranche 2",
+      "adresse": "Commune de Drarga, Agadir-Ida-Outanane",
+      "client": "Commune de Drarga",
+      "dateDebut": "2026-12-01",
+      "dateFinPrevue": "2027-09-30",
+      "budget": 9600000.00
+    },
+    "immeubleTalborjt": {
+      "nom": "Immeuble R+4 Talborjt",
+      "adresse": "Rue de la Foire, Talborjt, Agadir",
+      "client": "SCI Talborjt Invest",
+      "dateDebut": "2026-11-15",
+      "dateFinPrevue": "2028-03-31",
+      "budget": 12400000.00
+    }
+  },
+  "taches": {
+    "residenceAlAmal": [
+      { "id": "101", "titre": "Terrassement et fouilles", "statut": "TERMINEE", "avancement": 100 },
+      { "id": "102", "titre": "Fondations et semelles", "statut": "EN_COURS", "avancement": 60 },
+      { "id": "103", "titre": "Gros œuvre bloc A", "statut": "EN_COURS", "avancement": 25 },
+      { "id": "104", "titre": "Plomberie bloc A", "statut": "A_FAIRE", "avancement": 0 }
+    ],
+    "hangarAitMelloul": [
+      { "id": "201", "titre": "Charpente métallique", "statut": "EN_COURS", "avancement": 40 },
+      { "id": "202", "titre": "Dallage industriel", "statut": "TERMINEE", "avancement": 100 }
+    ],
+    "immeubleTalborjt": [
+      { "id": "301", "titre": "Installation de chantier", "statut": "TERMINEE", "avancement": 100 },
+      { "id": "302", "titre": "Terrassement", "statut": "TERMINEE", "avancement": 100 },
+      { "id": "303", "titre": "Fondations", "statut": "EN_COURS", "avancement": 50 },
+      { "id": "304", "titre": "Voiles du sous-sol", "statut": "A_FAIRE", "avancement": 0 },
+      { "id": "305", "titre": "Plancher haut sous-sol", "statut": "A_FAIRE", "avancement": 0 },
+      { "id": "306", "titre": "Gros œuvre R+1", "statut": "A_FAIRE", "avancement": 0 },
+      { "id": "307", "titre": "Gros œuvre R+2", "statut": "A_FAIRE", "avancement": 0 }
+    ]
+  }
+}

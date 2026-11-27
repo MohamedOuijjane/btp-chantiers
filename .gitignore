@@ -26,3 +26,4 @@ tests/securite/rapports/
 .coverage
 coverage.xml
 .ruff_cache/
+docs/tests-integration/resultats/

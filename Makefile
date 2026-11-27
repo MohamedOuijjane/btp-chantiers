@@ -1,4 +1,4 @@
-.PHONY: up down logs test test-taches test-ouvriers test-java ps perf e2e postman zap
+.PHONY: up down logs test test-taches test-ouvriers test-java test-integration-chantiers ps perf e2e postman postman-chantiers zap
 
 up:            ## Lance toute l'application
 	docker compose up --build -d
@@ -47,6 +47,18 @@ postman:       ## Collection Postman (50 requêtes) avec Newman
 	  -v "$(CURDIR)/docs/api:/collection:ro" postman/newman:6-alpine \
 	  run /collection/btp-chantiers.postman_collection.json \
 	  --env-var gateway=http://gateway:8080 --env-var "motDePasse=$$DEMO_MOT_DE_PASSE"
+
+# Tests d'intégration du module Chantiers (Testcontainers : Docker requis, stack non nécessaire)
+test-integration-chantiers:  ## Tests d'intégration Chantiers, rapport dans target/rapport-integration.md
+	cd services/chantiers-service && mvn -B verify
+
+# Collection Postman du module Chantiers (stack démarrée : make up), même principe que make postman
+postman-chantiers:  ## Scénarios d'intégration Chantiers avec Newman, rapport JUnit dans docs/tests-integration/
+	set -a; . ./.env; set +a; docker run --rm --network $(RESEAU) \
+	  -v "$(CURDIR)/docs/tests-integration:/collection" postman/newman:6-alpine \
+	  run /collection/chantiers-integration.postman_collection.json \
+	  --env-var gateway=http://gateway:8080 --env-var "motDePasse=$$DEMO_MOT_DE_PASSE" \
+	  --reporters cli,junit --reporter-junit-export /collection/resultats/newman-chantiers.xml
 
 # Scan de sécurité OWASP ZAP (baseline, passif) de la gateway et du front (stack démarrée)
 zap:           ## Scan ZAP, rapport HTML dans tests/securite/rapports/

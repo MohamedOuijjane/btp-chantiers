@@ -83,6 +83,17 @@ class ChantierControllerTest {
     }
 
     @Test
+    void adresseEtBudgetLimitesALaTailleDesColonnes() throws Exception {
+        String invalide = CHANTIER.replace("Hay Mohammadi, Agadir", "A".repeat(256))
+                .replace("2500000", "2500000.555");
+        mvc.perform(post("/api/chantiers").contentType(MediaType.APPLICATION_JSON).content(invalide))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.erreurs.adresse").value("L'adresse ne doit pas dépasser 255 caractères"))
+                .andExpect(jsonPath("$.erreurs.budget")
+                        .value("Le budget doit avoir au plus 12 chiffres avant la virgule et 2 après"));
+    }
+
+    @Test
     void statutDeFiltreInconnuRenvoie400() throws Exception {
         mvc.perform(get("/api/chantiers").param("statut", "INCONNU"))
                 .andExpect(status().isBadRequest())

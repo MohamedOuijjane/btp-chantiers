@@ -1,0 +1,16 @@
+# Tests d'intégration : chargé APRÈS src/main/resources/application.yml (configuration de
+# production), il ne remplace que ce qui est propre aux tests. La base PostgreSQL et l'adresse
+# du module Tâches simulé sont fournies au démarrage (IntegrationBase).
+auth:
+  jwt:
+    # Secret réservé aux tests d'intégration (base jetable), sans valeur ailleurs.
+    secret: secret-integration-uniquement-0123456789abcdef
+  demo:
+    mot-de-passe: SoussBatiment-2026
+services:
+  # 1 s au lieu de 2 s : le scénario « Tâches trop lent » reste sous le seuil de 2 s.
+  timeout: 1s
+logging:
+  level:
+    org.testcontainers: WARN
+    com.zaxxer.hikari: WARN

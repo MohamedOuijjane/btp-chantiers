@@ -1,0 +1,1415 @@
+{
+  "info": {
+    "name": "Module Chantiers - tests d'intégration",
+    "description": "Scénarios d'intégration du module Chantiers, via la gateway (http://localhost:8090 sur le poste) et avec les vrais modules (Tâches notamment). Ordre : santé et authentification, CRUD, flux métier, cas d'erreur. Chaque requête vérifie son code HTTP, son contenu et un temps de réponse inférieur à 2 s. La collection crée ses chantiers (entreprise fictive Souss Bâtiment) et les supprime à la fin du dossier 3. Le mot de passe est celui de DEMO_MOT_DE_PASSE (.env). En ligne de commande : make postman-chantiers.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Temps de réponse < 2 s', () => pm.expect(pm.response.responseTime).to.be.below(2000));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "gateway",
+      "value": "http://localhost:8090",
+      "description": "Gateway sur le poste (GATEWAY_PORT de .env)"
+    },
+    {
+      "key": "email",
+      "value": "samir.haddou@souss-batiment.demo"
+    },
+    {
+      "key": "motDePasse",
+      "value": "chantier2026",
+      "description": "Valeur de DEMO_MOT_DE_PASSE dans .env.example ; à adapter à votre .env"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "chantierId",
+      "value": ""
+    },
+    {
+      "key": "chantierClotureId",
+      "value": ""
+    },
+    {
+      "key": "tacheId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Santé et authentification",
+      "item": [
+        {
+          "name": "Santé de la gateway",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/health",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Gateway UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Connexion (JWT émis par Chantiers)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/auth/login",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"motDePasse\": \"{{motDePasse}}\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Jeton et profil renvoyés', () => {",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.token.split('.')).to.have.lengthOf(3);",
+                  "  pm.expect(r.utilisateur.email).to.eql(pm.collectionVariables.get('email'));",
+                  "  pm.collectionVariables.set('token', r.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sans jeton : refusé par la gateway (401)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(401);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jeton falsifié : refusé (401)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.signature-falsifiee"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(401);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. CRUD des chantiers",
+      "item": [
+        {
+          "name": "Créer un chantier",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Résidence Al Amal - 48 logements (Postman)\",\n  \"adresse\": \"Lotissement Al Amal, lot 112, Hay Mohammadi, Agadir\",\n  \"client\": \"Al Omrane Souss-Massa\",\n  \"dateDebut\": \"2026-09-01\",\n  \"dateFinPrevue\": \"2027-12-31\",\n  \"budget\": 18500000.0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Chantier PLANIFIE, Location renseignée', () => {",
+                  "  const c = pm.response.json();",
+                  "  pm.expect(c.statut).to.eql('PLANIFIE');",
+                  "  pm.expect(c.nom).to.eql('Résidence Al Amal - 48 logements (Postman)');",
+                  "  pm.expect(pm.response.headers.get('Location')).to.match(new RegExp('/api/chantiers/' + c.id + '$'));",
+                  "  pm.collectionVariables.set('chantierId', c.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Le chantier apparaît dans la liste",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Liste contenant le chantier créé', () => {",
+                  "  const ids = pm.response.json().map(c => c.id);",
+                  "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('chantierId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consulter le chantier",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Mêmes valeurs qu’à la création', () => {",
+                  "  const c = pm.response.json();",
+                  "  pm.expect(c.client).to.eql('Al Omrane Souss-Massa');",
+                  "  pm.expect(c.budget).to.eql(18500000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modifier : budget et passage EN_COURS",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Résidence Al Amal - 48 logements (Postman)\",\n  \"adresse\": \"Lotissement Al Amal, lot 112, Hay Mohammadi, Agadir\",\n  \"client\": \"Al Omrane Souss-Massa\",\n  \"dateDebut\": \"2026-09-01\",\n  \"dateFinPrevue\": \"2027-12-31\",\n  \"budget\": 18900000.0,\n  \"statut\": \"EN_COURS\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Budget et statut modifiés', () => {",
+                  "  const c = pm.response.json();",
+                  "  pm.expect(c.statut).to.eql('EN_COURS');",
+                  "  pm.expect(c.budget).to.eql(18900000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrer par statut EN_COURS",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers?statut=EN_COURS",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ],
+              "query": [
+                {
+                  "key": "statut",
+                  "value": "EN_COURS"
+                }
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Uniquement des chantiers EN_COURS, dont le nôtre', () => {",
+                  "  const l = pm.response.json();",
+                  "  l.forEach(c => pm.expect(c.statut).to.eql('EN_COURS'));",
+                  "  pm.expect(l.map(c => c.id)).to.include(Number(pm.collectionVariables.get('chantierId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrer par statut PLANIFIE : notre chantier absent",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers?statut=PLANIFIE",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ],
+              "query": [
+                {
+                  "key": "statut",
+                  "value": "PLANIFIE"
+                }
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Chantier EN_COURS exclu du filtre PLANIFIE', () => {",
+                  "  pm.expect(pm.response.json().map(c => c.id)).to.not.include(Number(pm.collectionVariables.get('chantierId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Flux métier avec Tâches",
+      "item": [
+        {
+          "name": "Tâches crée une tâche sur le chantier (vérifie le chantier auprès de Chantiers)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/taches",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chantierId\": {{chantierId}},\n  \"titre\": \"Fondations et semelles\",\n  \"dateDebut\": \"2026-12-01\",\n  \"dateFin\": \"2026-12-15\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Tâche rattachée au chantier', () => {",
+                  "  const t = pm.response.json();",
+                  "  pm.expect(t.chantierId).to.eql(Number(pm.collectionVariables.get('chantierId')));",
+                  "  pm.collectionVariables.set('tacheId', t.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tâches : avancement de la tâche à 60 %",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}/avancement",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}",
+                "avancement"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"avancement\": 60\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avancement global du chantier (agrégé depuis Tâches)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}/avancement",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}",
+                "avancement"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('1 tâche, 60 %, source disponible', () => {",
+                  "  const a = pm.response.json();",
+                  "  pm.expect(a.sourceDisponible).to.eql(true);",
+                  "  pm.expect(a.nombreTaches).to.eql(1);",
+                  "  pm.expect(a.avancementGlobal).to.eql(60);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suppression refusée : le chantier a une tâche (409)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(409);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('La tâche liée est citée', () => pm.expect(pm.response.json().detail).to.include('« Fondations et semelles »'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suspendre le chantier",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Résidence Al Amal - 48 logements (Postman)\",\n  \"adresse\": \"Lotissement Al Amal, lot 112, Hay Mohammadi, Agadir\",\n  \"client\": \"Al Omrane Souss-Massa\",\n  \"dateDebut\": \"2026-09-01\",\n  \"dateFinPrevue\": \"2027-12-31\",\n  \"budget\": 18900000.0,\n  \"statut\": \"SUSPENDU\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('SUSPENDU', () => pm.expect(pm.response.json().statut).to.eql('SUSPENDU'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tâches refuse une tâche sur un chantier suspendu (409)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/taches",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chantierId\": {{chantierId}},\n  \"titre\": \"Fondations et semelles\",\n  \"dateDebut\": \"2026-12-01\",\n  \"dateFin\": \"2026-12-15\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Motif : chantier suspendu', () => pm.expect(JSON.stringify(pm.response.json())).to.include('suspendu'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Créer un second chantier",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Centre de santé Inezgane - réhabilitation (Postman)\",\n  \"adresse\": \"Avenue Mokhtar Soussi, Inezgane\",\n  \"client\": \"Délégation provinciale de la Santé\",\n  \"dateDebut\": \"2026-07-01\",\n  \"dateFinPrevue\": \"2026-12-20\",\n  \"budget\": 1650000.0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('chantierClotureId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clôturer le second chantier",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierClotureId}}/cloture",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierClotureId}}",
+                "cloture"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('TERMINE', () => pm.expect(pm.response.json().statut).to.eql('TERMINE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modification d'un chantier clôturé refusée (409)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierClotureId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierClotureId}}"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Centre de santé Inezgane - réhabilitation (Postman)\",\n  \"adresse\": \"Avenue Mokhtar Soussi, Inezgane\",\n  \"client\": \"Délégation provinciale de la Santé\",\n  \"dateDebut\": \"2026-07-01\",\n  \"dateFinPrevue\": \"2026-12-20\",\n  \"budget\": 1650000.0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(409);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tâches refuse une tâche sur un chantier clôturé (409)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/taches",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chantierId\": {{chantierClotureId}},\n  \"titre\": \"Fondations et semelles\",\n  \"dateDebut\": \"2026-12-01\",\n  \"dateFin\": \"2026-12-15\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Motif : chantier clôturé', () => pm.expect(JSON.stringify(pm.response.json())).to.include('clôturé'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tâches : supprimer la tâche",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/taches/{{tacheId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches",
+                "{{tacheId}}"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tâche supprimée', () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supprimer le chantier sans tâche (204)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chantier supprimé : 404",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierId}}"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(404);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supprimer le chantier clôturé sans tâche (204)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/{{chantierClotureId}}",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "{{chantierClotureId}}"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Cas d'erreur",
+      "item": [
+        {
+          "name": "Corps vide : une erreur par champ (400)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(400);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('Erreurs par champ en français', () => {",
+                  "  const e = pm.response.json().erreurs;",
+                  "  pm.expect(e.nom).to.eql('Le nom est obligatoire');",
+                  "  pm.expect(e.budget).to.eql('Le budget est obligatoire');",
+                  "  pm.expect(Object.keys(e)).to.have.members(['nom', 'adresse', 'client', 'dateDebut', 'dateFinPrevue', 'budget']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fin prévue avant le début (400)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Résidence Al Amal - 48 logements (Postman)\",\n  \"adresse\": \"Lotissement Al Amal, lot 112, Hay Mohammadi, Agadir\",\n  \"client\": \"Al Omrane Souss-Massa\",\n  \"dateDebut\": \"2026-09-01\",\n  \"dateFinPrevue\": \"2026-01-01\",\n  \"budget\": 18500000.0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(400);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('Erreur sous dateFinPrevue', () => pm.expect(pm.response.json().erreurs.dateFinPrevue).to.include('postérieure ou égale'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Adresse trop longue (400)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Résidence Al Amal - 48 logements (Postman)\",\n  \"adresse\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n  \"client\": \"Al Omrane Souss-Massa\",\n  \"dateDebut\": \"2026-09-01\",\n  \"dateFinPrevue\": \"2027-12-31\",\n  \"budget\": 18500000.0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(400);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('Erreur sous adresse', () => pm.expect(pm.response.json().erreurs.adresse).to.include('255 caractères'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Budget hors limites (400)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Résidence Al Amal - 48 logements (Postman)\",\n  \"adresse\": \"Lotissement Al Amal, lot 112, Hay Mohammadi, Agadir\",\n  \"client\": \"Al Omrane Souss-Massa\",\n  \"dateDebut\": \"2026-09-01\",\n  \"dateFinPrevue\": \"2027-12-31\",\n  \"budget\": 1000000000000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(400);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('Erreur sous budget', () => pm.expect(pm.response.json().erreurs.budget).to.include('12 chiffres'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "JSON mal formé (400)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nom\": "
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(400);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Statut de filtre inconnu (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers?statut=ARCHIVE",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers"
+              ],
+              "query": [
+                {
+                  "key": "statut",
+                  "value": "ARCHIVE"
+                }
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(400);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('Valeurs possibles indiquées', () => pm.expect(pm.response.json().detail).to.include('PLANIFIE, EN_COURS, SUSPENDU, TERMINE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Identifiant non numérique (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/abc",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "abc"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(400);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chantier inexistant (404)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/987654321",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "987654321"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(404);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('Message explicite', () => pm.expect(pm.response.json().detail).to.eql('Chantier 987654321 introuvable'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clôture d'un chantier inexistant (404)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/987654321/cloture",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "987654321",
+                "cloture"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(404);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suppression d'un chantier inexistant (404)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gateway}}/api/chantiers/987654321",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "chantiers",
+                "987654321"
+              ]
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Erreur au format RFC 9457 (application/problem+json)', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e.status).to.eql(404);",
+                  "  pm.expect(e.detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tâches refuse un chantier inexistant (404)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{gateway}}/api/taches",
+              "host": [
+                "{{gateway}}"
+              ],
+              "path": [
+                "api",
+                "taches"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chantierId\": 987654321,\n  \"titre\": \"Tâche orpheline\",\n  \"dateDebut\": \"2026-12-01\",\n  \"dateFin\": \"2026-12-15\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
