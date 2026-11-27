@@ -2,6 +2,7 @@ package ma.uiz.btp.chantiers.web;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -21,14 +22,18 @@ public final class ChantierDto {
     public record Requete(
             @NotBlank(message = "Le nom est obligatoire")
             @Size(max = 150, message = "Le nom ne doit pas dépasser 150 caractères") String nom,
-            @NotBlank(message = "L'adresse est obligatoire") String adresse,
+            @NotBlank(message = "L'adresse est obligatoire")
+            @Size(max = 255, message = "L'adresse ne doit pas dépasser 255 caractères")
+            String adresse,
             @NotBlank(message = "Le client est obligatoire")
             @Size(max = 150, message = "Le client ne doit pas dépasser 150 caractères")
             String client,
             @NotNull(message = "La date de début est obligatoire") LocalDate dateDebut,
             @NotNull(message = "La date de fin prévue est obligatoire") LocalDate dateFinPrevue,
             @NotNull(message = "Le budget est obligatoire")
-            @PositiveOrZero(message = "Le budget doit être positif ou nul") BigDecimal budget,
+            @PositiveOrZero(message = "Le budget doit être positif ou nul")
+            @Digits(integer = 12, fraction = 2, message = "Le budget doit avoir au plus "
+                    + "12 chiffres avant la virgule et 2 après") BigDecimal budget,
             @Schema(description = "Ignoré à la création (toujours PLANIFIE). En modification : "
                     + "PLANIFIE, EN_COURS ou SUSPENDU ; TERMINE est refusé (409), utiliser "
                     + "PATCH /api/chantiers/{id}/cloture.")
