@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Module Chantiers - tests d'intégration",
-    "description": "Scénarios d'intégration du module Chantiers, via la gateway (:8080) et avec les vrais modules (Tâches notamment). Ordre : santé et authentification, CRUD, flux métier, cas d'erreur. Chaque requête vérifie son code HTTP, son contenu et un temps de réponse inférieur à 2 s. La collection crée ses chantiers (entreprise fictive Souss Bâtiment) et les supprime à la fin du dossier 3. Le mot de passe est celui de DEMO_MOT_DE_PASSE (.env). En ligne de commande : make postman-chantiers.",
+    "description": "Scénarios d'intégration du module Chantiers, via la gateway (http://localhost:8090 sur le poste) et avec les vrais modules (Tâches notamment). Ordre : santé et authentification, CRUD, flux métier, cas d'erreur. Chaque requête vérifie son code HTTP, son contenu et un temps de réponse inférieur à 2 s. La collection crée ses chantiers (entreprise fictive Souss Bâtiment) et les supprime à la fin du dossier 3. Le mot de passe est celui de DEMO_MOT_DE_PASSE (.env). En ligne de commande : make postman-chantiers.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -28,7 +28,8 @@
   "variable": [
     {
       "key": "gateway",
-      "value": "http://localhost:8080"
+      "value": "http://localhost:8090",
+      "description": "Gateway sur le poste (GATEWAY_PORT de .env)"
     },
     {
       "key": "email",

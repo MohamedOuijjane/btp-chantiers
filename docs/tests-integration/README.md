@@ -3,7 +3,7 @@
 | Fichier | Contenu |
 |---|---|
 | `cahier-tests-integration-chantiers.docx` | Cahier des tests d'intégration : périmètre, matrice des dépendances, 10 scénarios détaillés, plan d'exécution, résultats |
-| `chantiers-integration.postman_collection.json` | Collection Postman (35 requêtes, 4 dossiers) rejouant les scénarios principaux via la gateway |
+| `chantiers-integration.postman_collection.json` | Collection Postman (35 requêtes, 4 dossiers) rejouant les scénarios principaux via la gateway (`http://localhost:8090`) |
 
 Les tests automatisés se trouvent dans
 [`services/chantiers-service/src/test/java/ma/uiz/btp/chantiers/integration/`](../../services/chantiers-service/src/test/java/ma/uiz/btp/chantiers/integration/)
@@ -33,6 +33,14 @@ Avec la stack démarrée (`make up`) :
 make postman-chantiers
 ```
 
-Newman tourne dans le réseau Docker de la stack et écrit un rapport JUnit dans `docs/tests-integration/resultats/`. Dans Postman : importer la collection, régler la variable `motDePasse` sur la valeur de `DEMO_MOT_DE_PASSE` (`.env`), puis lancer le Runner sur toute la collection, dans l'ordre.
+Newman tourne dans le réseau Docker de la stack (il joint la gateway sur `http://gateway:8080`, port interne du conteneur) et écrit un rapport JUnit dans `docs/tests-integration/resultats/`. Dans Postman : importer la collection, vérifier la variable `gateway` (`http://localhost:8090`, port `GATEWAY_PORT` de `.env`), régler la variable `motDePasse` sur la valeur de `DEMO_MOT_DE_PASSE` (`.env`), puis lancer le Runner sur toute la collection, dans l'ordre.
 
 La collection crée deux chantiers et une tâche, puis les supprime à la fin du dossier 3.
+
+## Adresses utiles (poste local)
+
+| Élément | URL |
+|---|---|
+| Gateway | http://localhost:8090 |
+| Swagger UI du module Chantiers | http://localhost:8081/swagger-ui.html |
+| Contrat OpenAPI | http://localhost:8081/v3/api-docs |
